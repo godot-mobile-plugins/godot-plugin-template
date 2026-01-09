@@ -134,6 +134,9 @@ fi
 
 lowercase_plugin_node_name=$(printf '%s' "$plugin_node_name" | tr '[:upper:]' '[:lower:]')
 
+package_suffix_old="plugintemplate"
+package_suffix_new="$lowercase_plugin_node_name"
+
 display_status "Replacing 'plugintemplate' with '$lowercase_plugin_node_name'"
 
 if ! $dry_run; then
@@ -240,6 +243,25 @@ else
 	find "$ROOT_DIR" -type f -not -path "$ROOT_DIR/.git/*" -exec grep -l -F "Plugin Template" {} + || true
 fi
 
+display_status "Replacing Android package declarations"
+
+if ! $dry_run; then
+	find "$ROOT_DIR" -type f \
+		\( -name "*.java" -o -name "*.kt" \) \
+		-not -path "$ROOT_DIR/.git/*" \
+		-not -path "$ROOT_DIR/ios/*" \
+		-exec env LC_ALL=C "${sed_i[@]}" \
+		-e "s/\.\b$package_suffix_old\b/.$package_suffix_new/g" {} +
+fi
+
+display_status "Renaming Android package directories"
+
+if ! $dry_run; then
+	find "$ROOT_DIR/android" -depth -type d \
+		-name "$package_suffix_old" \
+		-execdir bash -c \
+		'mv -v "$1" "$2"' -- "$package_suffix_old" "$package_suffix_new" \;
+fi
 
 display_status "Removing initialization section from README doc"
 
