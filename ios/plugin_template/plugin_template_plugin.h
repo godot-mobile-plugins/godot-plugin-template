@@ -2,8 +2,8 @@
 // © 2026-present https://github.com/cengiz-pz
 //
 
-#ifndef plugin_template_plugin_implementation_h
-#define plugin_template_plugin_implementation_h
+#ifndef plugin_template_plugin_h
+#define plugin_template_plugin_h
 
 #import <Foundation/Foundation.h>
 
@@ -34,4 +34,4 @@ public:
 	~PluginTemplatePlugin();
 };
 
-#endif /* plugin_template_plugin_implementation_h */
+#endif /* plugin_template_plugin_h */
