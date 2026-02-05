@@ -1,5 +1,5 @@
 //
-// © 2026-present https://github.com/cengiz-pz
+// © 2026-present https://github.com/<<GitHubUsername>>
 //
 
 #ifndef plugin_template_logger_h

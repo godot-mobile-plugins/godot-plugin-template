@@ -10,6 +10,8 @@ ROOT_DIR=$(realpath "$SCRIPT_DIR/..")
 
 plugin_node_name=""
 dry_run=false
+author_name=""
+github_username=""
 
 # Portable in-place sed handling
 sed_cmd=(sed)
@@ -25,11 +27,13 @@ function display_help()
 	$SCRIPT_DIR/echocolor.sh -y "The " -Y "$0 script" -y " renames plugin template files and content"
 	echo
 	$SCRIPT_DIR/echocolor.sh -Y "Syntax:"
-	$SCRIPT_DIR/echocolor.sh -y "	$0 [-h|n <plugin node name>|-d]"
+	$SCRIPT_DIR/echocolor.sh -y "	$0 -n <plugin node name> [-h|a <author name>|g <GitHub username>|-d]"
 	echo
 	$SCRIPT_DIR/echocolor.sh -Y "Options:"
 	$SCRIPT_DIR/echocolor.sh -y "	h	display usage information"
-	$SCRIPT_DIR/echocolor.sh -y "	n	specify name of the plugin node (eg. ConnectionState)"
+	$SCRIPT_DIR/echocolor.sh -y "	n	specify the name of the plugin node (eg. ConnectionState)"
+	$SCRIPT_DIR/echocolor.sh -y "	a	specify the name of the plugin author (eg. 'Maria Wang')"
+	$SCRIPT_DIR/echocolor.sh -y "	g	specify the GitHub username of the plugin author (eg. mariawang)"
 	$SCRIPT_DIR/echocolor.sh -y "	d	dry-run mode; show what would be done without making changes"
 	echo
 	$SCRIPT_DIR/echocolor.sh -Y "Examples:"
@@ -37,6 +41,8 @@ function display_help()
 	$SCRIPT_DIR/echocolor.sh -y "		$> $0 -n OneStopShop"
 	$SCRIPT_DIR/echocolor.sh -y "	* Dry-run for OneStopShop plugin"
 	$SCRIPT_DIR/echocolor.sh -y "		$> $0 -n OneStopShop -d"
+	$SCRIPT_DIR/echocolor.sh -y "	* Create a OneStopShop plugin & specify author information"
+	$SCRIPT_DIR/echocolor.sh -y "		$> $0 -n OneStopShop -a 'Maria Wang' -g mariawang"
 	echo
 }
 
@@ -101,9 +107,9 @@ replace_string() {
 	fi
 
 	if $dry_run; then
-		echo "Would replace '$target' → '$replacement' in the following files:"
+		echo "Would replace '$target' -> '$replacement' in the following files:"
 	else
-		echo "Replacing '$target' → '$replacement' in the following files:"
+		echo "Replacing '$target' -> '$replacement' in the following files:"
 	fi
 
 	printf '%s\n' "$matching_files" | sed 's/^/  /'
@@ -182,7 +188,7 @@ rename_template() {
 	echo
 }
 
-while getopts "hn:d" option; do
+while getopts "hn:da:g:" option; do
 	case $option in
 		h)
 			display_help
@@ -192,6 +198,12 @@ while getopts "hn:d" option; do
 			;;
 		d)
 			dry_run=true
+			;;
+		a)
+			author_name=$OPTARG
+			;;
+		g)
+			github_username=$OPTARG
 			;;
 		\?)
 			display_error "Invalid option: $option"
@@ -260,6 +272,24 @@ else
 	echo "Would remove initialization section in $ROOT_DIR/docs/README.md"
 fi
 echo
+
+
+if ! [[ -z "$author_name" ]]; then
+	display_status "Replacing '<<AuthorName>>' with '$author_name'"
+	replace_string "$dry_run" "$ROOT_DIR" "<<AuthorName>>" "$author_name"
+else
+	echo "Author name not specified. Skipping."
+	echo
+fi
+
+
+if ! [[ -z "$github_username" ]]; then
+	display_status "Replacing '<<GitHubUsername>>' with '$github_username'"
+	replace_string "$dry_run" "$ROOT_DIR" "<<GitHubUsername>>" "$github_username"
+else
+	echo "GitHub username not specified. Skipping."
+	echo
+fi
 
 
 display_status "Initialization completed; self-destructing"
