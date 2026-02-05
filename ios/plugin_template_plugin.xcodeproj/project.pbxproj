@@ -7,10 +7,14 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		076A67072F0F6ECC00EFE1F3 /* plugin_template_plugin_bootstrap.mm in Sources */ = {isa = PBXBuildFile; fileRef = 076A67062F0F6ECC00EFE1F3 /* plugin_template_plugin_bootstrap.mm */; };
-		07799B802EEE73CC00619332 /* PluginTemplate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 07799B7F2EEE73CC00619332 /* PluginTemplate.swift */; };
-		078173322EF018C10087ACA0 /* plugin_template_logger.mm in Sources */ = {isa = PBXBuildFile; fileRef = 078173312EF018C00087ACA0 /* plugin_template_logger.mm */; };
-		90CAAA9924E71FF10013969F /* plugin_template_plugin.mm in Sources */ = {isa = PBXBuildFile; fileRef = 90CAAA9824E71FF10013969F /* plugin_template_plugin.mm */; };
+		078A3A442F336DA7008B4674 /* plugin_template_logger.h in Sources */ = {isa = PBXBuildFile; fileRef = 07C98E012F3348BA002D3480 /* plugin_template_logger.h */; };
+		078A3A452F336DA7008B4674 /* plugin_template_logger.mm in Sources */ = {isa = PBXBuildFile; fileRef = 07C98E022F3348BA002D3480 /* plugin_template_logger.mm */; };
+		078A3A462F336DA7008B4674 /* plugin_template_plugin.h in Sources */ = {isa = PBXBuildFile; fileRef = 07C98E032F3348BA002D3480 /* plugin_template_plugin.h */; };
+		078A3A472F336DA7008B4674 /* plugin_template_plugin.mm in Sources */ = {isa = PBXBuildFile; fileRef = 07C98E042F3348BA002D3480 /* plugin_template_plugin.mm */; };
+		078A3A482F336DA7008B4674 /* plugin_template_plugin_bootstrap.h in Sources */ = {isa = PBXBuildFile; fileRef = 07C98E052F3348BA002D3480 /* plugin_template_plugin_bootstrap.h */; };
+		078A3A492F336DA7008B4674 /* plugin_template_plugin_bootstrap.mm in Sources */ = {isa = PBXBuildFile; fileRef = 07C98E062F3348BA002D3480 /* plugin_template_plugin_bootstrap.mm */; };
+		078A3A4A2F336DA7008B4674 /* plugin_template_plugin-Bridging-Header.h in Sources */ = {isa = PBXBuildFile; fileRef = 07C98E072F3348BA002D3480 /* plugin_template_plugin-Bridging-Header.h */; };
+		078A3A4B2F336DA7008B4674 /* PluginTemplate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 07C98E082F3348BA002D3480 /* PluginTemplate.swift */; };
 		94A1B0B2910D06DA0F4D3D3C /* Pods_plugin_template_plugin.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 380C444E6383B0C8ACA7CA7D /* Pods_plugin_template_plugin.framework */; };
 /* End PBXBuildFile section */
 
@@ -27,20 +31,18 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-		073B52C32ECF241C0063663B /* plugin_template_plugin-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "plugin_template_plugin-Bridging-Header.h"; sourceTree = "<group>"; };
-		076A67052F0F6ECC00EFE1F3 /* plugin_template_plugin_bootstrap.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = plugin_template_plugin_bootstrap.h; sourceTree = "<group>"; };
-		076A67062F0F6ECC00EFE1F3 /* plugin_template_plugin_bootstrap.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = plugin_template_plugin_bootstrap.mm; sourceTree = "<group>"; };
-		07787D0C2EDA6C22009B6F5F /* plugin_template_logger.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = plugin_template_logger.h; sourceTree = "<group>"; };
-		07799B7F2EEE73CC00619332 /* PluginTemplate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PluginTemplate.swift; sourceTree = "<group>"; };
-		078173312EF018C00087ACA0 /* plugin_template_logger.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = plugin_template_logger.mm; sourceTree = "<group>"; };
+		07C98E012F3348BA002D3480 /* plugin_template_logger.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = plugin_template_logger.h; sourceTree = "<group>"; };
+		07C98E022F3348BA002D3480 /* plugin_template_logger.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = plugin_template_logger.mm; sourceTree = "<group>"; };
+		07C98E032F3348BA002D3480 /* plugin_template_plugin.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = plugin_template_plugin.h; sourceTree = "<group>"; };
+		07C98E042F3348BA002D3480 /* plugin_template_plugin.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = plugin_template_plugin.mm; sourceTree = "<group>"; };
+		07C98E052F3348BA002D3480 /* plugin_template_plugin_bootstrap.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = plugin_template_plugin_bootstrap.h; sourceTree = "<group>"; };
+		07C98E062F3348BA002D3480 /* plugin_template_plugin_bootstrap.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = plugin_template_plugin_bootstrap.mm; sourceTree = "<group>"; };
+		07C98E072F3348BA002D3480 /* plugin_template_plugin-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "plugin_template_plugin-Bridging-Header.h"; sourceTree = "<group>"; };
+		07C98E082F3348BA002D3480 /* PluginTemplate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PluginTemplate.swift; sourceTree = "<group>"; };
 		1A3D1E30D9DC57319C20B62B /* Pods-plugin_template_plugin.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-plugin_template_plugin.release.xcconfig"; path = "Target Support Files/Pods-plugin_template_plugin/Pods-plugin_template_plugin.release.xcconfig"; sourceTree = "<group>"; };
 		380C444E6383B0C8ACA7CA7D /* Pods_plugin_template_plugin.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_plugin_template_plugin.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		403D7C7BCFBA671DEF15AE95 /* Pods-plugin_template_plugin.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-plugin_template_plugin.debug.xcconfig"; path = "Target Support Files/Pods-plugin_template_plugin/Pods-plugin_template_plugin.debug.xcconfig"; sourceTree = "<group>"; };
 		90CAAA9424E71FF10013969F /* libplugin_template_plugin.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libplugin_template_plugin.a; sourceTree = BUILT_PRODUCTS_DIR; };
-		90CAAA9724E71FF10013969F /* plugin_template_plugin.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = plugin_template_plugin.h; sourceTree = "<group>"; };
-		90CAAA9824E71FF10013969F /* plugin_template_plugin.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = plugin_template_plugin.mm; sourceTree = "<group>"; };
-		AAE936A0178A8EA9BB753CEA /* Pods-plugin_template_plugin_implementation.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-plugin_template_plugin_implementation.debug.xcconfig"; path = "Target Support Files/Pods-inapp_review_plugin/Pods-plugin_template_plugin_implementation.debug.xcconfig"; sourceTree = "<group>"; };
-		D5F7A9D28867FD798F31BF3B /* Pods-plugin_template_plugin_implementation.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-plugin_template_plugin_implementation.release.xcconfig"; path = "Target Support Files/Pods-inapp_review_plugin/Pods-plugin_template_plugin_implementation.release.xcconfig"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -55,13 +57,26 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		07C98E092F3348BA002D3480 /* src */ = {
+			isa = PBXGroup;
+			children = (
+				07C98E012F3348BA002D3480 /* plugin_template_logger.h */,
+				07C98E022F3348BA002D3480 /* plugin_template_logger.mm */,
+				07C98E032F3348BA002D3480 /* plugin_template_plugin.h */,
+				07C98E042F3348BA002D3480 /* plugin_template_plugin.mm */,
+				07C98E052F3348BA002D3480 /* plugin_template_plugin_bootstrap.h */,
+				07C98E062F3348BA002D3480 /* plugin_template_plugin_bootstrap.mm */,
+				07C98E072F3348BA002D3480 /* plugin_template_plugin-Bridging-Header.h */,
+				07C98E082F3348BA002D3480 /* PluginTemplate.swift */,
+			);
+			path = src;
+			sourceTree = "<group>";
+		};
 		66EA7AD27171A8F93A267403 /* Pods */ = {
 			isa = PBXGroup;
 			children = (
 				403D7C7BCFBA671DEF15AE95 /* Pods-plugin_template_plugin.debug.xcconfig */,
 				1A3D1E30D9DC57319C20B62B /* Pods-plugin_template_plugin.release.xcconfig */,
-				AAE936A0178A8EA9BB753CEA /* Pods-plugin_template_plugin_implementation.debug.xcconfig */,
-				D5F7A9D28867FD798F31BF3B /* Pods-plugin_template_plugin_implementation.release.xcconfig */,
 			);
 			path = Pods;
 			sourceTree = "<group>";
@@ -69,7 +84,7 @@
 		90CAAA8B24E71FF10013969F = {
 			isa = PBXGroup;
 			children = (
-				90CAAA9624E71FF10013969F /* plugin_template */,
+				07C98E092F3348BA002D3480 /* src */,
 				90CAAA9524E71FF10013969F /* Products */,
 				90CAAAA824E72A8A0013969F /* Frameworks */,
 				66EA7AD27171A8F93A267403 /* Pods */,
@@ -82,21 +97,6 @@
 				90CAAA9424E71FF10013969F /* libplugin_template_plugin.a */,
 			);
 			name = Products;
-			sourceTree = "<group>";
-		};
-		90CAAA9624E71FF10013969F /* plugin_template */ = {
-			isa = PBXGroup;
-			children = (
-				076A67052F0F6ECC00EFE1F3 /* plugin_template_plugin_bootstrap.h */,
-				076A67062F0F6ECC00EFE1F3 /* plugin_template_plugin_bootstrap.mm */,
-				07799B7F2EEE73CC00619332 /* PluginTemplate.swift */,
-				07787D0C2EDA6C22009B6F5F /* plugin_template_logger.h */,
-				078173312EF018C00087ACA0 /* plugin_template_logger.mm */,
-				073B52C32ECF241C0063663B /* plugin_template_plugin-Bridging-Header.h */,
-				90CAAA9724E71FF10013969F /* plugin_template_plugin.h */,
-				90CAAA9824E71FF10013969F /* plugin_template_plugin.mm */,
-			);
-			path = plugin_template;
 			sourceTree = "<group>";
 		};
 		90CAAAA824E72A8A0013969F /* Frameworks */ = {
@@ -191,10 +191,14 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				076A67072F0F6ECC00EFE1F3 /* plugin_template_plugin_bootstrap.mm in Sources */,
-				078173322EF018C10087ACA0 /* plugin_template_logger.mm in Sources */,
-				07799B802EEE73CC00619332 /* PluginTemplate.swift in Sources */,
-				90CAAA9924E71FF10013969F /* plugin_template_plugin.mm in Sources */,
+				078A3A442F336DA7008B4674 /* plugin_template_logger.h in Sources */,
+				078A3A452F336DA7008B4674 /* plugin_template_logger.mm in Sources */,
+				078A3A462F336DA7008B4674 /* plugin_template_plugin.h in Sources */,
+				078A3A472F336DA7008B4674 /* plugin_template_plugin.mm in Sources */,
+				078A3A482F336DA7008B4674 /* plugin_template_plugin_bootstrap.h in Sources */,
+				078A3A492F336DA7008B4674 /* plugin_template_plugin_bootstrap.mm in Sources */,
+				078A3A4A2F336DA7008B4674 /* plugin_template_plugin-Bridging-Header.h in Sources */,
+				078A3A4B2F336DA7008B4674 /* PluginTemplate.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -394,7 +398,7 @@
 				);
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
-				SWIFT_OBJC_BRIDGING_HEADER = "plugin_template/plugin_template_plugin-Bridging-Header.h";
+				SWIFT_OBJC_BRIDGING_HEADER = "src/plugin_template_plugin-Bridging-Header.h";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 5.9;
 				TARGETED_DEVICE_FAMILY = "1,2";
@@ -475,7 +479,7 @@
 				);
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
-				SWIFT_OBJC_BRIDGING_HEADER = "plugin_template/plugin_template_plugin-Bridging-Header.h";
+				SWIFT_OBJC_BRIDGING_HEADER = "src/plugin_template_plugin-Bridging-Header.h";
 				SWIFT_VERSION = 5.9;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
