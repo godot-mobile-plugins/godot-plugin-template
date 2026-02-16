@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 50;
+	objectVersion = 77;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -322,9 +322,6 @@
 				CODE_SIGN_STYLE = Automatic;
 				HEADER_SEARCH_PATHS = (
 					"$(inherited)",
-					"$(SRCROOT)/adformat",
-					"$(SRCROOT)/mediation",
-					"$(SRCROOT)/model",
 				);
 				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -387,14 +384,6 @@
 				);
 				OTHER_LDFLAGS = (
 					"$(inherited)",
-					"-ObjC",
-					"-framework",
-					os,
-					"-lswiftCore",
-					"-lswiftDispatch",
-					"-lswiftObjectiveC",
-					"-lswiftUIKit",
-					"-lswiftFoundation",
 				);
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
@@ -412,9 +401,6 @@
 				CODE_SIGN_STYLE = Automatic;
 				HEADER_SEARCH_PATHS = (
 					"$(inherited)",
-					"$(SRCROOT)/adformat",
-					"$(SRCROOT)/mediation",
-					"$(SRCROOT)/model",
 				);
 				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -468,14 +454,6 @@
 				);
 				OTHER_LDFLAGS = (
 					"$(inherited)",
-					"-ObjC",
-					"-framework",
-					os,
-					"-lswiftCore",
-					"-lswiftDispatch",
-					"-lswiftObjectiveC",
-					"-lswiftUIKit",
-					"-lswiftFoundation",
 				);
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
