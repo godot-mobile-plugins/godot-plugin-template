@@ -191,7 +191,7 @@ do
 		-bg|--background) 	colorBackground=1 ;;
 		-il|--in-line)		inline=1 ;;
 		-ran|--random)		color=$(($RANDOM %255)) ;;
-		-rb|--rainbow)	
+		-rb|--rainbow)
 			color=$rainbowColor
 			rainbowColorIndex=0
 		;;

@@ -22,36 +22,36 @@ tasks {
 	register<Copy>("buildDebug") {
 		description = "Copies the generated GDScript and debug AAR binary to the plugin directory"
 		dependsOn(":addon:generateGDScript")
-        dependsOn(":addon:copyAssets")
+		dependsOn(":addon:copyAssets")
 		dependsOn(":android:assembleDebug")
 
-        destinationDir = file("${project.extra["pluginDir"]}")
+		into("${project.extra["pluginDir"]}")
 
-		into(".") {
-			from("${rootDir}/../addon/build/output/")
+		from("${rootDir}/../addon/build/output") {
+			include("addons/${project.extra["pluginName"]}/**")
 		}
 
-		into("addons/${project.extra["pluginName"]}/bin/debug") {
-			from("${rootDir}/../android/build/outputs/aar")
+		from("${rootDir}/../android/build/outputs/aar") {
 			include("${project.extra["pluginName"]}-debug.aar")
+			into("addons/${project.extra["pluginName"]}/bin/debug")
 		}
 	}
 
 	register<Copy>("buildRelease") {
 		description = "Copies the generated GDScript and release AAR binary to the plugin directory"
 		dependsOn(":addon:generateGDScript")
-        dependsOn(":addon:copyAssets")
+		dependsOn(":addon:copyAssets")
 		dependsOn(":android:assembleRelease")
 
-        destinationDir = file("${project.extra["pluginDir"]}")
+		into("${project.extra["pluginDir"]}")
 
-		into(".") {
-			from("${rootDir}/../addon/build/output/")
+		from("${rootDir}/../addon/build/output") {
+			include("addons/${project.extra["pluginName"]}/**")
 		}
 
-		into("addons/${project.extra["pluginName"]}/bin/release") {
-			from("${rootDir}/../android/build/outputs/aar")
+		from("${rootDir}/../android/build/outputs/aar") {
 			include("${project.extra["pluginName"]}-release.aar")
+			into("addons/${project.extra["pluginName"]}/bin/release")
 		}
 	}
 
@@ -65,7 +65,7 @@ tasks {
 		description = "Copies the assembled plugin to demo application's addons directory"
 		dependsOn("buildDebug")
 
-        destinationDir = file("${project.extra["demoDir"]}")
+		destinationDir = file("${project.extra["demoDir"]}")
 
 		into(".") {
 			from("${project.extra["pluginDir"]}")

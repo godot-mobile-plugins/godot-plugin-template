@@ -40,12 +40,10 @@ local.properties
 *.d
 *.o
 *.dblite
-Pods/
 ios/godot/
 
 # Xcode
 xcuserdata/
-project.xcworkspace/
 
 # macOS
 .DS_Store
