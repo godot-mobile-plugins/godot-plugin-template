@@ -221,15 +221,17 @@ function uninstall_plugin_from_demo()
 
 function install_plugin_to_demo()
 {
-	display_status "Installing Android plugin to demo app"
-	run_gradle_task "installToDemo"
-
 	display_status "Installing iOS plugin to demo app"
 	if [[ -f "$IOS_ARCHIVE" ]]; then
 		$SCRIPT_DIR/install.sh -t $DEMO_DIR -z $IOS_ARCHIVE
+
+		sleep 1
 	else
 		display_warning "Cannot install iOS plugin to demo app. '$IOS_ARCHIVE' not found!"
 	fi
+
+	display_status "Installing Android plugin to demo app"
+	run_gradle_task "installToDemo"
 }
 
 

@@ -13,8 +13,10 @@ ADDON_OUTPUT_DIR=$ADDON_DIR/build/output
 GODOT_DIR=$IOS_DIR/godot
 IOS_CONFIG_DIR=$IOS_DIR/config
 COMMON_DIR=$ROOT_DIR/common
-PODS_DIR=$IOS_DIR/Pods
 BUILD_DIR=$IOS_DIR/build
+DERIVED_DATA_DIR=$BUILD_DIR/DerivedData
+SOURCE_PACKAGES_DIR=$DERIVED_DATA_DIR/SourcePackages
+ARTIFACTS_DIR=$SOURCE_PACKAGES_DIR/artifacts
 DEST_DIR=$BUILD_DIR/release
 FRAMEWORK_DIR=$BUILD_DIR/framework
 LIB_DIR=$BUILD_DIR/lib
@@ -29,14 +31,25 @@ IOS_INITIALIZATION_METHOD="${PLUGIN_MODULE_NAME}_plugin_init"
 IOS_DEINITIALIZATION_METHOD="${PLUGIN_MODULE_NAME}_plugin_deinit"
 GODOT_VERSION=$($SCRIPT_DIR/get_config_property.sh -f $COMMON_CONFIG_FILE godotVersion)
 GODOT_RELEASE_TYPE=$($SCRIPT_DIR/get_config_property.sh -f $COMMON_CONFIG_FILE godotReleaseType)
+
+IOS_DEPENDENCIES=()
+while IFS= read -r line; do
+	IOS_DEPENDENCIES+=("$line")
+done < <($SCRIPT_DIR/get_config_property.sh -a -f $IOS_CONFIG_FILE dependencies)
+
+SCHEME="${PLUGIN_MODULE_NAME}_plugin"
+PROJECT="${SCHEME}.xcodeproj"
+WORKSPACE="${PROJECT}/project.xcworkspace"
+SPM_DIR=$IOS_DIR/$WORKSPACE/xcshareddata/swiftpm
+
 BUILD_TIMEOUT=40	# increase this value using -t option if device is not able to generate all headers before godot build is killed
 
 do_clean=false
-do_remove_pod_trunk=false
+do_remove_spm_cache=false
 do_remove_godot=false
 do_download_godot=false
 do_generate_headers=false
-do_install_pods=false
+do_update_spm=false
 do_build=false
 do_create_zip=false
 
@@ -62,8 +75,8 @@ function display_help()
 	echo_yellow "	G	download the configured godot version into godot directory"
 	echo_yellow "	h	display usage information"
 	echo_yellow "	H	generate godot headers"
-	echo_yellow "	p	remove pods and pod repo trunk"
-	echo_yellow "	P	install pods"
+	echo_yellow "	p	remove SPM packages and build artifacts"
+	echo_yellow "	P	add SPM packages from configuration"
 	echo_yellow "	t	change timeout value for godot build"
 	echo_yellow "	z	create zip archive, include configured version in the file name"
 	echo
@@ -72,7 +85,7 @@ function display_help()
 	echo_yellow "		$> $0 -cgA"
 	echo_yellow "		$> $0 -cgpGHPbz"
 	echo
-	echo_yellow "	* clean existing build, remove pods and pod repo trunk, and rebuild plugin"
+	echo_yellow "	* clean existing build, remove SPM packages, and rebuild plugin"
 	echo_yellow "		$> $0 -cpPb"
 	echo
 	echo_yellow "	* clean existing build and rebuild plugin"
@@ -165,24 +178,12 @@ function clean_plugin_build()
 }
 
 
-function remove_pods()
+function remove_spm_cache()
 {
-	display_status "Removing Pods..."
-
-	if [[ -d $PODS_DIR ]]
-	then
-		display_progress "Removing '$PODS_DIR' directory..."
-		rm -rf $PODS_DIR
-	else
-		display_warning "'$PODS_DIR' directory does not exist"
-	fi
-
-	if [[ -f $IOS_DIR/Podfile.lock ]]
-	then
-		display_progress "Removing '$IOS_DIR/Podfile.lock' file..."
-		rm -f $IOS_DIR/Podfile.lock
-	else
-		display_warning "'$IOS_DIR/Podfile.lock' file does not exist"
+	display_status "Removing SPM Cache..."
+	if [[ -d $SOURCE_PACKAGES_DIR ]]; then
+		display_progress "Removing $SOURCE_PACKAGES_DIR ..."
+		rm -rf $SOURCE_PACKAGES_DIR
 	fi
 }
 
@@ -287,20 +288,60 @@ function validate_godot_version()
 }
 
 
-function install_pods()
+function update_spm()
 {
-	display_status "Installing pods..."
-	pod install --repo-update --project-directory=$IOS_DIR/ || true
+	display_status "Updating SPM dependencies..."
+
+	if ! command -v ruby >/dev/null 2>&1; then
+		display_error "Ruby is required to inject SPM dependencies."
+		exit 1
+	fi
+
+	if ! gem list -i "^xcodeproj$" >/dev/null 2>&1; then
+		display_progress "Installing 'xcodeproj' Ruby gem..."
+		gem install xcodeproj --user-install
+	fi
+
+	local count=0
+	for i in "${IOS_DEPENDENCIES[@]}"; do
+		[[ -n "$i" ]] && ((count++))
+	done
+
+	if [ "$count" -eq 0 ]; then
+		display_warning "No dependencies found for plugin. Skipping SPM update."
+	else
+		local noun="dependencies"
+		if [ "$count" -eq 1 ]; then
+			noun="dependency"
+		fi
+
+		display_progress "Found $count SPM $noun:"
+
+		local dep
+		for dep in "${IOS_DEPENDENCIES[@]}"; do
+			if [[ -n "$dep" ]]; then
+				echo "  • $dep"
+			fi
+		done
+
+		echo ""
+
+		display_progress "Updating Package.swift with dependencies..."
+		ruby "$SCRIPT_DIR/spm_manager.rb" "$IOS_DIR/$PROJECT" "${IOS_DEPENDENCIES[@]}"
+
+		display_progress "Resolving SPM packages..."
+		xcodebuild -resolvePackageDependencies \
+			-project "$IOS_DIR/$PROJECT" \
+			-scheme "$SCHEME" \
+			-derivedDataPath "$DERIVED_DATA_DIR" || true
+
+		display_status "SPM update completed."
+	fi
 }
 
 
 function build_plugin()
 {
-	if [[ ! -d "$PODS_DIR" ]]; then
-		display_error "Pods directory does not exist. Run 'pod install' first."
-		exit 1
-	fi
-
 	if [[ ! -d "$GODOT_DIR" ]]; then
 		display_error "$GODOT_DIR directory does not exist. Can't build plugin."
 		exit 1
@@ -315,11 +356,9 @@ function build_plugin()
 	# Validate that the Godot version matches the configured version
 	validate_godot_version
 
-	SCHEME=${1:-${PLUGIN_MODULE_NAME}_plugin}
-	PROJECT=${2:-${PLUGIN_MODULE_NAME}_plugin.xcodeproj}
-	WORKSPACE="${PROJECT}/project.xcworkspace"
-	OUT=${PLUGIN_NAME}
-	CLASS=${PLUGIN_NAME}
+	if [[ ! -d "$SPM_DIR" ]]; then
+		display_warning "Swift Package Manager directory does not exist. Run with '-P' option if project has dependencies."
+	fi
 
 	mkdir -p $FRAMEWORK_DIR
 	mkdir -p $LIB_DIR
@@ -329,7 +368,7 @@ function build_plugin()
 		-workspace "$IOS_DIR/$WORKSPACE" \
 		-scheme $SCHEME \
 		-archivePath "$LIB_DIR/ios_release.xcarchive" \
-		-derivedDataPath "$BUILD_DIR/DerivedData" \
+		-derivedDataPath $DERIVED_DATA_DIR \
 		-sdk iphoneos \
 		SKIP_INSTALL=NO \
 		GCC_GENERATE_DEPENDENCIES=NO
@@ -339,7 +378,7 @@ function build_plugin()
 		-workspace "$IOS_DIR/$WORKSPACE" \
 		-scheme $SCHEME \
 		-archivePath "$LIB_DIR/sim_release.xcarchive" \
-		-derivedDataPath "$BUILD_DIR/DerivedData" \
+		-derivedDataPath $DERIVED_DATA_DIR \
 		-sdk iphonesimulator \
 		SKIP_INSTALL=NO \
 		GCC_GENERATE_DEPENDENCIES=NO
@@ -349,7 +388,7 @@ function build_plugin()
 		-workspace "$IOS_DIR/$WORKSPACE" \
 		-scheme $SCHEME \
 		-archivePath "$LIB_DIR/ios_debug.xcarchive" \
-		-derivedDataPath "$BUILD_DIR/DerivedData" \
+		-derivedDataPath $DERIVED_DATA_DIR \
 		-sdk iphoneos \
 		SKIP_INSTALL=NO \
 		GCC_PREPROCESSOR_DEFINITIONS="DEBUG_ENABLED=1" \
@@ -360,38 +399,38 @@ function build_plugin()
 		-workspace "$IOS_DIR/$WORKSPACE" \
 		-scheme $SCHEME \
 		-archivePath "$LIB_DIR/sim_debug.xcarchive" \
-		-derivedDataPath "$BUILD_DIR/DerivedData" \
+		-derivedDataPath $DERIVED_DATA_DIR \
 		-sdk iphonesimulator \
 		SKIP_INSTALL=NO \
 		GCC_PREPROCESSOR_DEFINITIONS="DEBUG_ENABLED=1" \
 		GCC_GENERATE_DEPENDENCIES=NO
 
-	mv $LIB_DIR/ios_release.xcarchive/Products/usr/local/lib/lib${SCHEME}.a $LIB_DIR/ios_release.xcarchive/Products/usr/local/lib/${OUT}.a
-	mv $LIB_DIR/sim_release.xcarchive/Products/usr/local/lib/lib${SCHEME}.a $LIB_DIR/sim_release.xcarchive/Products/usr/local/lib/${OUT}.a
-	mv $LIB_DIR/ios_debug.xcarchive/Products/usr/local/lib/lib${SCHEME}.a $LIB_DIR/ios_debug.xcarchive/Products/usr/local/lib/${OUT}.a
-	mv $LIB_DIR/sim_debug.xcarchive/Products/usr/local/lib/lib${SCHEME}.a $LIB_DIR/sim_debug.xcarchive/Products/usr/local/lib/${OUT}.a
+	mv $LIB_DIR/ios_release.xcarchive/Products/usr/local/lib/lib${SCHEME}.a $LIB_DIR/ios_release.xcarchive/Products/usr/local/lib/${PLUGIN_NAME}.a
+	mv $LIB_DIR/sim_release.xcarchive/Products/usr/local/lib/lib${SCHEME}.a $LIB_DIR/sim_release.xcarchive/Products/usr/local/lib/${PLUGIN_NAME}.a
+	mv $LIB_DIR/ios_debug.xcarchive/Products/usr/local/lib/lib${SCHEME}.a $LIB_DIR/ios_debug.xcarchive/Products/usr/local/lib/${PLUGIN_NAME}.a
+	mv $LIB_DIR/sim_debug.xcarchive/Products/usr/local/lib/lib${SCHEME}.a $LIB_DIR/sim_debug.xcarchive/Products/usr/local/lib/${PLUGIN_NAME}.a
 
-	if [[ -d "$FRAMEWORK_DIR/${OUT}.release.xcframework" ]]
+	if [[ -d "$FRAMEWORK_DIR/${PLUGIN_NAME}.release.xcframework" ]]
 	then
-		rm -rf $FRAMEWORK_DIR/${OUT}.release.xcframework
+		rm -rf $FRAMEWORK_DIR/${PLUGIN_NAME}.release.xcframework
 	fi
 
-	if [[ -d "$FRAMEWORK_DIR/${OUT}.debug.xcframework" ]]
+	if [[ -d "$FRAMEWORK_DIR/${PLUGIN_NAME}.debug.xcframework" ]]
 	then
-		rm -rf $FRAMEWORK_DIR/${OUT}.debug.xcframework
+		rm -rf $FRAMEWORK_DIR/${PLUGIN_NAME}.debug.xcframework
 	fi
 
 	display_status "Creating release framework"
 	xcodebuild -create-xcframework \
-		-library "$LIB_DIR/ios_release.xcarchive/Products/usr/local/lib/${OUT}.a" \
-		-library "$LIB_DIR/sim_release.xcarchive/Products/usr/local/lib/${OUT}.a" \
-		-output "$FRAMEWORK_DIR/${OUT}.release.xcframework"
+		-library "$LIB_DIR/ios_release.xcarchive/Products/usr/local/lib/${PLUGIN_NAME}.a" \
+		-library "$LIB_DIR/sim_release.xcarchive/Products/usr/local/lib/${PLUGIN_NAME}.a" \
+		-output "$FRAMEWORK_DIR/${PLUGIN_NAME}.release.xcframework"
 
 	display_status "Creating debug framework"
 	xcodebuild -create-xcframework \
-		-library "$LIB_DIR/ios_debug.xcarchive/Products/usr/local/lib/${OUT}.a" \
-		-library "$LIB_DIR/sim_debug.xcarchive/Products/usr/local/lib/${OUT}.a" \
-		-output "$FRAMEWORK_DIR/${OUT}.debug.xcframework"
+		-library "$LIB_DIR/ios_debug.xcarchive/Products/usr/local/lib/${PLUGIN_NAME}.a" \
+		-library "$LIB_DIR/sim_debug.xcarchive/Products/usr/local/lib/${PLUGIN_NAME}.a" \
+		-output "$FRAMEWORK_DIR/${PLUGIN_NAME}.debug.xcframework"
 }
 
 
@@ -451,7 +490,7 @@ function create_zip_archive()
 
 	while IFS= read -r -d '' item; do
 		if [ "$found_any" = false ]; then
-			display_progress "Frameworks found in $PODS_DIR. Creating destination directory..."
+			display_progress "Frameworks found in $ARTIFACTS_DIR. Creating destination directory..."
 			mkdir -p "$tmp_directory/ios/framework"
 			found_any=true
 		fi
@@ -459,11 +498,11 @@ function create_zip_archive()
 		display_progress "Copying framework: $item"
 		cp -r "$item" "$tmp_directory/ios/framework"
 
-	done < <(find "$PODS_DIR" -iname '*.xcframework' -type d -print0)
+	done < <(find "$ARTIFACTS_DIR" -iname '*.xcframework' -type d -print0)
 
 	# If none found
 	if [ "$found_any" = false ]; then
-		display_warning "No .xcframework items found in $PODS_DIR. Skipping directory creation and copy operation."
+		display_warning "No .xcframework items found in $ARTIFACTS_DIR. Skipping directory creation and copy operation."
 	fi
 
 	cp -r $FRAMEWORK_DIR/$PLUGIN_NAME.{release,debug}.xcframework $tmp_directory/ios/plugins
@@ -484,13 +523,13 @@ while getopts "aAbcgGhHpPt:z" option; do
 			exit;;
 		a)
 			do_generate_headers=true
-			do_install_pods=true
+			do_update_spm=true
 			do_build=true
 			;;
 		A)
 			do_download_godot=true
 			do_generate_headers=true
-			do_install_pods=true
+			do_update_spm=true
 			do_build=true
 			;;
 		b)
@@ -509,10 +548,10 @@ while getopts "aAbcgGhHpPt:z" option; do
 			do_generate_headers=true
 			;;
 		p)
-			do_remove_pod_trunk=true
+			do_remove_spm_cache=true
 			;;
 		P)
-			do_install_pods=true
+			do_update_spm=true
 			;;
 		t)
 			regex='^[0-9]+$'
@@ -542,9 +581,9 @@ then
 	clean_plugin_build
 fi
 
-if [[ "$do_remove_pod_trunk" == true ]]
+if [[ "$do_remove_spm_cache" == true ]]
 then
-	remove_pods
+	remove_spm_cache
 fi
 
 if [[ "$do_remove_godot" == true ]]
@@ -562,9 +601,9 @@ then
 	generate_godot_headers
 fi
 
-if [[ "$do_install_pods" == true ]]
+if [[ "$do_update_spm" == true ]]
 then
-	install_pods
+	update_spm
 fi
 
 if [[ "$do_build" == true ]]

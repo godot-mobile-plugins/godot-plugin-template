@@ -66,8 +66,7 @@ Thank you for your interest in contributing to the Godot PluginTemplate Plugin! 
 │   ├── config/
 │   │   ├── config.properties          # iOS configuration
 │   │   └── *.gdip                     # Godot iOS plugin config
-│   ├── godot/                         # Downloaded Godot source
-│   └── Pods/                          # CocoaPods dependencies
+│   └── .godot/                        # Downloaded Godot source
 │
 ├── script/                             # Build and utility scripts
 │   ├── build.sh                       # Main build script
@@ -124,7 +123,6 @@ sdk.dir=/usr/lib/android-sdk
 ### iOS Development (macOS only)
 - **Xcode** - Latest stable version recommended
 - **Xcode Command Line Tools** - Install via: `xcode-select --install`
-- **CocoaPods** - Install via: `sudo gem install cocoapods`
 - **SCons** - Install via: `pip3 install scons` or `brew install scons`
 - **Python 3** - Required for SCons
 
@@ -136,7 +134,6 @@ java -version
 
 # macOS/iOS only
 xcodebuild -version
-pod --version
 scons --version
 ```
 
@@ -243,8 +240,8 @@ embedded_frameworks=res://ios/framework/*.xcframework,...
 # Linker flags
 flags=-ObjC,-Wl,...
 
-# Pod dependencies
-dependencies=Dependency-SDK:1.0.0
+# SPM dependencies (format: https://github.com/owner/repo.git|version|PackageName)
+dependencies=https://github.com/owner/repo.git|version|PackageName
 ```
 
 ---
@@ -399,7 +396,7 @@ dependencies=Dependency-SDK:1.0.0
 
 | Option | Description |
 |--------|-------------|
-| `-a` | Generate headers, install pods, and build |
+| `-a` | Generate headers, add packages, and build |
 | `-A` | Download Godot + full build |
 | `-b` | Build plugin only |
 | `-c` | Clean existing build |
@@ -407,8 +404,8 @@ dependencies=Dependency-SDK:1.0.0
 | `-G` | Download Godot |
 | `-h` | Display help |
 | `-H` | Generate Godot headers |
-| `-p` | Remove pods and pod trunk |
-| `-P` | Install CocoaPods |
+| `-p` | Remove SPM packages |
+| `-P` | Add SPM packages |
 | `-t <seconds>` | Set header generation timeout |
 | `-z` | Create zip archive |
 
@@ -426,8 +423,8 @@ The iOS build process involves several steps:
    - Timeout prevents full Godot build (we only need headers)
    - Default timeout: 40 seconds (increase if needed)
 
-3. **Install CocoaPods**:
-   - Creates workspace for Xcode
+3. **Add Swift Packages**:
+   - Resolves package dependencies for Xcode
 
 4. **Build XCFrameworks**:
    - Builds for iOS device (arm64)
@@ -448,7 +445,7 @@ The iOS build process involves several steps:
 # Initial setup
 ./script/build_ios.sh -A
 
-# Development cycle (reuses Godot and pods)
+# Development cycle (reuses Godot and packages)
 ./script/build_ios.sh -cb
 
 # Update dependencies
@@ -627,13 +624,10 @@ rm -rf ~/.gradle/caches/
 
 #### iOS
 
-**Problem:** CocoaPods installation fails
+**Problem:** SPM package resolution fails
 ```bash
-# Solution: Update CocoaPods
-sudo gem install cocoapods
-pod repo update
-cd ios
-pod install --repo-update
+# Solution: Clear SPM cache and re-resolve
+./script/build_ios.sh -pP
 ```
 
 **Problem:** Header generation timeout
@@ -651,7 +645,7 @@ rm -rf ios/build/DerivedData
 
 **Problem:** "No such module" errors
 ```bash
-# Solution: Ensure pods are installed
+# Solution: Ensure packages are added and resolved
 ./script/build_ios.sh -pP
 ```
 
