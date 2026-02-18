@@ -10,7 +10,6 @@ ROOT_DIR=$(realpath $SCRIPT_DIR/..)
 IOS_DIR=$ROOT_DIR/ios
 ADDON_DIR=$ROOT_DIR/addon
 ADDON_OUTPUT_DIR=$ADDON_DIR/build/output
-GODOT_DIR=$IOS_DIR/godot
 IOS_CONFIG_DIR=$IOS_DIR/config
 COMMON_DIR=$ROOT_DIR/common
 BUILD_DIR=$IOS_DIR/build
@@ -20,8 +19,20 @@ ARTIFACTS_DIR=$SOURCE_PACKAGES_DIR/artifacts
 DEST_DIR=$BUILD_DIR/release
 FRAMEWORK_DIR=$BUILD_DIR/framework
 LIB_DIR=$BUILD_DIR/lib
+
 IOS_CONFIG_FILE=$IOS_CONFIG_DIR/config.properties
 COMMON_CONFIG_FILE=$COMMON_DIR/config/config.properties
+LOCAL_PROPERTIES_FILE=$COMMON_DIR/local.properties
+
+# Resolve GODOT_DIR: use godot.dir from local.properties if set, otherwise default to $IOS_DIR/godot
+GODOT_DIR=$IOS_DIR/godot
+if [[ -f "$LOCAL_PROPERTIES_FILE" ]]; then
+	_godot_dir_prop=$($SCRIPT_DIR/get_config_property.sh -f "$LOCAL_PROPERTIES_FILE" godot.dir)
+	if [[ -n "$_godot_dir_prop" ]]; then
+		GODOT_DIR=$(eval echo "$_godot_dir_prop")
+	fi
+	unset _godot_dir_prop
+fi
 
 PLUGIN_NODE_NAME=$($SCRIPT_DIR/get_config_property.sh -f $COMMON_CONFIG_FILE pluginNodeName)
 PLUGIN_NAME="${PLUGIN_NODE_NAME}Plugin"
@@ -269,7 +280,7 @@ function validate_godot_version()
 	local downloaded_version=$(cat "$GODOT_DIR/GODOT_VERSION" | tr -d '[:space:]')
 	local expected_version="$GODOT_VERSION"
 
-	display_status "Validating Godot version..."
+	display_status "Validating Godot version in $GODOT_DIR..."
 	echo_blue "Expected version (from config): $expected_version"
 	echo_blue "Downloaded version (from GODOT_VERSION file): $downloaded_version"
 
@@ -333,7 +344,8 @@ function update_spm()
 		xcodebuild -resolvePackageDependencies \
 			-project "$IOS_DIR/$PROJECT" \
 			-scheme "$SCHEME" \
-			-derivedDataPath "$DERIVED_DATA_DIR" || true
+			-derivedDataPath "$DERIVED_DATA_DIR" \
+			GODOT_DIR="$GODOT_DIR" || true
 
 		display_status "SPM update completed."
 	fi
@@ -371,7 +383,8 @@ function build_plugin()
 		-derivedDataPath $DERIVED_DATA_DIR \
 		-sdk iphoneos \
 		SKIP_INSTALL=NO \
-		GCC_GENERATE_DEPENDENCIES=NO
+		GCC_GENERATE_DEPENDENCIES=NO \
+		GODOT_DIR="$GODOT_DIR"
 
 	display_status "Building iOS simulator release"
 	xcodebuild archive \
@@ -381,7 +394,8 @@ function build_plugin()
 		-derivedDataPath $DERIVED_DATA_DIR \
 		-sdk iphonesimulator \
 		SKIP_INSTALL=NO \
-		GCC_GENERATE_DEPENDENCIES=NO
+		GCC_GENERATE_DEPENDENCIES=NO \
+		GODOT_DIR="$GODOT_DIR"
 
 	display_status "Building iOS debug"
 	xcodebuild archive \
@@ -392,7 +406,8 @@ function build_plugin()
 		-sdk iphoneos \
 		SKIP_INSTALL=NO \
 		GCC_PREPROCESSOR_DEFINITIONS="DEBUG_ENABLED=1" \
-		GCC_GENERATE_DEPENDENCIES=NO
+		GCC_GENERATE_DEPENDENCIES=NO \
+		GODOT_DIR="$GODOT_DIR"
 
 	display_status "Building iOS simulator debug"
 	xcodebuild archive \
@@ -403,7 +418,8 @@ function build_plugin()
 		-sdk iphonesimulator \
 		SKIP_INSTALL=NO \
 		GCC_PREPROCESSOR_DEFINITIONS="DEBUG_ENABLED=1" \
-		GCC_GENERATE_DEPENDENCIES=NO
+		GCC_GENERATE_DEPENDENCIES=NO \
+		GODOT_DIR="$GODOT_DIR"
 
 	mv $LIB_DIR/ios_release.xcarchive/Products/usr/local/lib/lib${SCHEME}.a $LIB_DIR/ios_release.xcarchive/Products/usr/local/lib/${PLUGIN_NAME}.a
 	mv $LIB_DIR/sim_release.xcarchive/Products/usr/local/lib/lib${SCHEME}.a $LIB_DIR/sim_release.xcarchive/Products/usr/local/lib/${PLUGIN_NAME}.a
@@ -485,24 +501,28 @@ function create_zip_archive()
 		exit 1
 	fi
 
-	# Stream -print0 output directly into the loop
-	found_any=false
 
-	while IFS= read -r -d '' item; do
+	if [[ -d "$ARTIFACTS_DIR" ]]; then
+		found_any=false
+
+		while IFS= read -r -d '' item; do
+			if [ "$found_any" = false ]; then
+				display_progress "Frameworks found in $ARTIFACTS_DIR. Creating destination directory..."
+				mkdir -p "$tmp_directory/ios/framework"
+				found_any=true
+			fi
+
+			display_progress "Copying framework: $item"
+			cp -r "$item" "$tmp_directory/ios/framework"
+
+		done < <(find "$ARTIFACTS_DIR" -iname '*.xcframework' -type d -print0)
+
+		# If none found
 		if [ "$found_any" = false ]; then
-			display_progress "Frameworks found in $ARTIFACTS_DIR. Creating destination directory..."
-			mkdir -p "$tmp_directory/ios/framework"
-			found_any=true
+			display_warning "No .xcframework items found in $ARTIFACTS_DIR. Skipping framework directory."
 		fi
-
-		display_progress "Copying framework: $item"
-		cp -r "$item" "$tmp_directory/ios/framework"
-
-	done < <(find "$ARTIFACTS_DIR" -iname '*.xcframework' -type d -print0)
-
-	# If none found
-	if [ "$found_any" = false ]; then
-		display_warning "No .xcframework items found in $ARTIFACTS_DIR. Skipping directory creation and copy operation."
+	else
+		display_warning "'$ARTIFACTS_DIR' not found. Skipping framework directory."
 	fi
 
 	cp -r $FRAMEWORK_DIR/$PLUGIN_NAME.{release,debug}.xcframework $tmp_directory/ios/plugins

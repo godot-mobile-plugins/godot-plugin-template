@@ -44,6 +44,7 @@ Thank you for your interest in contributing to the Godot PluginTemplate Plugin! 
 │   ├── build.gradle.kts               # Root build configuration
 │   ├── config.gradle.kts              # Common configuration
 │   ├── gradle.properties              # Gradle properties
+│   ├── local.properties               # Local machine config (gitignored)
 │   ├── settings.gradle.kts            # Gradle settings
 │   ├── build/
 │   │   ├── archive/                   # Generated archives
@@ -66,7 +67,7 @@ Thank you for your interest in contributing to the Godot PluginTemplate Plugin! 
 │   ├── config/
 │   │   ├── config.properties          # iOS configuration
 │   │   └── *.gdip                     # Godot iOS plugin config
-│   └── .godot/                        # Downloaded Godot source
+│   └── .godot/                        # Downloaded Godot source (default location; configurable via local.properties)
 │
 ├── script/                             # Build and utility scripts
 │   ├── build.sh                       # Main build script
@@ -118,6 +119,11 @@ sdk.dir=C\:\\Users\\YourUsername\\AppData\\Local\\Android\\Sdk
 Sample `local.properties` on Unix-like command-line:
 ```properties
 sdk.dir=/usr/lib/android-sdk
+```
+
+Optionally, set `godot.dir` to use a Godot source tree at a custom location instead of the default `ios/godot/`:
+```properties
+godot.dir=/path/to/your/shared/godot
 ```
 
 ### iOS Development (macOS only)
@@ -206,9 +212,11 @@ android-library = { id = "com.android.library", version.ref = "android-plugin" }
 kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 ```
 
-### <img src="https://raw.githubusercontent.com/godot-mobile-plugins/godot-plugin-template/main/addon/src/icon.png" width="20"> Android SDK Configuration
+### <img src="https://raw.githubusercontent.com/godot-mobile-plugins/godot-plugin-template/main/addon/src/icon.png" width="20"> Local Configuration
 
-Create `common/local.properties` to specify your Android SDK location:
+Create `common/local.properties` to configure machine-specific paths. This file is gitignored and must be created locally.
+
+#### Android SDK Location
 
 ```properties
 # Windows
@@ -221,7 +229,18 @@ sdk.dir=/Users/YourUsername/Library/Android/sdk
 sdk.dir=/usr/lib/android-sdk
 ```
 
-**Note:** This file is gitignored and must be created locally.
+#### Godot Directory (iOS — optional)
+
+By default, the iOS build scripts download and use the Godot source from `ios/godot/` inside the project. If you want to use a Godot source tree located elsewhere on your machine (e.g. to share it across multiple plugin projects), set `godot.dir` in `local.properties`:
+
+```properties
+# Use a shared Godot source directory outside the project
+godot.dir=/path/to/your/shared/godot
+```
+
+When `godot.dir` is not set, the build uses the `ios/godot/` directory. The path supports `~` and environment variable expansion.
+
+**Note:** The specified directory must contain a valid `GODOT_VERSION` file matching the `godotVersion` property in `common/config/config.properties`. If you use the `-G` option to download Godot, it will be downloaded to whichever directory is configured and the `GODOT_VERSION` file will be created automatically.
 
 ### <img src="https://raw.githubusercontent.com/godot-mobile-plugins/godot-plugin-template/main/addon/src/icon.png" width="20"> iOS Configuration
 
@@ -416,7 +435,7 @@ The iOS build process involves several steps:
 1. **Download Godot** (if needed):
    - Downloads the official Godot binary from GitHub
    - Version specified in `config.properties`
-   - Extracted to `ios/godot/`
+   - Extracted to `ios/godot/` by default, or to the path set by `godot.dir` in `common/local.properties`
 
 2. **Generate Headers**:
    - Starts a Godot build to generate C++ headers
@@ -433,7 +452,7 @@ The iOS build process involves several steps:
 
 #### Output Locations
 
-- **Godot source:** `ios/godot/`
+- **Godot source:** `ios/godot/` (default) or path set by `godot.dir` in `common/local.properties`
 - **Build artifacts:** `ios/build/`
 - **Frameworks:** `ios/build/framework/`
 - **Archives:** `ios/build/lib/*.xcarchive`
@@ -641,6 +660,22 @@ rm -rf ~/.gradle/caches/
 # Solution: Clean derived data
 rm -rf ios/build/DerivedData
 ./script/build_ios.sh -cb
+```
+
+**Problem:** Godot version mismatch when using a custom `godot.dir`
+```
+# The GODOT_VERSION file in the configured directory must match
+# the godotVersion property in common/config/config.properties.
+# Solution: remove and re-download Godot into the configured directory
+./script/build_ios.sh -gG
+```
+
+**Problem:** Build cannot find Godot headers after setting `godot.dir`
+```bash
+# Verify the path is set correctly in common/local.properties:
+#   godot.dir=/your/custom/path
+# Then re-generate headers:
+./script/build_ios.sh -H
 ```
 
 **Problem:** "No such module" errors
