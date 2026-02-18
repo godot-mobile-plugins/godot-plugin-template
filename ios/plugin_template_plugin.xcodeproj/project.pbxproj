@@ -277,6 +277,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
+				GODOT_DIR = "$(SRCROOT)/godot";
 				HEADER_SEARCH_PATHS = "$(inherited)";
 				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -286,7 +287,7 @@
 				);
 				LIBRARY_SEARCH_PATHS = (
 					"$(inherited)",
-					"$(PROJECT_DIR)/godot/bin",
+					"$(GODOT_DIR)/bin",
 				);
 				ONLY_ACTIVE_ARCH = YES;
 				OTHER_CFLAGS = (
@@ -331,11 +332,11 @@
 					"-DCOREAUDIO_ENABLED",
 					"-DAPPLE_EMBEDDED_ENABLED",
 					"-isystem",
-					"$(SRCROOT)/godot",
+					"$(GODOT_DIR)",
 					"-isystem",
-					"$(SRCROOT)/godot/drivers/apple_embedded",
+					"$(GODOT_DIR)/drivers/apple_embedded",
 					"-isystem",
-					"$(SRCROOT)/godot/platform/ios",
+					"$(GODOT_DIR)/platform/ios",
 				);
 				OTHER_LDFLAGS = "$(inherited)";
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -351,6 +352,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
+				GODOT_DIR = "$(SRCROOT)/godot";
 				HEADER_SEARCH_PATHS = "$(inherited)";
 				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -360,7 +362,7 @@
 				);
 				LIBRARY_SEARCH_PATHS = (
 					"$(inherited)",
-					"$(PROJECT_DIR)/godot/bin",
+					"$(GODOT_DIR)/bin",
 				);
 				ONLY_ACTIVE_ARCH = YES;
 				OTHER_CFLAGS = (
@@ -396,11 +398,11 @@
 					"-DCOREAUDIO_ENABLED",
 					"-DAPPLE_EMBEDDED_ENABLED",
 					"-isystem",
-					"$(SRCROOT)/godot",
+					"$(GODOT_DIR)",
 					"-isystem",
-					"$(SRCROOT)/godot/drivers/apple_embedded",
+					"$(GODOT_DIR)/drivers/apple_embedded",
 					"-isystem",
-					"$(SRCROOT)/godot/platform/ios",
+					"$(GODOT_DIR)/platform/ios",
 				);
 				OTHER_LDFLAGS = "$(inherited)";
 				PRODUCT_NAME = "$(TARGET_NAME)";
