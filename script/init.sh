@@ -178,10 +178,10 @@ rename_template() {
 	for item in "${to_rename[@]}"; do
 		IFS=':' read -r old_path new_path <<< "$item"
 		if $dry_run; then
-			echo "  would rename '$old_path' -> '$new_path'"
+			echo "	would rename '$old_path' -> '$new_path'"
 		else
 			mv -- "$old_path" "$new_path"
-			echo "  renamed '$old_path' -> '$new_path'"
+			echo "	renamed '$old_path' -> '$new_path'"
 		fi
 	done
 

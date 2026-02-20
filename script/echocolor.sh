@@ -23,7 +23,7 @@ background=48
 
 
 # $3 The text
-# $2 Color Code [0 - 255]  
+# $2 Color Code [0 - 255]
 # $1 Foreground 0 / Background 1
 function printColoredText {
 
