@@ -8,15 +8,11 @@ set -euo pipefail
 SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 ROOT_DIR=$(realpath $SCRIPT_DIR/..)
 IOS_DIR=$ROOT_DIR/ios
-ADDON_DIR=$ROOT_DIR/addon
-ADDON_OUTPUT_DIR=$ADDON_DIR/build/output
 IOS_CONFIG_DIR=$IOS_DIR/config
 COMMON_DIR=$ROOT_DIR/common
 BUILD_DIR=$IOS_DIR/build
 DERIVED_DATA_DIR=$BUILD_DIR/DerivedData
 SOURCE_PACKAGES_DIR=$DERIVED_DATA_DIR/SourcePackages
-ARTIFACTS_DIR=$SOURCE_PACKAGES_DIR/artifacts
-DEST_DIR=$BUILD_DIR/release
 FRAMEWORK_DIR=$BUILD_DIR/framework
 LIB_DIR=$BUILD_DIR/lib
 
@@ -36,10 +32,7 @@ fi
 
 PLUGIN_NODE_NAME=$($SCRIPT_DIR/get_config_property.sh -f $COMMON_CONFIG_FILE pluginNodeName)
 PLUGIN_NAME="${PLUGIN_NODE_NAME}Plugin"
-PLUGIN_VERSION=$($SCRIPT_DIR/get_config_property.sh -f $COMMON_CONFIG_FILE pluginVersion)
 PLUGIN_MODULE_NAME=$($SCRIPT_DIR/get_config_property.sh -f $COMMON_CONFIG_FILE pluginModuleName)
-IOS_INITIALIZATION_METHOD="${PLUGIN_MODULE_NAME}_plugin_init"
-IOS_DEINITIALIZATION_METHOD="${PLUGIN_MODULE_NAME}_plugin_deinit"
 GODOT_VERSION=$($SCRIPT_DIR/get_config_property.sh -f $COMMON_CONFIG_FILE godotVersion)
 GODOT_RELEASE_TYPE=$($SCRIPT_DIR/get_config_property.sh -f $COMMON_CONFIG_FILE godotReleaseType)
 
@@ -62,7 +55,9 @@ do_download_godot=false
 do_generate_headers=false
 do_update_spm=false
 do_build=false
-do_create_zip=false
+do_create_archive=false
+do_uninstall=false
+do_install=false
 
 
 function display_help()
@@ -74,7 +69,7 @@ function display_help()
 	echo_yellow "If plugin version is not set with the -z option, then Godot version will be used."
 	echo
 	$SCRIPT_DIR/echocolor.sh -Y "Syntax:"
-	echo_yellow "	$0 [-a|A|c|g|G|h|H|p|P|t <timeout>|z]"
+	echo_yellow "	$0 [-a|A|b|c|d|D|g|G|h|H|p|P|R|t <timeout>]"
 	echo
 	$SCRIPT_DIR/echocolor.sh -Y "Options:"
 	echo_yellow "	a	generate godot headers and build plugin"
@@ -82,19 +77,21 @@ function display_help()
 	echo_yellow "	 	build plugin"
 	echo_yellow "	b	build plugin"
 	echo_yellow "	c	remove any existing plugin build"
+	echo_yellow "	d	uninstall iOS plugin from demo app"
+	echo_yellow "	D	install iOS plugin to demo app"
 	echo_yellow "	g	remove godot directory"
 	echo_yellow "	G	download the configured godot version into godot directory"
 	echo_yellow "	h	display usage information"
 	echo_yellow "	H	generate godot headers"
 	echo_yellow "	p	remove SPM packages and build artifacts"
 	echo_yellow "	P	add SPM packages from configuration"
+	echo_yellow "	R	create iOS release archive"
 	echo_yellow "	t	change timeout value for godot build"
-	echo_yellow "	z	create zip archive, include configured version in the file name"
 	echo
 	$SCRIPT_DIR/echocolor.sh -Y "Examples:"
 	echo_yellow "	* clean existing build, remove godot, and rebuild all"
 	echo_yellow "		$> $0 -cgA"
-	echo_yellow "		$> $0 -cgpGHPbz"
+	echo_yellow "		$> $0 -cgpGHPb"
 	echo
 	echo_yellow "	* clean existing build, remove SPM packages, and rebuild plugin"
 	echo_yellow "		$> $0 -cpPb"
@@ -102,8 +99,8 @@ function display_help()
 	echo_yellow "	* clean existing build and rebuild plugin"
 	echo_yellow "		$> $0 -ca"
 	echo
-	echo_yellow "	* clean existing build and rebuild plugin with custom plugin version"
-	echo_yellow "		$> $0 -cHbz"
+	echo_yellow "	* clean existing build and rebuild plugin and create release archive"
+	echo_yellow "		$> $0 -R"
 	echo
 	echo_yellow "	* clean existing build and rebuild plugin with custom build-header timeout"
 	echo_yellow "		$> $0 -cHbt 15"
@@ -286,8 +283,8 @@ function validate_godot_version()
 
 	if [[ "$downloaded_version" != "$expected_version" ]]; then
 		display_error "Godot version mismatch!"
-		$SCRIPT_DIR/echocolor.sh -r "  Expected: $expected_version"
-		$SCRIPT_DIR/echocolor.sh -r "  Found:    $downloaded_version"
+		$SCRIPT_DIR/echocolor.sh -r "	Expected:	$expected_version"
+		$SCRIPT_DIR/echocolor.sh -r "	Found:		$downloaded_version"
 		echo
 		$SCRIPT_DIR/echocolor.sh -r "The Godot version in $GODOT_DIR/GODOT_VERSION does not match"
 		$SCRIPT_DIR/echocolor.sh -r "the godotVersion property in $COMMON_CONFIG_FILE"
@@ -331,7 +328,7 @@ function update_spm()
 		local dep
 		for dep in "${IOS_DEPENDENCIES[@]}"; do
 			if [[ -n "$dep" ]]; then
-				echo "  • $dep"
+				echo "	• $dep"
 			fi
 		done
 
@@ -380,10 +377,9 @@ function build_plugin()
 		-workspace "$IOS_DIR/$WORKSPACE" \
 		-scheme $SCHEME \
 		-archivePath "$LIB_DIR/ios_release.xcarchive" \
-		-derivedDataPath $DERIVED_DATA_DIR \
+		-derivedDataPath "$DERIVED_DATA_DIR/ios_release" \
 		-sdk iphoneos \
 		SKIP_INSTALL=NO \
-		GCC_GENERATE_DEPENDENCIES=NO \
 		GODOT_DIR="$GODOT_DIR"
 
 	display_status "Building iOS simulator release"
@@ -391,10 +387,9 @@ function build_plugin()
 		-workspace "$IOS_DIR/$WORKSPACE" \
 		-scheme $SCHEME \
 		-archivePath "$LIB_DIR/sim_release.xcarchive" \
-		-derivedDataPath $DERIVED_DATA_DIR \
+		-derivedDataPath "$DERIVED_DATA_DIR/ios_simulator_release" \
 		-sdk iphonesimulator \
 		SKIP_INSTALL=NO \
-		GCC_GENERATE_DEPENDENCIES=NO \
 		GODOT_DIR="$GODOT_DIR"
 
 	display_status "Building iOS debug"
@@ -402,11 +397,10 @@ function build_plugin()
 		-workspace "$IOS_DIR/$WORKSPACE" \
 		-scheme $SCHEME \
 		-archivePath "$LIB_DIR/ios_debug.xcarchive" \
-		-derivedDataPath $DERIVED_DATA_DIR \
+		-derivedDataPath "$DERIVED_DATA_DIR/ios_debug" \
 		-sdk iphoneos \
 		SKIP_INSTALL=NO \
-		GCC_PREPROCESSOR_DEFINITIONS="DEBUG_ENABLED=1" \
-		GCC_GENERATE_DEPENDENCIES=NO \
+		GCC_PREPROCESSOR_DEFINITIONS="\$(inherited) DEBUG_ENABLED=1" \
 		GODOT_DIR="$GODOT_DIR"
 
 	display_status "Building iOS simulator debug"
@@ -414,11 +408,10 @@ function build_plugin()
 		-workspace "$IOS_DIR/$WORKSPACE" \
 		-scheme $SCHEME \
 		-archivePath "$LIB_DIR/sim_debug.xcarchive" \
-		-derivedDataPath $DERIVED_DATA_DIR \
+		-derivedDataPath "$DERIVED_DATA_DIR/ios_simulator_debug" \
 		-sdk iphonesimulator \
 		SKIP_INSTALL=NO \
-		GCC_PREPROCESSOR_DEFINITIONS="DEBUG_ENABLED=1" \
-		GCC_GENERATE_DEPENDENCIES=NO \
+		GCC_PREPROCESSOR_DEFINITIONS="\$(inherited) DEBUG_ENABLED=1" \
 		GODOT_DIR="$GODOT_DIR"
 
 	mv $LIB_DIR/ios_release.xcarchive/Products/usr/local/lib/lib${SCHEME}.a $LIB_DIR/ios_release.xcarchive/Products/usr/local/lib/${PLUGIN_NAME}.a
@@ -450,93 +443,7 @@ function build_plugin()
 }
 
 
-function create_zip_archive()
-{
-	local zip_file_name="$PLUGIN_NAME-iOS-v$PLUGIN_VERSION.zip"
-
-	if [[ -e "$DEST_DIR/$zip_file_name" ]]
-	then
-		display_warning "deleting existing $zip_file_name file..."
-		rm $DEST_DIR/$zip_file_name
-	fi
-
-	local tmp_directory=$(mktemp -d)
-
-	$SCRIPT_DIR/run_gradle_task.sh "generateGDScript"
-
-	display_status "Preparing staging directory $tmp_directory"
-
-	if [[ -d "$ADDON_OUTPUT_DIR" ]]
-	then
-		cp -r $ADDON_OUTPUT_DIR/* $tmp_directory
-
-		mkdir -p $tmp_directory/ios/plugins
-		cp $IOS_CONFIG_DIR/*.gdip $tmp_directory/ios/plugins
-
-		# Detect OS
-		if [[ "$OSTYPE" == "darwin"* ]]; then
-			# macOS: use -i ''
-			SED_INPLACE=(-i '')
-		else
-			# Linux: use -i with no backup suffix
-			SED_INPLACE=(-i)
-		fi
-
-		find "$tmp_directory" -type f \( -name '*.gdip' \) | while IFS= read -r file; do
-			display_progress "Editing: $file"
-
-			# Escape variables to handle special characters
-			ESCAPED_PLUGIN_NAME=$(printf '%s' "$PLUGIN_NAME" | sed 's/[\/&]/\\&/g')
-			ESCAPED_IOS_INITIALIZATION_METHOD=$(printf '%s' "$IOS_INITIALIZATION_METHOD" | sed 's/[\/&]/\\&/g')
-			ESCAPED_IOS_DEINITIALIZATION_METHOD=$(printf '%s' "$IOS_DEINITIALIZATION_METHOD" | sed 's/[\/&]/\\&/g')
-
-			sed "${SED_INPLACE[@]}" -e "
-				s|@pluginName@|$ESCAPED_PLUGIN_NAME|g;
-				s|@iosInitializationMethod@|$ESCAPED_IOS_INITIALIZATION_METHOD|g;
-				s|@iosDeinitializationMethod@|$ESCAPED_IOS_DEINITIALIZATION_METHOD|g
-			" "$file"
-		done
-	else
-		display_error "'$ADDON_OUTPUT_DIR' not found."
-		exit 1
-	fi
-
-
-	if [[ -d "$ARTIFACTS_DIR" ]]; then
-		found_any=false
-
-		while IFS= read -r -d '' item; do
-			if [ "$found_any" = false ]; then
-				display_progress "Frameworks found in $ARTIFACTS_DIR. Creating destination directory..."
-				mkdir -p "$tmp_directory/ios/framework"
-				found_any=true
-			fi
-
-			display_progress "Copying framework: $item"
-			cp -r "$item" "$tmp_directory/ios/framework"
-
-		done < <(find "$ARTIFACTS_DIR" -iname '*.xcframework' -type d -print0)
-
-		# If none found
-		if [ "$found_any" = false ]; then
-			display_warning "No .xcframework items found in $ARTIFACTS_DIR. Skipping framework directory."
-		fi
-	else
-		display_warning "'$ARTIFACTS_DIR' not found. Skipping framework directory."
-	fi
-
-	cp -r $FRAMEWORK_DIR/$PLUGIN_NAME.{release,debug}.xcframework $tmp_directory/ios/plugins
-
-	mkdir -p $DEST_DIR
-
-	display_status "Creating $zip_file_name file..."
-	cd $tmp_directory; zip -yr $DEST_DIR/$zip_file_name ./*; cd -
-
-	rm -rf $tmp_directory
-}
-
-
-while getopts "aAbcgGhHpPt:z" option; do
+while getopts "aAbcdDgGhHpPRt:" option; do
 	case $option in
 		h)
 			display_help
@@ -558,6 +465,12 @@ while getopts "aAbcgGhHpPt:z" option; do
 		c)
 			do_clean=true
 			;;
+		d)
+			do_uninstall=true
+			;;
+		D)
+			do_install=true
+			;;
 		g)
 			do_remove_godot=true
 			;;
@@ -573,6 +486,9 @@ while getopts "aAbcgGhHpPt:z" option; do
 		P)
 			do_update_spm=true
 			;;
+		R)
+			do_create_archive=true
+			;;
 		t)
 			regex='^[0-9]+$'
 			if ! [[ $OPTARG =~ $regex ]]
@@ -585,9 +501,6 @@ while getopts "aAbcgGhHpPt:z" option; do
 				BUILD_TIMEOUT=$OPTARG
 			fi
 			;;
-		z)
-			do_create_zip=true
-			;;
 		\?)
 			display_error "invalid option"
 			echo
@@ -595,6 +508,13 @@ while getopts "aAbcgGhHpPt:z" option; do
 			exit;;
 	esac
 done
+
+
+if [[ "$do_uninstall" == true ]]
+then
+	display_status "Uninstalling iOS plugin from demo app"
+	$SCRIPT_DIR/run_gradle_task.sh "uninstalliOS"
+fi
 
 if [[ "$do_clean" == true ]]
 then
@@ -623,15 +543,30 @@ fi
 
 if [[ "$do_update_spm" == true ]]
 then
-	update_spm
+	if [[ "${INVOKED_BY_GRADLE:-}" == "true" ]]; then
+		update_spm
+	else
+		$SCRIPT_DIR/run_gradle_task.sh "resolveSPMPackages"
+	fi
 fi
 
 if [[ "$do_build" == true ]]
 then
-	build_plugin
+	if [[ "${INVOKED_BY_GRADLE:-}" == "true" ]]; then
+		build_plugin
+	else
+		$SCRIPT_DIR/run_gradle_task.sh "buildiOS"
+	fi
 fi
 
-if [[ "$do_create_zip" == true ]]
+if [[ "$do_create_archive" == true ]]
 then
-	create_zip_archive
+	display_status "Creating iOS archive"
+	$SCRIPT_DIR/run_gradle_task.sh "createiOSArchive"
+fi
+
+if [[ "$do_install" == true ]]
+then
+	display_status "Installing iOS plugin to demo app"
+	$SCRIPT_DIR/run_gradle_task.sh "installToDemoiOS"
 fi

@@ -26,10 +26,12 @@ demo/assets/store_icons/*
 .import/
 .godot/
 
-# Android-specific
+# Gradle-specific
 .gradle/
 *.jar
 !common/gradle/wrapper/gradle-wrapper.jar
+
+# Android-specific
 *.aar
 local.properties
 

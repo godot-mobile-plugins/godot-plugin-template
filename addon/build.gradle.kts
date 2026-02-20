@@ -11,7 +11,7 @@ val catalog = extensions.getByType<VersionCatalogsExtension>().named("libs")
 
 // Map all library aliases to their actual dependency provider
 val androidDependencies = catalog.libraryAliases.map { alias ->
-    catalog.findLibrary(alias).get().get()
+	catalog.findLibrary(alias).get().get()
 }
 
 tasks {
@@ -82,7 +82,7 @@ tasks {
 			explicitTokens.forEach { (key, value) ->
 				val token = "@$key@"
 				if (result.contains(token)) {
-					println("  [DEBUG] Replacing token $token with: $value")
+					println("	[DEBUG] Replacing token $token with: $value")
 					result = result.replace(token, value)
 				}
 			}
@@ -108,12 +108,57 @@ tasks {
 							valueString
 						}
 
-					println("  [DEBUG] Replacing token $token with: $replacedValue")
+					println("	[DEBUG] Replacing token $token with: $replacedValue")
 					result = result.replace(token, replacedValue)
 				}
 			}
 
 			result
 		}
+	}
+
+	register<Copy>("generateiOSConfig") {
+		description = "Copies the iOS plugin config to the output directory and replaces tokens"
+
+		inputs.file(rootProject.file("config/config.properties"))
+		inputs.file(rootProject.file("../ios/config/config.properties")).withPropertyName("iosConfig")
+
+		from("../ios/config")
+		into("${project.extra["outputDir"]}/ios/plugins")
+
+		include("**/*.gdip")
+
+		// Explicit tokens map
+		val explicitTokens = mapOf(
+			"pluginName" to (project.extra["pluginName"] as String),
+			"iosInitializationMethod" to (project.extra["iosInitializationMethod"] as String),
+			"iosDeinitializationMethod" to (project.extra["iosDeinitializationMethod"] as String)
+		)
+
+		// Print file name before processing
+		eachFile {
+			println("[DEBUG] Processing file: ${relativePath}")
+		}
+
+		// Token replacement
+		filter { line: String ->
+			var result = line
+
+			explicitTokens.forEach { (key, value) ->
+				val token = "@$key@"
+				if (result.contains(token)) {
+					println("	[DEBUG] Replacing token $token with: $value")
+					result = result.replace(token, value)
+				}
+			}
+
+			result
+		}
+	}
+
+	// Ensure generateiOSConfig always runs after generateGDScript
+	// (token replacement order matters for the final plugin files)
+	named<Copy>("generateiOSConfig") {
+		mustRunAfter("generateGDScript")
 	}
 }

@@ -1,4 +1,16 @@
 <p align="center">
+	<a href="https://github.com/godot-mobile-plugins/godot-plugin-template">
+	<img src="https://img.shields.io/github/stars/godot-mobile-plugins/godot-plugin-template?style=social" />
+	</a>
+	<img src="https://img.shields.io/github/downloads/godot-mobile-plugins/godot-plugin-template/total" />
+	<img src="https://img.shields.io/github/downloads/godot-mobile-plugins/godot-plugin-template/latest/total" />
+	<img src="https://img.shields.io/github/v/release/godot-mobile-plugins/godot-plugin-template" />
+	<img src="https://img.shields.io/github/last-commit/godot-mobile-plugins/godot-plugin-template" />
+	<img src="https://img.shields.io/github/contributors/godot-mobile-plugins/godot-plugin-template" />
+	<img src="https://img.shields.io/github/license/godot-mobile-plugins/godot-plugin-template" />
+</p>
+
+<p align="center">
 	<img width="256" height="256" src="https://raw.githubusercontent.com/godot-mobile-plugins/godot-plugin-template/main/demo/assets/plugin-template-android.png">
 	&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 	<img width="256" height="256" src="https://raw.githubusercontent.com/godot-mobile-plugins/godot-plugin-template/main/demo/assets/plugin-template-ios.png">
@@ -240,3 +252,14 @@ Original repository: [Godot Plugin Template Plugin](https://github.com/godot-mob
 # <img src="https://raw.githubusercontent.com/godot-mobile-plugins/godot-plugin-template/main/addon/src/icon.png" width="24"> Contributing
 
 See [our guide](https://github.com/godot-mobile-plugins/godot-plugin-template?tab=contributing-ov-file) if you would like to contribute to this project.
+
+---
+
+# ⭐ Like This Plugin?
+
+If this plugin helps you, please consider:
+
+- ⭐ Starring the repository
+- 🐛 Reporting issues
+- 💡 Suggesting features
+- ❤️ Supporting development
