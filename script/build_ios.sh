@@ -49,7 +49,7 @@ SPM_DIR=$IOS_DIR/$WORKSPACE/xcshareddata/swiftpm
 BUILD_TIMEOUT=40	# increase this value using -t option if device is not able to generate all headers before godot build is killed
 
 do_clean=false
-do_remove_spm_cache=false
+do_reset_spm=false
 do_remove_godot=false
 do_download_godot=false
 do_generate_headers=false
@@ -186,11 +186,39 @@ function clean_plugin_build()
 }
 
 
-function remove_spm_cache()
+function reset_spm()
 {
-	display_status "Removing SPM Cache..."
+	display_status "Resetting SPM dependencies..."
+
+	local count=0
+	for i in "${IOS_DEPENDENCIES[@]}"; do
+		[[ -n "$i" ]] && ((count++))
+	done
+
+	if [ "$count" -gt 0 ]; then
+		display_progress "Removing SPM dependencies from project..."
+		ruby "$SCRIPT_DIR/spm_manager.rb" -d "$IOS_DIR/$PROJECT" "${IOS_DEPENDENCIES[@]}"
+
+		# Re-run xcodebuild to regenerate Package.resolved from the updated project state.
+		# This ensures transitive dependencies of removed packages are also purged.
+		display_progress "Regenerating Package.resolved after dependency removal..."
+		xcodebuild -resolvePackageDependencies \
+			-project "$IOS_DIR/$PROJECT" \
+			-scheme "$SCHEME" \
+			-derivedDataPath "$DERIVED_DATA_DIR" \
+			GODOT_DIR="$GODOT_DIR" || true
+	else
+		display_warning "No dependencies found for plugin. Skipping SPM dependency removal."
+	fi
+
+	local resolved_file="$SPM_DIR/Package.resolved"
+	if [[ -f "$resolved_file" ]]; then
+		display_progress "Removing $resolved_file ..."
+		rm -f "$resolved_file"
+	fi
+
 	if [[ -d $SOURCE_PACKAGES_DIR ]]; then
-		display_progress "Removing $SOURCE_PACKAGES_DIR ..."
+		display_progress "Removing SPM cache directory $SOURCE_PACKAGES_DIR ..."
 		rm -rf $SOURCE_PACKAGES_DIR
 	fi
 }
@@ -335,7 +363,7 @@ function update_spm()
 		echo ""
 
 		display_progress "Updating Package.swift with dependencies..."
-		ruby "$SCRIPT_DIR/spm_manager.rb" "$IOS_DIR/$PROJECT" "${IOS_DEPENDENCIES[@]}"
+		ruby "$SCRIPT_DIR/spm_manager.rb" -a "$IOS_DIR/$PROJECT" "${IOS_DEPENDENCIES[@]}"
 
 		display_progress "Resolving SPM packages..."
 		xcodebuild -resolvePackageDependencies \
@@ -481,7 +509,7 @@ while getopts "aAbcdDgGhHpPRt:" option; do
 			do_generate_headers=true
 			;;
 		p)
-			do_remove_spm_cache=true
+			do_reset_spm=true
 			;;
 		P)
 			do_update_spm=true
@@ -521,9 +549,9 @@ then
 	clean_plugin_build
 fi
 
-if [[ "$do_remove_spm_cache" == true ]]
+if [[ "$do_reset_spm" == true ]]
 then
-	remove_spm_cache
+	reset_spm
 fi
 
 if [[ "$do_remove_godot" == true ]]
