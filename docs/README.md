@@ -1,20 +1,19 @@
 <p align="center">
+	<img width="128" height="128" src="https://raw.githubusercontent.com/godot-mobile-plugins/godot-plugin-template/main/demo/assets/plugin-template-android.png">
+	&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+	<img width="128" height="128" src="https://raw.githubusercontent.com/godot-mobile-plugins/godot-plugin-template/main/demo/assets/plugin-template-ios.png">
+</p>
+
+---
+
+<div align="center">
 	<a href="https://github.com/godot-mobile-plugins/godot-plugin-template">
 	<img src="https://img.shields.io/github/stars/godot-mobile-plugins/godot-plugin-template?style=social" />
 	</a>
 	<img src="https://img.shields.io/github/downloads/godot-mobile-plugins/godot-plugin-template/total" />
 	<img src="https://img.shields.io/github/downloads/godot-mobile-plugins/godot-plugin-template/latest/total" />
 	<img src="https://img.shields.io/github/v/release/godot-mobile-plugins/godot-plugin-template" />
-	<img src="https://img.shields.io/github/last-commit/godot-mobile-plugins/godot-plugin-template" />
-	<img src="https://img.shields.io/github/contributors/godot-mobile-plugins/godot-plugin-template" />
-	<img src="https://img.shields.io/github/license/godot-mobile-plugins/godot-plugin-template" />
-</p>
-
-<p align="center">
-	<img width="256" height="256" src="https://raw.githubusercontent.com/godot-mobile-plugins/godot-plugin-template/main/demo/assets/plugin-template-android.png">
-	&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-	<img width="256" height="256" src="https://raw.githubusercontent.com/godot-mobile-plugins/godot-plugin-template/main/demo/assets/plugin-template-ios.png">
-</p>
+</div>
 
 ---
 
@@ -233,6 +232,7 @@ func _on_template_ready(template: PluginTemplateInfo):
 | [Connection State](https://github.com/godot-mobile-plugins/godot-connection-state) | ✅ | ✅ | ✅ | ✅ | MIT |
 | [OAuth 2.0](https://github.com/godot-mobile-plugins/godot-oauth2) | ✅ | ✅ | ✅ | ✅ | MIT |
 | [QR](https://github.com/godot-mobile-plugins/godot-qr) | ✅ | ✅ | ✅ | ✅ | MIT |
+| [Firebase](https://github.com/godot-mobile-plugins/godot-firebase) | ✅ | ✅ | ✅ | ✅ | MIT |
 | [Plugin Template](https://github.com/godot-mobile-plugins/godot-plugin-template) | ✅ | ✅ | ✅ | ✅ | MIT |
 
 ---
@@ -255,11 +255,16 @@ See [our guide](https://github.com/godot-mobile-plugins/godot-plugin-template?ta
 
 ---
 
-# ⭐ Like This Plugin?
+# 💖 Support the Project
 
-If this plugin helps you, please consider:
+If this plugin has helped you, consider supporting its development! Every bit of support helps keep the plugin updated and bug-free.
 
-- ⭐ Starring the repository
-- 🐛 Reporting issues
-- 💡 Suggesting features
-- ❤️ Supporting development
+| | Ways to Help | How to do it |
+| :--- | :--- | :--- |
+|✨⭐| **Spread the Word** | [Star this repo](https://github.com/godot-mobile-plugins/godot-plugin-template/stargazers) to help others find it. |
+|💡✨| **Give Feedback** | [Open an issue](https://github.com/godot-mobile-plugins/godot-plugin-template/issues) or [suggest a feature](https://github.com/godot-mobile-plugins/godot-plugin-template/issues/new). |
+|🧩| **Contribute** | [Submit a PR](https://github.com/godot-mobile-plugins/godot-plugin-template?tab=contributing-ov-file) to help improve the codebase. |
+|❤️| **Buy a Coffee** | Support the maintainers on GitHub Sponsors or other platforms. |
+
+## ⭐ Star History
+[![Star History Chart](https://api.star-history.com/svg?repos=godot-mobile-plugins/godot-plugin-template&type=Date)](https://star-history.com/#godot-mobile-plugins/godot-plugin-template&Date)

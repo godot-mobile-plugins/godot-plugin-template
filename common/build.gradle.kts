@@ -11,6 +11,35 @@ plugins {
 	alias(libs.plugins.undercouch.download) apply false
 }
 
+/**
+ * Reads SPM dependency entries from a config.properties file.
+ *
+ * Each qualifying line has the form:
+ *   dependency.<ProductName>=<URL>|<minimumVersion>
+ *
+ * Returns a list of Maps, each containing the keys "name", "url", and "version".
+ */
+fun readSpmDependencies(configFile: File): List<Map<String, String>> {
+	val deps = mutableListOf<Map<String, String>>()
+	if (!configFile.exists()) return deps
+	configFile.forEachLine { raw ->
+		val line = raw.trim()
+		if (line.startsWith("dependency.") && line.contains("=")) {
+			val (rawKey, rawValue) = line.split("=", limit = 2)
+			val productName = rawKey.trim().removePrefix("dependency.").trim()
+			val parts = rawValue.trim().split("|", limit = 2)
+			if (productName.isNotEmpty() && parts.size == 2) {
+				val url = parts[0].trim()
+				val version = parts[1].trim()
+				if (url.isNotEmpty() && version.isNotEmpty()) {
+					deps.add(mapOf("name" to productName, "url" to url, "version" to version))
+				}
+			}
+		}
+	}
+	return deps
+}
+
 allprojects {
 	tasks.withType<JavaCompile> {
 		options.compilerArgs.add("-Xlint:unchecked")
@@ -79,13 +108,126 @@ tasks {
 		dependsOn("buildAndroidRelease")
 	}
 
-	register<Exec>("resolveSPMPackages") {
+	register("resetSPMDependencies") {
+		description = "Removes SPM dependencies from the Xcode project and cleans up all SPM artifacts"
+
 		inputs.files(fileTree("${rootDir}/../ios/config"))
 
+		doLast {
+			val iosConfigFile = file("${rootDir}/../ios/config/config.properties")
+			val deps = readSpmDependencies(iosConfigFile)
+			val pluginModuleName = project.extra["pluginModuleName"] as String
+			val iosDir = file("${rootDir}/../ios")
+			val xcodeproj = "${iosDir}/${pluginModuleName}_plugin.xcodeproj"
+			val scriptDir = file("${rootDir}/../script")
+
+			if (deps.isEmpty()) {
+				println("Warning: No dependencies found for plugin. Skipping SPM dependency removal.")
+			} else {
+				println("Removing SPM dependencies from project...")
+				deps.forEach { dep ->
+					exec {
+						commandLine(
+							"ruby", "${scriptDir}/spm_manager.rb", "-d", xcodeproj,
+							dep["url"], dep["version"], dep["name"]
+						)
+					}
+				}
+
+				// Re-run xcodebuild to regenerate Package.resolved from the updated project state.
+				// This ensures transitive dependencies of removed packages are also purged.
+				println("Regenerating Package.resolved after dependency removal...")
+				exec {
+					commandLine(
+						"xcodebuild", "-resolvePackageDependencies",
+						"-project", xcodeproj,
+						"-scheme", "${pluginModuleName}_plugin",
+						"-derivedDataPath", "${iosDir}/build/DerivedData"
+					)
+					isIgnoreExitValue = true
+				}
+			}
+
+			val spmDir = file("$xcodeproj/project.xcworkspace/xcshareddata/swiftpm")
+			val resolvedFile = spmDir.resolve("Package.resolved")
+			if (resolvedFile.exists()) {
+				println("Removing ${resolvedFile.path} ...")
+				resolvedFile.delete()
+			}
+
+			val sourcePackagesDir = file("${iosDir}/build/DerivedData/SourcePackages")
+			if (sourcePackagesDir.exists()) {
+				println("Removing SPM cache directory ${sourcePackagesDir.path} ...")
+				sourcePackagesDir.deleteRecursively()
+			}
+		}
+	}
+
+	register("updateSPMDependencies") {
+		description = "Adds SPM dependencies from ios/config/config.properties into the Xcode project"
+
+		inputs.files(fileTree("${rootDir}/../ios/config"))
 		outputs.dir("${rootDir}/../ios/${project.extra["pluginModuleName"]}_plugin.xcodeproj")
 
+		finalizedBy("resolveSPMDependencies")
+
+		doLast {
+			val iosConfigFile = file("${rootDir}/../ios/config/config.properties")
+			val deps = readSpmDependencies(iosConfigFile)
+			val pluginModuleName = project.extra["pluginModuleName"] as String
+			val iosDir = file("${rootDir}/../ios")
+			val xcodeproj = "${iosDir}/${pluginModuleName}_plugin.xcodeproj"
+			val scriptDir = file("${rootDir}/../script")
+
+			if (deps.isEmpty()) {
+				println("Warning: No dependencies found for plugin. Skipping SPM update.")
+				return@doLast
+			}
+
+			val noun = if (deps.size == 1) "dependency" else "dependencies"
+			println("Found ${deps.size} SPM $noun:")
+			deps.forEach { println("\t• ${it["name"]} (${it["url"]} @ ${it["version"]})") }
+			println()
+
+			// Verify Ruby and the xcodeproj gem are available
+			val rubyAvailable = exec {
+				commandLine("which", "ruby")
+				isIgnoreExitValue = true
+			}.exitValue == 0
+			if (!rubyAvailable) {
+				throw GradleException("Ruby is required to inject SPM dependencies but was not found on PATH.")
+			}
+
+			val gemAvailable = exec {
+				commandLine("gem", "list", "-i", "^xcodeproj\$")
+				isIgnoreExitValue = true
+			}.exitValue == 0
+			if (!gemAvailable) {
+				println("Installing 'xcodeproj' Ruby gem...")
+				exec { commandLine("gem", "install", "xcodeproj", "--user-install") }
+			}
+
+			println("Updating Xcode project with SPM dependencies...")
+			deps.forEach { dep ->
+				exec {
+					commandLine(
+						"ruby", "${scriptDir}/spm_manager.rb", "-a", xcodeproj,
+						dep["url"], dep["version"], dep["name"]
+					)
+				}
+			}
+
+			println("SPM update completed.")
+		}
+	}
+
+	register<Exec>("resolveSPMDependencies") {
+		description = "Resolves SPM package dependencies via xcodebuild (invoked by build_ios.sh -r)"
+
+		mustRunAfter("updateSPMDependencies")
+
 		val scriptDir = file("${rootDir}/../script")
-		commandLine("bash", "${scriptDir}/build_ios.sh", "-P")
+		commandLine("bash", "${scriptDir}/build_ios.sh", "-r")
 		environment("INVOKED_BY_GRADLE", "true")
 	}
 
@@ -93,7 +235,8 @@ tasks {
 		dependsOn(project(":addon").tasks.named("generateGDScript"))
 		dependsOn(project(":addon").tasks.named("generateiOSConfig"))
 		dependsOn(project(":addon").tasks.named("copyAssets"))
-		dependsOn("resolveSPMPackages")
+		dependsOn("updateSPMDependencies")
+		dependsOn("resolveSPMDependencies")
 
 		inputs.files(project(":addon").tasks.named("generateGDScript").map { it.outputs.files })
 		inputs.files(project(":addon").tasks.named("generateiOSConfig").map { it.outputs.files })

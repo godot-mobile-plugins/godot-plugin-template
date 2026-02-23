@@ -36,11 +36,6 @@ PLUGIN_MODULE_NAME=$($SCRIPT_DIR/get_config_property.sh -f $COMMON_CONFIG_FILE p
 GODOT_VERSION=$($SCRIPT_DIR/get_config_property.sh -f $COMMON_CONFIG_FILE godotVersion)
 GODOT_RELEASE_TYPE=$($SCRIPT_DIR/get_config_property.sh -f $COMMON_CONFIG_FILE godotReleaseType)
 
-IOS_DEPENDENCIES=()
-while IFS= read -r line; do
-	IOS_DEPENDENCIES+=("$line")
-done < <($SCRIPT_DIR/get_config_property.sh -a -f $IOS_CONFIG_FILE dependencies)
-
 SCHEME="${PLUGIN_MODULE_NAME}_plugin"
 PROJECT="${SCHEME}.xcodeproj"
 WORKSPACE="${PROJECT}/project.xcworkspace"
@@ -54,6 +49,7 @@ do_remove_godot=false
 do_download_godot=false
 do_generate_headers=false
 do_update_spm=false
+do_resolve_spm_dependencies=false
 do_build=false
 do_create_archive=false
 do_uninstall=false
@@ -69,7 +65,7 @@ function display_help()
 	echo_yellow "If plugin version is not set with the -z option, then Godot version will be used."
 	echo
 	$SCRIPT_DIR/echocolor.sh -Y "Syntax:"
-	echo_yellow "	$0 [-a|A|b|c|d|D|g|G|h|H|p|P|R|t <timeout>]"
+	echo_yellow "	$0 [-a|A|b|c|d|D|g|G|h|H|p|P|r|R|t <timeout>]"
 	echo
 	$SCRIPT_DIR/echocolor.sh -Y "Options:"
 	echo_yellow "	a	generate godot headers and build plugin"
@@ -85,6 +81,7 @@ function display_help()
 	echo_yellow "	H	generate godot headers"
 	echo_yellow "	p	remove SPM packages and build artifacts"
 	echo_yellow "	P	add SPM packages from configuration"
+	echo_yellow "	r	resolve SPM dependencies"
 	echo_yellow "	R	create iOS release archive"
 	echo_yellow "	t	change timeout value for godot build"
 	echo
@@ -186,41 +183,13 @@ function clean_plugin_build()
 }
 
 
-function reset_spm()
+function resolve_spm_dependencies()
 {
-	display_status "Resetting SPM dependencies..."
-
-	local count=0
-	for i in "${IOS_DEPENDENCIES[@]}"; do
-		[[ -n "$i" ]] && ((count++))
-	done
-
-	if [ "$count" -gt 0 ]; then
-		display_progress "Removing SPM dependencies from project..."
-		ruby "$SCRIPT_DIR/spm_manager.rb" -d "$IOS_DIR/$PROJECT" "${IOS_DEPENDENCIES[@]}"
-
-		# Re-run xcodebuild to regenerate Package.resolved from the updated project state.
-		# This ensures transitive dependencies of removed packages are also purged.
-		display_progress "Regenerating Package.resolved after dependency removal..."
-		xcodebuild -resolvePackageDependencies \
-			-project "$IOS_DIR/$PROJECT" \
-			-scheme "$SCHEME" \
-			-derivedDataPath "$DERIVED_DATA_DIR" \
-			GODOT_DIR="$GODOT_DIR" || true
-	else
-		display_warning "No dependencies found for plugin. Skipping SPM dependency removal."
-	fi
-
-	local resolved_file="$SPM_DIR/Package.resolved"
-	if [[ -f "$resolved_file" ]]; then
-		display_progress "Removing $resolved_file ..."
-		rm -f "$resolved_file"
-	fi
-
-	if [[ -d $SOURCE_PACKAGES_DIR ]]; then
-		display_progress "Removing SPM cache directory $SOURCE_PACKAGES_DIR ..."
-		rm -rf $SOURCE_PACKAGES_DIR
-	fi
+	xcodebuild -resolvePackageDependencies \
+		-project "$IOS_DIR/$PROJECT" \
+		-scheme "$SCHEME" \
+		-derivedDataPath "$DERIVED_DATA_DIR" \
+		GODOT_DIR="$GODOT_DIR" || true
 }
 
 
@@ -324,59 +293,6 @@ function validate_godot_version()
 }
 
 
-function update_spm()
-{
-	display_status "Updating SPM dependencies..."
-
-	if ! command -v ruby >/dev/null 2>&1; then
-		display_error "Ruby is required to inject SPM dependencies."
-		exit 1
-	fi
-
-	if ! gem list -i "^xcodeproj$" >/dev/null 2>&1; then
-		display_progress "Installing 'xcodeproj' Ruby gem..."
-		gem install xcodeproj --user-install
-	fi
-
-	local count=0
-	for i in "${IOS_DEPENDENCIES[@]}"; do
-		[[ -n "$i" ]] && ((count++))
-	done
-
-	if [ "$count" -eq 0 ]; then
-		display_warning "No dependencies found for plugin. Skipping SPM update."
-	else
-		local noun="dependencies"
-		if [ "$count" -eq 1 ]; then
-			noun="dependency"
-		fi
-
-		display_progress "Found $count SPM $noun:"
-
-		local dep
-		for dep in "${IOS_DEPENDENCIES[@]}"; do
-			if [[ -n "$dep" ]]; then
-				echo "	• $dep"
-			fi
-		done
-
-		echo ""
-
-		display_progress "Updating Package.swift with dependencies..."
-		ruby "$SCRIPT_DIR/spm_manager.rb" -a "$IOS_DIR/$PROJECT" "${IOS_DEPENDENCIES[@]}"
-
-		display_progress "Resolving SPM packages..."
-		xcodebuild -resolvePackageDependencies \
-			-project "$IOS_DIR/$PROJECT" \
-			-scheme "$SCHEME" \
-			-derivedDataPath "$DERIVED_DATA_DIR" \
-			GODOT_DIR="$GODOT_DIR" || true
-
-		display_status "SPM update completed."
-	fi
-}
-
-
 function build_plugin()
 {
 	if [[ ! -d "$GODOT_DIR" ]]; then
@@ -471,7 +387,7 @@ function build_plugin()
 }
 
 
-while getopts "aAbcdDgGhHpPRt:" option; do
+while getopts "aAbcdDgGhHpPrRt:" option; do
 	case $option in
 		h)
 			display_help
@@ -514,6 +430,9 @@ while getopts "aAbcdDgGhHpPRt:" option; do
 		P)
 			do_update_spm=true
 			;;
+		r)
+			do_resolve_spm_dependencies=true
+			;;
 		R)
 			do_create_archive=true
 			;;
@@ -551,7 +470,7 @@ fi
 
 if [[ "$do_reset_spm" == true ]]
 then
-	reset_spm
+	$SCRIPT_DIR/run_gradle_task.sh "resetSPMDependencies"
 fi
 
 if [[ "$do_remove_godot" == true ]]
@@ -571,11 +490,12 @@ fi
 
 if [[ "$do_update_spm" == true ]]
 then
-	if [[ "${INVOKED_BY_GRADLE:-}" == "true" ]]; then
-		update_spm
-	else
-		$SCRIPT_DIR/run_gradle_task.sh "resolveSPMPackages"
-	fi
+	$SCRIPT_DIR/run_gradle_task.sh "updateSPMDependencies"
+fi
+
+if [[ "$do_resolve_spm_dependencies" == true ]]
+then
+	resolve_spm_dependencies
 fi
 
 if [[ "$do_build" == true ]]
