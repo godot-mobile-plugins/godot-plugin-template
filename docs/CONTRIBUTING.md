@@ -259,8 +259,9 @@ embedded_frameworks=res://ios/framework/*.xcframework,...
 # Linker flags
 flags=-ObjC,-Wl,...
 
-# SPM dependencies (format: https://github.com/owner/repo.git|version|PackageName)
-dependencies=https://github.com/owner/repo.git|version|PackageName
+# SPM dependencies (format: dependency.<ProductName>=<URL>|<minimumVersion>)
+dependency.ProductName=https://github.com/owner/repo.git|minimumVersion
+dependency.ProductName2=https://github.com/owner/repo2.git|minimumVersion2
 ```
 
 ---

@@ -5,24 +5,28 @@
 require 'xcodeproj'
 
 def print_usage
-	puts "Usage: ruby spm_manager.rb -a|-d <path_to_xcodeproj> <dependency1> [dependency2 ...]"
+	puts "Usage: ruby spm_manager.rb -a|-d <path_to_xcodeproj> <url> <version> <product_name>"
 	puts ""
 	puts "Options:"
-	puts "  -a    Add the specified SPM dependencies to the Xcode project"
-	puts "  -d    Remove the specified SPM dependencies from the Xcode project"
+	puts "  -a    Add the specified SPM dependency to the Xcode project"
+	puts "  -d    Remove the specified SPM dependency from the Xcode project"
 	puts ""
-	puts "Example:"
-	puts "  ruby spm_manager.rb -a MyProject.xcodeproj \"https://github.com/URL1|Version1|ProductName1\" \"https://github.com/URL2|Version2|ProductName2\""
-	puts "  ruby spm_manager.rb -d MyProject.xcodeproj \"https://github.com/URL1|Version1|ProductName1\""
+	puts "Examples:"
+	puts "  ruby spm_manager.rb -a MyProject.xcodeproj https://github.com/URL 1.0.0 ProductName"
+	puts "  ruby spm_manager.rb -d MyProject.xcodeproj https://github.com/URL 1.0.0 ProductName"
 end
 
 # Argument Validation
-if ARGV.length < 3
+if ARGV.length != 5
 	print_usage
 	exit 1
 end
 
-option = ARGV[0]
+option       = ARGV[0]
+project_path = ARGV[1]
+url          = ARGV[2].strip
+version      = ARGV[3].strip
+product_name = ARGV[4].strip
 
 unless ['-a', '-d'].include?(option)
 	puts "Error: Unknown option '#{option}'. Must be -a (add) or -d (remove)."
@@ -31,18 +35,19 @@ unless ['-a', '-d'].include?(option)
 	exit 1
 end
 
-project_path = ARGV[1]
-deps = ARGV[2..-1]
-
 unless File.exist?(project_path)
 	puts "Error: Xcode project not found at #{project_path}"
+	exit 1
+end
+
+if url.empty? || version.empty? || product_name.empty?
+	puts "Error: url, version, and product_name must all be non-empty."
 	exit 1
 end
 
 # Xcode Project Manipulation
 begin
 	project = Xcodeproj::Project.open(project_path)
-	# Target selection logic (defaults to the first target)
 	target = project.targets.first
 
 	if target.nil?
@@ -51,20 +56,22 @@ begin
 	end
 
 	if option == '-a'
-		# Clear existing SPM packages to avoid duplicates on rebuilds
-		project.root_object.package_references.clear
-		target.package_product_dependencies.clear
+		# Check for an existing product dependency with the same name to avoid duplicates
+		existing_dep = target.package_product_dependencies.find do |dep|
+			dep.product_name == product_name
+		end
 
-		# Dynamically inject SPM dependencies
-		deps.each do |dep|
-			next if dep.empty?
-			# Expected format: "https://github.com/URL|Version|ProductName"
-			parts = dep.split('|').map(&:strip)
+		if existing_dep
+			puts "Warning: Product dependency '#{product_name}' already exists in the project. Skipping add.\n\n"
+		else
+			# Reuse an existing package reference for the same URL, or create a new one
+			pkg = project.root_object.package_references.find do |p|
+				p.repositoryURL == url
+			end
 
-			if parts.size == 3
-				url, version, product_name = parts
-
-				# Create the remote SPM package reference
+			if pkg
+				puts "Reusing existing package reference for '#{url}'."
+			else
 				pkg = project.new(Xcodeproj::Project::Object::XCRemoteSwiftPackageReference)
 				pkg.repositoryURL = url
 				pkg.requirement = {
@@ -72,56 +79,53 @@ begin
 					'minimumVersion' => version
 				}
 				project.root_object.package_references << pkg
-
-				# Create the product dependency and link it to the target
-				ref = project.new(Xcodeproj::Project::Object::XCSwiftPackageProductDependency)
-				ref.product_name = product_name
-				ref.package = pkg
-				target.package_product_dependencies << ref
-			else
-				puts "Warning: Skipping invalid SPM dependency format: #{dep}. Expected 'URL|Version|ProductName'\n\n"
 			end
-		end
 
-		puts "Successfully updated SPM dependencies in #{File.basename(project_path)}\n\n"
+			# Create the product dependency and link it to the shared package reference
+			ref = project.new(Xcodeproj::Project::Object::XCSwiftPackageProductDependency)
+			ref.product_name = product_name
+			ref.package = pkg
+			target.package_product_dependencies << ref
+
+			puts "Successfully added SPM dependency '#{product_name}' (#{url} @ #{version}) to #{File.basename(project_path)}\n\n"
+		end
 
 	elsif option == '-d'
-		# Parse the dependency specs to determine which URLs and product names to remove
-		urls_to_remove = []
-		product_names_to_remove = []
+		# Remove the product dependency from the target
+		dep_to_remove = target.package_product_dependencies.find do |dep|
+			dep.product_name == product_name
+		end
 
-		deps.each do |dep|
-			next if dep.empty?
-			parts = dep.split('|').map(&:strip)
+		if dep_to_remove
+			target.package_product_dependencies.delete(dep_to_remove)
+			dep_to_remove.remove_from_project
+			puts "Removed product dependency '#{product_name}'."
+		else
+			puts "Warning: Product dependency '#{product_name}' not found in target. Skipping.\n\n"
+		end
 
-			if parts.size == 3
-				url, _version, product_name = parts
-				urls_to_remove << url
-				product_names_to_remove << product_name
-			else
-				puts "Warning: Skipping invalid SPM dependency format: #{dep}. Expected 'URL|Version|ProductName'\n\n"
+		# Only remove the package reference if no remaining product dependencies still point to it
+		pkg_to_remove = project.root_object.package_references.find do |pkg|
+			pkg.repositoryURL == url
+		end
+
+		if pkg_to_remove
+			still_in_use = target.package_product_dependencies.any? do |dep|
+				dep.package == pkg_to_remove
 			end
+
+			if still_in_use
+				puts "Package reference '#{url}' is still used by other products. Keeping it.\n\n"
+			else
+				project.root_object.package_references.delete(pkg_to_remove)
+				pkg_to_remove.remove_from_project
+				puts "Removed package reference '#{url}'.\n\n"
+			end
+		else
+			puts "Warning: Package reference '#{url}' not found in project. Skipping.\n\n"
 		end
 
-		# Collect objects to remove, then delete them from both the array and the project
-		# object graph so their definitions are fully purged from project.pbxproj
-		deps_to_remove = target.package_product_dependencies.select do |dep|
-			product_names_to_remove.include?(dep.product_name)
-		end
-		deps_to_remove.each do |dep|
-			target.package_product_dependencies.delete(dep)
-			dep.remove_from_project
-		end
-
-		pkgs_to_remove = project.root_object.package_references.select do |pkg|
-			urls_to_remove.include?(pkg.repositoryURL)
-		end
-		pkgs_to_remove.each do |pkg|
-			project.root_object.package_references.delete(pkg)
-			pkg.remove_from_project
-		end
-
-		puts "Successfully removed SPM dependencies from #{File.basename(project_path)}\n\n"
+		puts "Successfully removed SPM dependency '#{product_name}' from #{File.basename(project_path)}\n\n"
 	end
 
 	project.save
