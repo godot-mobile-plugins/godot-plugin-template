@@ -518,8 +518,10 @@ tasks {
 		archiveFileName.set(archiveName)
 		destinationDirectory.set(layout.projectDirectory.dir(outputDir))
 
-		from(layout.projectDirectory.dir(sourceDir)) {
-			includeEmptyDirs = false
+		into("res") {
+			from(layout.projectDirectory.dir(sourceDir)) {
+				includeEmptyDirs = false
+			}
 		}
 
 		doLast {
@@ -539,8 +541,10 @@ tasks {
 
 		duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 
-		from(layout.projectDirectory.dir(sourceDir)) {
-			includeEmptyDirs = false
+		into("res") {
+			from(layout.projectDirectory.dir(sourceDir)) {
+				includeEmptyDirs = false
+			}
 		}
 
 		doLast {
@@ -561,12 +565,14 @@ tasks {
 
 		duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 
-		from(layout.projectDirectory.dir(androidDir)) {
-			includeEmptyDirs = false
-		}
+		into("res") {
+			from(layout.projectDirectory.dir(androidDir)) {
+				includeEmptyDirs = false
+			}
 
-		from(layout.projectDirectory.dir(iosDir)) {
-			includeEmptyDirs = false
+			from(layout.projectDirectory.dir(iosDir)) {
+				includeEmptyDirs = false
+			}
 		}
 
 		doLast {
