@@ -231,7 +231,7 @@ tasks {
 		environment("INVOKED_BY_GRADLE", "true")
 	}
 
-	register<Exec>("buildiOS") {
+	register<Exec>("buildiOSDebug") {
 		dependsOn(project(":addon").tasks.named("generateGDScript"))
 		dependsOn(project(":addon").tasks.named("generateiOSConfig"))
 		dependsOn(project(":addon").tasks.named("copyAssets"))
@@ -261,12 +261,50 @@ tasks {
 		}
 	}
 
+	register<Exec>("buildiOSRelease") {
+		dependsOn(project(":addon").tasks.named("generateGDScript"))
+		dependsOn(project(":addon").tasks.named("generateiOSConfig"))
+		dependsOn(project(":addon").tasks.named("copyAssets"))
+		dependsOn("updateSPMDependencies")
+		dependsOn("resolveSPMDependencies")
+
+		inputs.files(project(":addon").tasks.named("generateGDScript").map { it.outputs.files })
+		inputs.files(project(":addon").tasks.named("generateiOSConfig").map { it.outputs.files })
+		inputs.files(project(":addon").tasks.named("copyAssets").map { it.outputs.files })
+
+		inputs.dir("${rootDir}/../ios/src")
+		inputs.files(fileTree("${rootDir}/config"))
+		inputs.files(fileTree("${rootDir}/../ios/config"))
+
+		outputs.dir("${rootDir}/../ios/build/framework")
+
+		finalizedBy("copyiOSBuildArtifacts")
+
+		val scriptDir = file("${rootDir}/../script")
+		commandLine("bash", "${scriptDir}/build_ios.sh", "-B")
+		environment("INVOKED_BY_GRADLE", "true")
+
+		doLast {
+			val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
+			val current = LocalDateTime.now().format(formatter)
+			println("iOS build completed at: $current")
+		}
+	}
+
+	register("buildiOS") {
+		description = "Builds both debug and release"
+
+		dependsOn("buildiOSDebug")
+		dependsOn("buildiOSRelease")
+	}
+
 	register<Copy>("copyiOSBuildArtifacts") {
 		description = "Copies iOS build artifacts (xcframeworks and addon files) to the plugin directory"
 
-		dependsOn(":addon:copyAssets")
-		dependsOn(":addon:generateGDScript")
-		mustRunAfter("buildiOS")
+		dependsOn(project(":addon").tasks.named("copyAssets"))
+		dependsOn(project(":addon").tasks.named("generateGDScript"))
+		dependsOn(project(":addon").tasks.named("generateiOSConfig"))
+		mustRunAfter("buildiOSDebug", "buildiOSRelease")
 
 		val pluginName = project.extra["pluginName"] as String
 		val iosDir = file(project.extra["iosDir"] as String)
@@ -353,9 +391,13 @@ tasks {
 	register<Copy>("installToDemoAndroid") {
 		description = "Copies the assembled Andoid plugin to demo application's addons directory"
 
+		dependsOn(project(":addon").tasks.named("generateGDScript"))
+		dependsOn(project(":addon").tasks.named("copyAssets"))
 		dependsOn("buildAndroidDebug")
 
 		destinationDir = file("${project.extra["demoDir"]}")
+
+		duplicatesStrategy = DuplicatesStrategy.WARN
 
 		into(".") {
 			from("${project.extra["pluginDir"]}/android")
@@ -365,9 +407,12 @@ tasks {
 	register<Copy>("installToDemoiOS") {
 		description = "Copies the assembled iOS plugin to demo application's addons directory"
 
+		dependsOn("buildiOSDebug")
 		dependsOn("copyiOSBuildArtifacts")
 
 		destinationDir = file("${project.extra["demoDir"]}")
+
+		duplicatesStrategy = DuplicatesStrategy.WARN
 
 		into(".") {
 			from("${project.extra["pluginDir"]}/ios")
