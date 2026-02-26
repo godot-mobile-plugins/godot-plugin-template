@@ -69,7 +69,7 @@ dependencies {
 
 tasks {
 	register<de.undercouch.gradle.tasks.download.Download>("downloadGodotAar") {
-		val destFile = file("${rootDir}/../android/libs/${project.extra["godotAarFile"]}")
+		val destFile = file("${gradle.extra["libDir"]}/${project.extra["godotAarFile"]}")
 
 		src(project.extra["godotAarUrl"] as String)
 		dest(destFile)
