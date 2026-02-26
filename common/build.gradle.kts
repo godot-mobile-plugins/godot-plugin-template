@@ -74,6 +74,8 @@ tasks {
 			val current = LocalDateTime.now().format(formatter)
 			println("Android debug build completed at: $current")
 		}
+
+		outputs.dir("${project.extra["pluginDir"]}/android")
 	}
 
 	register<Copy>("buildAndroidRelease") {
@@ -99,6 +101,8 @@ tasks {
 			val current = LocalDateTime.now().format(formatter)
 			println("Android release build completed at: $current")
 		}
+
+		outputs.dir("${project.extra["pluginDir"]}/android")
 	}
 
 	register("buildAndroid") {
@@ -111,24 +115,30 @@ tasks {
 	register<Exec>("removeGodotDirectory") {
 		description = "Removes the directory where Godot sources were downloaded"
 
-		val scriptDir = file("${rootDir}/../script")
-		commandLine("bash", "${scriptDir}/build_ios.sh", "-g")
+		val buildScript = file("${rootDir}/../script/build_ios.sh")
+		inputs.file(buildScript)
+
+		commandLine("bash", buildScript.absolutePath, "-g")
 		environment("INVOKED_BY_GRADLE", "true")
 	}
 
 	register<Exec>("downloadGodot") {
 		description = "Downloads Godot sources into the configured directory"
 
-		val scriptDir = file("${rootDir}/../script")
-		commandLine("bash", "${scriptDir}/build_ios.sh", "-G")
+		val buildScript = file("${rootDir}/../script/build_ios.sh")
+		inputs.file(buildScript)
+
+		commandLine("bash", buildScript.absolutePath, "-G")
 		environment("INVOKED_BY_GRADLE", "true")
 	}
 
 	register<Exec>("generateGodotHeaders") {
 		description = "Runs Godot build and terminates after Godot header files have been generated"
 
-		val scriptDir = file("${rootDir}/../script")
-		commandLine("bash", "${scriptDir}/build_ios.sh", "-H")
+		val buildScript = file("${rootDir}/../script/build_ios.sh")
+		inputs.file(buildScript)
+
+		commandLine("bash", buildScript.absolutePath, "-H")
 		environment("INVOKED_BY_GRADLE", "true")
 	}
 
@@ -250,9 +260,25 @@ tasks {
 
 		mustRunAfter("updateSPMDependencies")
 
-		val scriptDir = file("${rootDir}/../script")
-		commandLine("bash", "${scriptDir}/build_ios.sh", "-r")
+		val buildScript = file("${rootDir}/../script/build_ios.sh")
+		inputs.file(buildScript)
+
+		commandLine("bash", buildScript.absolutePath, "-r")
 		environment("INVOKED_BY_GRADLE", "true")
+
+		val iosDir = file("${rootDir}/../ios")
+		val pluginModuleName = project.extra["pluginModuleName"] as String
+		val xcodeproj = "${iosDir}/${pluginModuleName}_plugin.xcodeproj"
+		val resolvedFile = file("$xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved")
+
+		inputs.file("${rootDir}/../ios/config/config.properties")
+		inputs.files(fileTree(xcodeproj) {
+			include("**/*.pbxproj", "**/project.pbxproj")
+		})
+		inputs.file(buildScript)
+
+		outputs.file(resolvedFile)
+		outputs.dir("${iosDir}/build/DerivedData/SourcePackages")
 	}
 
 	register<Exec>("buildiOSDebug") {
@@ -270,12 +296,14 @@ tasks {
 		inputs.files(fileTree("${rootDir}/config"))
 		inputs.files(fileTree("${rootDir}/../ios/config"))
 
+		val buildScript = file("${rootDir}/../script/build_ios.sh")
+		inputs.file(buildScript)
+
 		outputs.dir("${rootDir}/../ios/build/framework")
 
 		finalizedBy("copyiOSBuildArtifacts")
 
-		val scriptDir = file("${rootDir}/../script")
-		commandLine("bash", "${scriptDir}/build_ios.sh", "-b")
+		commandLine("bash", buildScript.absolutePath, "-b")
 		environment("INVOKED_BY_GRADLE", "true")
 
 		doLast {
@@ -300,12 +328,14 @@ tasks {
 		inputs.files(fileTree("${rootDir}/config"))
 		inputs.files(fileTree("${rootDir}/../ios/config"))
 
+		val buildScript = file("${rootDir}/../script/build_ios.sh")
+		inputs.file(buildScript)
+
 		outputs.dir("${rootDir}/../ios/build/framework")
 
 		finalizedBy("copyiOSBuildArtifacts")
 
-		val scriptDir = file("${rootDir}/../script")
-		commandLine("bash", "${scriptDir}/build_ios.sh", "-B")
+		commandLine("bash", buildScript.absolutePath, "-B")
 		environment("INVOKED_BY_GRADLE", "true")
 
 		doLast {
@@ -322,7 +352,7 @@ tasks {
 		dependsOn("buildiOSRelease")
 	}
 
-	register<Copy>("copyiOSBuildArtifacts") {
+	register<Sync>("copyiOSBuildArtifacts") {
 		description = "Copies iOS build artifacts (xcframeworks and addon files) to the plugin directory"
 
 		dependsOn(project(":addon").tasks.named("copyAssets"))
@@ -333,47 +363,21 @@ tasks {
 		val pluginName = project.extra["pluginName"] as String
 		val iosDir = file(project.extra["iosDir"] as String)
 		val buildDir = iosDir.resolve("build")
-		val artifactsDir = buildDir.resolve("DerivedData/ios_release/SourcePackages/artifacts")
 		val frameworkDir = buildDir.resolve("framework")
 		val pluginDir = file(project.extra["pluginDir"] as String)
 
 		val destDir = pluginDir.resolve("ios")
 		destinationDir = destDir
 
-		doFirst {
-			delete(destDir)
+		// Search ALL DerivedData folders so it works for debug AND release builds
+		val derivedDataDir = buildDir.resolve("DerivedData")
+		inputs.dir(derivedDataDir).optional(true)
+		inputs.dir(frameworkDir).optional(true)
 
-			if (!artifactsDir.exists()) {
-				println("Warning: '${artifactsDir.path}' not found. Skipping framework directory.")
-			} else {
-				val xcframeworks = artifactsDir
-					.walkTopDown()
-					.filter { it.isDirectory && it.name.endsWith(".xcframework", ignoreCase = true) }
-					.toList()
-				if (xcframeworks.isEmpty()) {
-					println("Warning: No .xcframework items found in ${artifactsDir.path}. Skipping framework directory.")
-				} else {
-					xcframeworks.forEach { println("Copying third-party framework: ${it.name}") }
-					println("Frameworks found in ${artifactsDir.path}. Creating destination directory...")
-				}
-			}
-			for (variant in listOf("release", "debug")) {
-				val xcfw = frameworkDir.resolve("${pluginName}.${variant}.xcframework")
-				if (xcfw.exists()) {
-					println("Copying plugin framework: ${xcfw.path}")
-				} else {
-					println("Warning: Expected xcframework not found, skipping: ${xcfw.path}")
-				}
-			}
-		}
+		outputs.dir(destDir)
 
-		// Skip whole task if no iOS build output
-		onlyIf { frameworkDir.exists() }
-
-		// Third-party frameworks - lazily walk artifactsDir at execution time using eachFile
-		// to rewrite paths: any *.xcframework found anywhere under artifactsDir is placed at
-		// ios/framework/<Name.xcframework>/...  (flattened, depth-agnostic)
-		from(fileTree(artifactsDir) { include("**/*.xcframework/**") }) {
+		// Third-party xcframeworks (from SPM) – works even if only debug or release exists
+		from(fileTree(derivedDataDir) { include("**/artifacts/**/*.xcframework/**") }) {
 			includeEmptyDirs = false
 			eachFile {
 				val segs = relativePath.segments
@@ -386,7 +390,6 @@ tasks {
 			}
 		}
 
-		// Plugin frameworks
 		into("ios/plugins") {
 			from(frameworkDir) {
 				include("${pluginName}.release.xcframework/**")
@@ -394,15 +397,10 @@ tasks {
 			}
 		}
 
-		// Addon output
 		from("${rootDir}/../addon/build/output") {
 			include("addons/${project.extra["pluginName"]}/**")
 			include("ios/plugins/*.gdip")
 		}
-
-		inputs.dir(frameworkDir).optional(true)
-
-		outputs.dir(destDir)
 	}
 
 	register("build") {
@@ -413,7 +411,7 @@ tasks {
 	}
 
 	register<Copy>("installToDemoAndroid") {
-		description = "Copies the assembled Andoid plugin to demo application's addons directory"
+		description = "Copies the assembled Android plugin to demo application's addons directory"
 
 		dependsOn(project(":addon").tasks.named("generateGDScript"))
 		dependsOn(project(":addon").tasks.named("copyAssets"))
@@ -426,6 +424,8 @@ tasks {
 		into(".") {
 			from("${project.extra["pluginDir"]}/android")
 		}
+
+		outputs.dir(destinationDir)
 	}
 
 	register<Copy>("installToDemoiOS") {
@@ -441,6 +441,8 @@ tasks {
 		into(".") {
 			from("${project.extra["pluginDir"]}/ios")
 		}
+
+		outputs.dir(destinationDir)
 	}
 
 	register<Copy>("installToDemo") {
