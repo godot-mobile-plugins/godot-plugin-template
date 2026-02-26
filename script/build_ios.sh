@@ -167,24 +167,6 @@ function remove_godot_directory()
 }
 
 
-function clean_plugin_build()
-{
-	display_status "Cleaning plugin build..."
-
-	if [[ -d "$BUILD_DIR" ]]
-	then
-		display_progress "Removing '$BUILD_DIR' directory..."
-		rm -rf $BUILD_DIR
-	else
-		display_warning "'$BUILD_DIR' directory not found!"
-	fi
-
-	display_progress "Cleaning generated files..."
-	find . -name "*.d" -type f -delete
-	find . -name "*.o" -type f -delete
-}
-
-
 function resolve_spm_dependencies()
 {
 	xcodebuild -resolvePackageDependencies \
@@ -498,7 +480,7 @@ fi
 
 if [[ "$do_clean" == true ]]
 then
-	clean_plugin_build
+	$SCRIPT_DIR/run_gradle_task.sh "cleaniOSBuild"
 fi
 
 if [[ "$do_reset_spm" == true ]]
@@ -508,17 +490,29 @@ fi
 
 if [[ "$do_remove_godot" == true ]]
 then
-	remove_godot_directory
+	if [[ "${INVOKED_BY_GRADLE:-}" == "true" ]]; then
+		remove_godot_directory
+	else
+		$SCRIPT_DIR/run_gradle_task.sh "removeGodotDirectory"
+	fi
 fi
 
 if [[ "$do_download_godot" == true ]]
 then
-	download_godot
+	if [[ "${INVOKED_BY_GRADLE:-}" == "true" ]]; then
+		download_godot
+	else
+		$SCRIPT_DIR/run_gradle_task.sh "downloadGodot"
+	fi
 fi
 
 if [[ "$do_generate_headers" == true ]]
 then
-	generate_godot_headers
+	if [[ "${INVOKED_BY_GRADLE:-}" == "true" ]]; then
+		generate_godot_headers
+	else
+		$SCRIPT_DIR/run_gradle_task.sh "generateGodotHeaders"
+	fi
 fi
 
 if [[ "$do_update_spm" == true ]]
