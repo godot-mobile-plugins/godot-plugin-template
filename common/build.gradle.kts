@@ -108,6 +108,30 @@ tasks {
 		dependsOn("buildAndroidRelease")
 	}
 
+	register<Exec>("removeGodotDirectory") {
+		description = "Removes the directory where Godot sources were downloaded"
+
+		val scriptDir = file("${rootDir}/../script")
+		commandLine("bash", "${scriptDir}/build_ios.sh", "-g")
+		environment("INVOKED_BY_GRADLE", "true")
+	}
+
+	register<Exec>("downloadGodot") {
+		description = "Downloads Godot sources into the configured directory"
+
+		val scriptDir = file("${rootDir}/../script")
+		commandLine("bash", "${scriptDir}/build_ios.sh", "-G")
+		environment("INVOKED_BY_GRADLE", "true")
+	}
+
+	register<Exec>("generateGodotHeaders") {
+		description = "Runs Godot build and terminates after Godot header files have been generated"
+
+		val scriptDir = file("${rootDir}/../script")
+		commandLine("bash", "${scriptDir}/build_ios.sh", "-H")
+		environment("INVOKED_BY_GRADLE", "true")
+	}
+
 	register("resetSPMDependencies") {
 		description = "Removes SPM dependencies from the Xcode project and cleans up all SPM artifacts"
 
@@ -457,11 +481,31 @@ tasks {
 		dependsOn("uninstallAndroid", "uninstalliOS")
 	}
 
+	register<Delete>("cleaniOSBuild") {
+		group = "clean"
+		description = "Cleans iOS build outputs"
+
+		val iosDir: String by project.extra
+
+		val iosBuildDir = provider {
+			project.file("$iosDir/build")
+		}
+
+		delete(iosBuildDir)
+
+		doLast {
+			val dir = iosBuildDir.get()
+			if (dir.exists()) {
+				logger.lifecycle("Removed iOS build directory: ${dir.absolutePath}")
+			} else {
+				logger.lifecycle("iOS build directory did not exist (already clean): ${dir.absolutePath}")
+			}
+		}
+	}
+
 	register<Delete>("clean") {
 		description = "Cleans all build outputs"
-		dependsOn(":android:clean", ":addon:cleanOutput")
-
-		delete("${project.extra["iosDir"] as String}/build")
+		dependsOn(":android:clean", ":addon:cleanOutput", "cleaniOSBuild")
 	}
 
 	register<Zip>("createAndroidArchive") {
