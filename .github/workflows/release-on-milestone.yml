@@ -38,9 +38,27 @@ jobs:
       - name: Grant execute permission for Gradle wrapper
         run: chmod +x common/gradlew
 
+      # ── Prepare for iOS build ───────────────────────────────────────────────
+      - name: Download Godot
+        working-directory: common
+        run: ./gradlew downloadGodot --stacktrace
+
+      - name: Install SCons
+        if: env.ACT != 'true'
+        run: pip install scons
+
+      - name: Generate Godot Headers
+        working-directory: common
+        run: ./gradlew generateGodotHeaders --stacktrace
+
+      # ── Prepare for Android build ───────────────────────────────────────────
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      # ── Create archives ─────────────────────────────────────────────────────
       - name: Run createArchives
         working-directory: common
-        run: ./gradlew createArchives --no-daemon --stacktrace
+        run: ./gradlew createArchives --stacktrace
 
       # ── Collect archives ────────────────────────────────────────────────────
       - name: Locate release archives
