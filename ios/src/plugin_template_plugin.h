@@ -7,22 +7,19 @@
 
 #import <Foundation/Foundation.h>
 
-#include "core/object/object.h"
 #include "core/object/class_db.h"
-
+#include "core/object/object.h"
 
 @class PluginTemplate;
 
-
 extern const String TEMPLATE_READY_SIGNAL;
 // TODO: Declare all signals
-
 
 class PluginTemplatePlugin : public Object {
 	GDCLASS(PluginTemplatePlugin, Object);
 
 private:
-	static PluginTemplatePlugin* instance; // Singleton instance
+	static PluginTemplatePlugin *instance; // Singleton instance
 
 	static void _bind_methods();
 

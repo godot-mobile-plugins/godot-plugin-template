@@ -1,21 +1,21 @@
 <p align="center">
 	<img width="128" height="128" src="https://raw.githubusercontent.com/godot-mobile-plugins/godot-plugin-template/main/demo/assets/plugin-template-android.png">
-	&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+	&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 	<img width="128" height="128" src="https://raw.githubusercontent.com/godot-mobile-plugins/godot-plugin-template/main/demo/assets/plugin-template-ios.png">
 </p>
 
----
+<br>
 
 <div align="center">
 	<a href="https://github.com/godot-mobile-plugins/godot-plugin-template">
-	<img src="https://img.shields.io/github/stars/godot-mobile-plugins/godot-plugin-template?style=social" />
+		<img src="https://img.shields.io/github/stars/godot-mobile-plugins/godot-plugin-template?label=Stars&style=plastic" height="32"/>
 	</a>
-	<img src="https://img.shields.io/github/downloads/godot-mobile-plugins/godot-plugin-template/total" />
-	<img src="https://img.shields.io/github/downloads/godot-mobile-plugins/godot-plugin-template/latest/total" />
-	<img src="https://img.shields.io/github/v/release/godot-mobile-plugins/godot-plugin-template" />
+	<img src="https://img.shields.io/github/v/release/godot-mobile-plugins/godot-plugin-template?label=Latest%20Release&style=plastic" height="32"/>
+	<img src="https://img.shields.io/github/downloads/godot-mobile-plugins/godot-plugin-template/latest/total?label=Downloads&style=plastic" height="32"/>
+	<img src="https://img.shields.io/github/downloads/godot-mobile-plugins/godot-plugin-template/total?label=Total%20Downloads&style=plastic" height="32"/>
 </div>
 
----
+<br>
 
 <!--TO-BE-DELETED-AFTER-INIT-BEGIN-->
 </br>
@@ -37,7 +37,7 @@ $ godot-plugin-template > ./script/init.sh -n NameOfYourPlugin
 ```
 or optionally specify the name of the plugin author and author's GitHub username:
 ```
-$ godot-plugin-template > ./script/init.sh -n NameOfYourPlugin -a "Author Name" -g github-username"
+$ godot-plugin-template > ./script/init.sh -n NameOfYourPlugin -a "Author Name" -g "github-username"
 ```
 
 </br>
@@ -49,7 +49,7 @@ $ godot-plugin-template > ./script/init.sh -n GameBooster
 ```
 or:
 ```
-$ godot-plugin-template > ./script/init.sh -n GameBooster -a "Maria Wang" -g mariawang"
+$ godot-plugin-template > ./script/init.sh -n GameBooster -a "Maria Wang" -g "mariawang"
 ```
 
 </br></br>
@@ -63,7 +63,7 @@ $ godot-plugin-template > ./script/init.sh -n NameOfYourPlugin -d
 ```
 or:
 ```
-$ godot-plugin-template > ./script/init.sh -n NameOfYourPlugin -a "Author Name" -g github-username" -d
+$ godot-plugin-template > ./script/init.sh -n NameOfYourPlugin -a "Author Name" -g "github-username" -d
 ```
 
 **The dry-run will show what would be done without making changes.**
@@ -83,7 +83,7 @@ A Godot plugin that provides a unified GDScript interface for getting informatio
 - Know when a template is ready
 - ...
 
----
+<br>
 
 ## <img src="https://raw.githubusercontent.com/godot-mobile-plugins/godot-plugin-template/main/addon/src/icon.png" width="20"> Table of Contents
 - [Installation](#installation)
@@ -97,7 +97,7 @@ A Godot plugin that provides a unified GDScript interface for getting informatio
 - [Credits](#credits)
 - [Contributing](#contributing)
 
----
+<br>
 
 <a name="installation"></a>
 
@@ -130,7 +130,7 @@ Steps:
 - copy to your Godot project's root directory
 - enable the plugin via the `Plugins` tab of `Project->Project Settings...` menu, in the Godot Editor
 
----
+<br>
 
 <a name="usage"></a>
 
@@ -158,7 +158,7 @@ func _on_template_ready(template: PluginTemplateInfo):
 	print("Template ready:", template.get_description())
 ```
 
----
+<br>
 
 <a name="signals"></a>
 
@@ -167,14 +167,14 @@ func _on_template_ready(template: PluginTemplateInfo):
 	- `template_ready(a_template: PluginTemplateInfo)`
 	- ...
 
----
+<br>
 
 <a name="methods"></a>
 
 ## <img src="https://raw.githubusercontent.com/godot-mobile-plugins/godot-plugin-template/main/addon/src/icon.png" width="20"> Methods
 - `get_plugin_template() -> Array[PluginTemplateInfo]` - returns an array of `PluginTemplateInfo` objects
 
----
+<br>
 
 <a name="classes"></a>
 
@@ -187,7 +187,7 @@ func _on_template_ready(template: PluginTemplateInfo):
 	- `other`: ...
 	- ...
 
----
+<br>
 
 <a name="platform-specific-notes"></a>
 
@@ -208,7 +208,7 @@ func _on_template_ready(template: PluginTemplateInfo):
 - View XCode logs while running the game for troubleshooting.
 - See [Godot iOS Export Troubleshooting](https://docs.godotengine.org/en/stable/tutorials/export/exporting_for_ios.html#troubleshooting).
 
----
+<br>
 
 <a name="links"></a>
 
@@ -217,25 +217,27 @@ func _on_template_ready(template: PluginTemplateInfo):
 - [AssetLib Entry Android](https://godotengine.org/asset-library/asset/9999)
 - [AssetLib Entry iOS](https://godotengine.org/asset-library/asset/8888)
 
----
+<br>
+
+<a name="all-plugins"></a>
 
 # <img src="https://raw.githubusercontent.com/godot-mobile-plugins/godot-plugin-template/main/addon/src/icon.png" width="24"> All Plugins
 
-| Plugin | Android | iOS | Free | Open Source | License |
-| :--- | :---: | :---: | :---: | :---: | :---: |
-| [Admob](https://github.com/godot-sdk-integrations/godot-admob) | ✅ | ✅ | ✅ | ✅ | MIT |
-| [Notification Scheduler](https://github.com/godot-mobile-plugins/godot-notification-scheduler) | ✅ | ✅ | ✅ | ✅ | MIT |
-| [Deeplink](https://github.com/godot-mobile-plugins/godot-deeplink) | ✅ | ✅ | ✅ | ✅ | MIT |
-| [Share](https://github.com/godot-mobile-plugins/godot-share) | ✅ | ✅ | ✅ | ✅ | MIT |
-| [In-App Review](https://github.com/godot-mobile-plugins/godot-inapp-review) | ✅ | ✅ | ✅ | ✅ | MIT |
-| [Native Camera](https://github.com/godot-mobile-plugins/godot-native-camera) | ✅ | ✅ | ✅ | ✅ | MIT |
-| [Connection State](https://github.com/godot-mobile-plugins/godot-connection-state) | ✅ | ✅ | ✅ | ✅ | MIT |
-| [OAuth 2.0](https://github.com/godot-mobile-plugins/godot-oauth2) | ✅ | ✅ | ✅ | ✅ | MIT |
-| [QR](https://github.com/godot-mobile-plugins/godot-qr) | ✅ | ✅ | ✅ | ✅ | MIT |
-| [Firebase](https://github.com/godot-mobile-plugins/godot-firebase) | ✅ | ✅ | ✅ | ✅ | MIT |
-| [Plugin Template](https://github.com/godot-mobile-plugins/godot-plugin-template) | ✅ | ✅ | ✅ | ✅ | MIT |
+| ✦ | Plugin | Android | iOS | Latest Release | Downloads | Stars |
+| :--- | :--- | :---: | :---: | :---: | :---: | :---: |
+| <img src="https://raw.githubusercontent.com/godot-sdk-integrations/godot-admob/main/addon/src/icon.png" width="20"> | [Admob](https://github.com/godot-sdk-integrations/godot-admob) | ✅ | ✅ | <a href="https://github.com/godot-sdk-integrations/godot-admob/releases"><img src="https://img.shields.io/github/release-date/godot-sdk-integrations/godot-admob?label=%20" /> <img src="https://img.shields.io/github/v/release/godot-sdk-integrations/godot-admob?label=%20" /></a> | <img src="https://img.shields.io/github/downloads/godot-sdk-integrations/godot-admob/latest/total?label=latest" /> <img src="https://img.shields.io/github/downloads/godot-sdk-integrations/godot-admob/total?label=total" /> | <img src="https://img.shields.io/github/stars/godot-sdk-integrations/godot-admob?style=plastic&label=%20" /> |
+| <img src="https://raw.githubusercontent.com/godot-mobile-plugins/godot-connection-state/main/addon/src/icon.png" width="20"> | [Connection State](https://github.com/godot-mobile-plugins/godot-connection-state) | ✅ | ✅ | <a href="https://github.com/godot-mobile-plugins/godot-connection-state/releases"><img src="https://img.shields.io/github/release-date/godot-mobile-plugins/godot-connection-state?label=%20" /> <img src="https://img.shields.io/github/v/release/godot-mobile-plugins/godot-connection-state?label=%20" /></a> | <img src="https://img.shields.io/github/downloads/godot-mobile-plugins/godot-connection-state/latest/total?label=latest" /> <img src="https://img.shields.io/github/downloads/godot-mobile-plugins/godot-connection-state/total?label=total" /> | <img src="https://img.shields.io/github/stars/godot-mobile-plugins/godot-connection-state?style=plastic&label=%20" /> |
+| <img src="https://raw.githubusercontent.com/godot-mobile-plugins/godot-deeplink/main/addon/src/icon.png" width="20"> | [Deeplink](https://github.com/godot-mobile-plugins/godot-deeplink) | ✅ | ✅ | <a href="https://github.com/godot-mobile-plugins/godot-deeplink/releases"><img src="https://img.shields.io/github/release-date/godot-mobile-plugins/godot-deeplink?label=%20" /> <img src="https://img.shields.io/github/v/release/godot-mobile-plugins/godot-deeplink?label=%20" /></a> | <img src="https://img.shields.io/github/downloads/godot-mobile-plugins/godot-deeplink/latest/total?label=latest" /> <img src="https://img.shields.io/github/downloads/godot-mobile-plugins/godot-deeplink/total?label=total" /> | <img src="https://img.shields.io/github/stars/godot-mobile-plugins/godot-deeplink?style=plastic&label=%20" /> |
+| <img src="https://raw.githubusercontent.com/godot-mobile-plugins/godot-firebase/main/addon/src/icon.png" width="20"> | [Firebase](https://github.com/godot-mobile-plugins/godot-firebase) | ✅ | ✅ | - <!-- <a href="https://github.com/godot-mobile-plugins/godot-firebase/releases"><img src="https://img.shields.io/github/release-date/godot-mobile-plugins/godot-firebase?label=%20" /> <img src="https://img.shields.io/github/v/release/godot-mobile-plugins/godot-firebase?label=%20" /></a> --> | - <!-- <img src="https://img.shields.io/github/downloads/godot-mobile-plugins/godot-firebase/latest/total?label=latest" /> <img src="https://img.shields.io/github/downloads/godot-mobile-plugins/godot-firebase/total?label=%20" /> --> | <img src="https://img.shields.io/github/stars/godot-mobile-plugins/godot-firebase?style=plastic&label=%20" /> |
+| <img src="https://raw.githubusercontent.com/godot-mobile-plugins/godot-inapp-review/main/addon/src/icon.png" width="20"> | [In-App Review](https://github.com/godot-mobile-plugins/godot-inapp-review) | ✅ | ✅ | <a href="https://github.com/godot-mobile-plugins/godot-inapp-review/releases"><img src="https://img.shields.io/github/release-date/godot-mobile-plugins/godot-inapp-review?label=%20" /> <img src="https://img.shields.io/github/v/release/godot-mobile-plugins/godot-inapp-review?label=%20" /></a> | <img src="https://img.shields.io/github/downloads/godot-mobile-plugins/godot-inapp-review/latest/total?label=latest" /> <img src="https://img.shields.io/github/downloads/godot-mobile-plugins/godot-inapp-review/total?label=total" /> | <img src="https://img.shields.io/github/stars/godot-mobile-plugins/godot-inapp-review?style=plastic&label=%20" /> |
+| <img src="https://raw.githubusercontent.com/godot-mobile-plugins/godot-native-camera/main/addon/src/icon.png" width="20"> | [Native Camera](https://github.com/godot-mobile-plugins/godot-native-camera) | ✅ | ✅ | <a href="https://github.com/godot-mobile-plugins/godot-native-camera/releases"><img src="https://img.shields.io/github/release-date/godot-mobile-plugins/godot-native-camera?label=%20" /> <img src="https://img.shields.io/github/v/release/godot-mobile-plugins/godot-native-camera?label=%20" /></a> | <img src="https://img.shields.io/github/downloads/godot-mobile-plugins/godot-native-camera/latest/total?label=latest" /> <img src="https://img.shields.io/github/downloads/godot-mobile-plugins/godot-native-camera/total?label=total" /> | <img src="https://img.shields.io/github/stars/godot-mobile-plugins/godot-native-camera?style=plastic&label=%20" /> |
+| <img src="https://raw.githubusercontent.com/godot-mobile-plugins/godot-notification-scheduler/main/addon/src/icon.png" width="20"> | [Notification Scheduler](https://github.com/godot-mobile-plugins/godot-notification-scheduler) | ✅ | ✅ | <a href="https://github.com/godot-mobile-plugins/godot-notification-scheduler/releases"><img src="https://img.shields.io/github/release-date/godot-mobile-plugins/godot-notification-scheduler?label=%20" /> <img src="https://img.shields.io/github/v/release/godot-mobile-plugins/godot-notification-scheduler?label=%20" /></a> | <img src="https://img.shields.io/github/downloads/godot-mobile-plugins/godot-notification-scheduler/latest/total?label=latest" /> <img src="https://img.shields.io/github/downloads/godot-mobile-plugins/godot-notification-scheduler/total?label=total" /> | <img src="https://img.shields.io/github/stars/godot-mobile-plugins/godot-notification-scheduler?style=plastic&label=%20" /> |
+| <img src="https://raw.githubusercontent.com/godot-mobile-plugins/godot-oauth2/main/addon/src/icon.png" width="20"> | [OAuth 2.0](https://github.com/godot-mobile-plugins/godot-oauth2) | ✅ | ✅ | <a href="https://github.com/godot-mobile-plugins/godot-oauth2/releases"><img src="https://img.shields.io/github/release-date/godot-mobile-plugins/godot-oauth2?label=%20" /> <img src="https://img.shields.io/github/v/release/godot-mobile-plugins/godot-oauth2?label=%20" /></a> | <img src="https://img.shields.io/github/downloads/godot-mobile-plugins/godot-oauth2/latest/total?label=latest" /> <img src="https://img.shields.io/github/downloads/godot-mobile-plugins/godot-oauth2/total?label=total" /> | <img src="https://img.shields.io/github/stars/godot-mobile-plugins/godot-oauth2?style=plastic&label=%20" /> |
+| <img src="https://raw.githubusercontent.com/godot-mobile-plugins/godot-qr/main/addon/src/icon.png" width="20"> | [QR](https://github.com/godot-mobile-plugins/godot-qr) | ✅ | ✅ | <a href="https://github.com/godot-mobile-plugins/godot-qr/releases"><img src="https://img.shields.io/github/release-date/godot-mobile-plugins/godot-qr?label=%20" /> <img src="https://img.shields.io/github/v/release/godot-mobile-plugins/godot-qr?label=%20" /></a> | <img src="https://img.shields.io/github/downloads/godot-mobile-plugins/godot-qr/latest/total?label=latest" /> <img src="https://img.shields.io/github/downloads/godot-mobile-plugins/godot-qr/total?label=total" /> | <img src="https://img.shields.io/github/stars/godot-mobile-plugins/godot-qr?style=plastic&label=%20" /> |
+| <img src="https://raw.githubusercontent.com/godot-mobile-plugins/godot-share/main/addon/src/icon.png" width="20"> | [Share](https://github.com/godot-mobile-plugins/godot-share) | ✅ | ✅ | <a href="https://github.com/godot-mobile-plugins/godot-share/releases"><img src="https://img.shields.io/github/release-date/godot-mobile-plugins/godot-share?label=%20" /> <img src="https://img.shields.io/github/v/release/godot-mobile-plugins/godot-share?label=%20" /></a> | <img src="https://img.shields.io/github/downloads/godot-mobile-plugins/godot-share/latest/total?label=latest" /> <img src="https://img.shields.io/github/downloads/godot-mobile-plugins/godot-share/total?label=total" /> | <img src="https://img.shields.io/github/stars/godot-mobile-plugins/godot-share?style=plastic&label=%20" /> |
+| <img src="https://raw.githubusercontent.com/godot-mobile-plugins/godot-plugin-template/main/addon/src/icon.png" width="20"> | [Plugin Template](https://github.com/godot-mobile-plugins/godot-plugin-template) | ✅ | ✅ | - <!-- <a href="https://github.com/godot-mobile-plugins/godot-plugin-template/releases"><img src="https://img.shields.io/github/release-date/godot-mobile-plugins/godot-plugin-template?label=%20" /> <img src="https://img.shields.io/github/v/release/godot-mobile-plugins/godot-plugin-template?label=%20" /></a> --> | - <!-- <img src="https://img.shields.io/github/downloads/godot-mobile-plugins/godot-plugin-template/latest/total?label=latest" /> <img src="https://img.shields.io/github/downloads/godot-mobile-plugins/godot-plugin-template/total?label=%20" /> --> | <img src="https://img.shields.io/github/stars/godot-mobile-plugins/godot-plugin-template?style=plastic&label=%20" /> |
 
----
+<br>
 
 <a name="credits"></a>
 
@@ -245,7 +247,7 @@ Developed by [<<AuthorName>>](https://github.com/<<GitHubUsername>>)
 
 Original repository: [Godot Plugin Template Plugin](https://github.com/godot-mobile-plugins/godot-plugin-template)
 
----
+<br>
 
 <a name="contributing"></a>
 
@@ -253,18 +255,20 @@ Original repository: [Godot Plugin Template Plugin](https://github.com/godot-mob
 
 See [our guide](https://github.com/godot-mobile-plugins/godot-plugin-template?tab=contributing-ov-file) if you would like to contribute to this project.
 
----
+<br>
 
 # 💖 Support the Project
 
 If this plugin has helped you, consider supporting its development! Every bit of support helps keep the plugin updated and bug-free.
 
-| | Ways to Help | How to do it |
+| ✦ | Ways to Help | How to do it |
 | :--- | :--- | :--- |
 |✨⭐| **Spread the Word** | [Star this repo](https://github.com/godot-mobile-plugins/godot-plugin-template/stargazers) to help others find it. |
 |💡✨| **Give Feedback** | [Open an issue](https://github.com/godot-mobile-plugins/godot-plugin-template/issues) or [suggest a feature](https://github.com/godot-mobile-plugins/godot-plugin-template/issues/new). |
 |🧩| **Contribute** | [Submit a PR](https://github.com/godot-mobile-plugins/godot-plugin-template?tab=contributing-ov-file) to help improve the codebase. |
 |❤️| **Buy a Coffee** | Support the maintainers on GitHub Sponsors or other platforms. |
+
+<br>
 
 ## ⭐ Star History
 [![Star History Chart](https://api.star-history.com/svg?repos=godot-mobile-plugins/godot-plugin-template&type=Date)](https://star-history.com/#godot-mobile-plugins/godot-plugin-template&Date)
