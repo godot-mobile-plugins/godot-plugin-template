@@ -1,3 +1,7 @@
+#
+# © 2026-present https://github.com/cengiz-pz
+#
+
 name: iOS Build
 
 on:
@@ -29,7 +33,7 @@ jobs:
 
       - name: Download Godot
         working-directory: common
-        run: ./gradlew downloadGodot
+        run: ./gradlew downloadGodot --stacktrace
 
       - name: Install SCons
         if: env.ACT != 'true'
@@ -37,8 +41,8 @@ jobs:
 
       - name: Generate Godot Headers
         working-directory: common
-        run: ./gradlew generateGodotHeaders
+        run: ./gradlew generateGodotHeaders --stacktrace
 
       - name: Build iOS debug
         working-directory: common
-        run: ./gradlew buildiOSDebug
+        run: ./gradlew buildiOSDebug --stacktrace

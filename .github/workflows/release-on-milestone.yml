@@ -1,0 +1,82 @@
+#
+# © 2026-present https://github.com/cengiz-pz
+#
+
+name: Draft Release on Milestone Close
+
+on:
+  milestone:
+    types: [closed]
+
+permissions:
+  contents: write   # required to create releases and upload assets
+
+jobs:
+  draft-release:
+    name: Build archives & create draft release
+    runs-on: ubuntu-latest
+
+    env:
+      TAG_NAME: v${{ github.event.milestone.title }}
+
+    steps:
+      # ── Checkout ────────────────────────────────────────────────────────────
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      # ── Java ────────────────────────────────────────────────────────────────
+      - name: Set up JDK
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 17
+          cache: gradle
+
+      # ── Gradle ──────────────────────────────────────────────────────────────
+      - name: Grant execute permission for Gradle wrapper
+        run: chmod +x common/gradlew
+
+      - name: Run createArchives
+        working-directory: common
+        run: ./gradlew createArchives --no-daemon --stacktrace
+
+      # ── Collect archives ────────────────────────────────────────────────────
+      - name: Locate release archives
+        id: archives
+        run: |
+          # archiveDir is $rootDir/../release  →  <repo-root>/release/
+          ANDROID_ZIP=$(ls release/*-Android-v*.zip)
+          IOS_ZIP=$(ls release/*-iOS-v*.zip)
+          MULTI_ZIP=$(ls release/*-Multi-v*.zip)
+
+          echo "android_zip=${ANDROID_ZIP}" >> "$GITHUB_OUTPUT"
+          echo "ios_zip=${IOS_ZIP}"         >> "$GITHUB_OUTPUT"
+          echo "multi_zip=${MULTI_ZIP}"     >> "$GITHUB_OUTPUT"
+
+          echo "Found archives:"
+          echo "  Android : ${ANDROID_ZIP}"
+          echo "  iOS     : ${IOS_ZIP}"
+          echo "  Multi   : ${MULTI_ZIP}"
+
+      # ── Draft release ────────────────────────────────────────────────────────
+      - name: Create draft release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "$TAG_NAME" \
+            --draft \
+            --title "Plugin $TAG_NAME" \
+            --notes "## New in this release:
+
+          - ...
+
+          <br />
+
+          _This version..._
+
+          -  _has been tested against and supports Godot version ...._" \
+            "${{ steps.archives.outputs.android_zip }}" \
+            "${{ steps.archives.outputs.ios_zip }}" \
+            "${{ steps.archives.outputs.multi_zip }}"
