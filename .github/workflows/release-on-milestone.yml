@@ -14,7 +14,7 @@ permissions:
 jobs:
   draft-release:
     name: Build archives & create draft release
-    runs-on: ubuntu-latest
+    runs-on: macos-latest
 
     env:
       TAG_NAME: v${{ github.event.milestone.title }}
