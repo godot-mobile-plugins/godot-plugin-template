@@ -1,5 +1,5 @@
 #
-# © 2026-present https://github.com/cengiz-pz
+# © 2024-present https://github.com/cengiz-pz
 #
 
 # General
@@ -49,3 +49,11 @@ xcuserdata/
 
 # macOS
 .DS_Store
+
+# documentation
+site
+
+# Node
+node_modules/
+package-lock.json
+package.json

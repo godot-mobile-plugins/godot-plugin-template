@@ -8,13 +8,10 @@
 
 #import "plugin_template_logger.h"
 
-
 const String TEMPLATE_READY_SIGNAL = "template_ready";
 // TODO: Define all signals
 
-
-PluginTemplatePlugin* PluginTemplatePlugin::instance = NULL;
-
+PluginTemplatePlugin *PluginTemplatePlugin::instance = NULL;
 
 void PluginTemplatePlugin::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("get_plugin_template"), &PluginTemplatePlugin::get_plugin_template);

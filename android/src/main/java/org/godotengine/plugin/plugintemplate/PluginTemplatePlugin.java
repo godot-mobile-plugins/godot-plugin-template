@@ -26,6 +26,7 @@ public class PluginTemplatePlugin extends GodotPlugin {
 
 
 	static final String TEMPLATE_READY_SIGNAL = "template_ready";
+
 	// TODO: Define all signals
 
 	public PluginTemplatePlugin(Godot godot) {

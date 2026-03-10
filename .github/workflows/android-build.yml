@@ -1,0 +1,33 @@
+name: Android Build
+
+on:
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'common/config/**'
+      - 'common/*.gradle.kts'
+      - 'android/src/**'
+      - 'android/*.gradle.kts'
+
+jobs:
+  build-android-debug:
+    runs-on: ubuntu-22.04
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install Node
+        uses: ./.github/actions/install-node
+
+      - name: Set up JDK
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Build Android debug
+        working-directory: common
+        run: ./gradlew buildAndroidDebug

@@ -24,25 +24,25 @@ fi
 function display_help()
 {
 	echo
-	$SCRIPT_DIR/echocolor.sh -y "The " -Y "$0 script" -y " renames plugin template files and content"
+	"$SCRIPT_DIR"/echocolor.sh -y "The " -Y "$0 script" -y " renames plugin template files and content"
 	echo
-	$SCRIPT_DIR/echocolor.sh -Y "Syntax:"
-	$SCRIPT_DIR/echocolor.sh -y "	$0 -n <plugin node name> [-h|a <author name>|g <GitHub username>|-d]"
+	"$SCRIPT_DIR"/echocolor.sh -Y "Syntax:"
+	"$SCRIPT_DIR"/echocolor.sh -y "	$0 -n <plugin node name> [-h|a <author name>|g <GitHub username>|-d]"
 	echo
-	$SCRIPT_DIR/echocolor.sh -Y "Options:"
-	$SCRIPT_DIR/echocolor.sh -y "	h	display usage information"
-	$SCRIPT_DIR/echocolor.sh -y "	n	specify the name of the plugin node (eg. ConnectionState)"
-	$SCRIPT_DIR/echocolor.sh -y "	a	specify the name of the plugin author (eg. 'Maria Wang')"
-	$SCRIPT_DIR/echocolor.sh -y "	g	specify the GitHub username of the plugin author (eg. mariawang)"
-	$SCRIPT_DIR/echocolor.sh -y "	d	dry-run mode; show what would be done without making changes"
+	"$SCRIPT_DIR"/echocolor.sh -Y "Options:"
+	"$SCRIPT_DIR"/echocolor.sh -y "	h	display usage information"
+	"$SCRIPT_DIR"/echocolor.sh -y "	n	specify the name of the plugin node (eg. ConnectionState)"
+	"$SCRIPT_DIR"/echocolor.sh -y "	a	specify the name of the plugin author (eg. 'Maria Wang')"
+	"$SCRIPT_DIR"/echocolor.sh -y "	g	specify the GitHub username of the plugin author (eg. mariawang)"
+	"$SCRIPT_DIR"/echocolor.sh -y "	d	dry-run mode; show what would be done without making changes"
 	echo
-	$SCRIPT_DIR/echocolor.sh -Y "Examples:"
-	$SCRIPT_DIR/echocolor.sh -y "	* Create a OneStopShop plugin"
-	$SCRIPT_DIR/echocolor.sh -y "		$> $0 -n OneStopShop"
-	$SCRIPT_DIR/echocolor.sh -y "	* Dry-run for OneStopShop plugin"
-	$SCRIPT_DIR/echocolor.sh -y "		$> $0 -n OneStopShop -d"
-	$SCRIPT_DIR/echocolor.sh -y "	* Create a OneStopShop plugin & specify author information"
-	$SCRIPT_DIR/echocolor.sh -y "		$> $0 -n OneStopShop -a 'Maria Wang' -g mariawang"
+	"$SCRIPT_DIR"/echocolor.sh -Y "Examples:"
+	"$SCRIPT_DIR"/echocolor.sh -y "	* Create a OneStopShop plugin"
+	"$SCRIPT_DIR"/echocolor.sh -y "		$> $0 -n OneStopShop"
+	"$SCRIPT_DIR"/echocolor.sh -y "	* Dry-run for OneStopShop plugin"
+	"$SCRIPT_DIR"/echocolor.sh -y "		$> $0 -n OneStopShop -d"
+	"$SCRIPT_DIR"/echocolor.sh -y "	* Create a OneStopShop plugin & specify author information"
+	"$SCRIPT_DIR"/echocolor.sh -y "		$> $0 -n OneStopShop -a 'Maria Wang' -g mariawang"
 	echo
 }
 
@@ -50,16 +50,16 @@ function display_help()
 function display_status()
 {
 	echo
-	$SCRIPT_DIR/echocolor.sh -c "********************************************************************************"
-	$SCRIPT_DIR/echocolor.sh -c "* $1"
-	$SCRIPT_DIR/echocolor.sh -c "********************************************************************************"
+	"$SCRIPT_DIR"/echocolor.sh -c "********************************************************************************"
+	"$SCRIPT_DIR"/echocolor.sh -c "* $1"
+	"$SCRIPT_DIR"/echocolor.sh -c "********************************************************************************"
 	echo
 }
 
 
 function display_error()
 {
-	$SCRIPT_DIR/echocolor.sh -r "Error: $1"
+	"$SCRIPT_DIR"/echocolor.sh -r "Error: $1"
 }
 
 
@@ -67,9 +67,11 @@ function split_caps() {
 	local input="$1"
 	local formatted
 
-	# 1. Insert spaces between lowercase followed by uppercase
-	# 2. Insert spaces between uppercase followed by Uppercase+lowercase (start of new word)
-	formatted=$(sed -E 's/([[:lower:]])([[:upper:]])/\1 \2/g; s/([[:upper:]])([[:upper:]][[:lower:]])/\1 \2/g' <<< "$input")
+	# Insert spaces between lowercase followed by uppercase
+	formatted=$(sed -E 's/([[:lower:]])([[:upper:]])/\1 \2/g' <<< "$input")
+
+	# Insert spaces between uppercase followed by Uppercase+lowercase
+	formatted=$(sed -E 's/([[:upper:]])([[:upper:]][[:lower:]])/\1 \2/g' <<< "$formatted")
 
 	echo "$formatted"
 }
@@ -83,8 +85,10 @@ replace_string() {
 	local replacement="$4"
 
 	# Escape target and replacement for sed
-	local target_esc=$(printf '%s' "$target" | sed 's|[\&/\\]|\\&|g')
-	local repl_esc=$(printf '%s' "$replacement" | sed 's|[\&/\\]|\\&|g')
+	local target_esc
+	target_esc=$(printf '%s' "$target" | sed 's|[\&/\\]|\\&|g')
+	local repl_esc
+	repl_esc=$(printf '%s' "$replacement" | sed 's|[\&/\\]|\\&|g')
 	local sed_expr="s/${target_esc}/${repl_esc}/g"
 
 	# Find files that actually contain the target string
@@ -142,7 +146,8 @@ rename_template() {
 
 	root_dir=$(realpath -- "$root_dir")
 
-	local root_realpath=$(realpath -- "$root_dir")
+	local root_realpath
+	root_realpath=$(realpath -- "$root_dir")
 
 	local to_rename=()
 
@@ -151,8 +156,10 @@ rename_template() {
 			continue
 		fi
 
-		local dir_name=$(dirname -- "$file")
-		local base_name=$(basename -- "$file")
+		local dir_name
+		dir_name=$(dirname -- "$file")
+		local base_name
+		base_name=$(basename -- "$file")
 		local new_base_name="${base_name//$target/$replacement}"
 
 		if [[ "$base_name" == "$new_base_name" ]]; then
@@ -267,14 +274,15 @@ replace_string "$dry_run" "$ROOT_DIR" "Plugin Template" "$joined_string"
 display_status "Removing initialization section from README doc"
 if ! $dry_run; then
 	echo "Removing initialization section in $ROOT_DIR/docs/README.md"
-	"${sed_cmd[@]}" "${sed_inplace[@]}" '/<!--TO-BE-DELETED-AFTER-INIT-BEGIN-->/,/<!--TO-BE-DELETED-AFTER-INIT-END-->/d' "$ROOT_DIR/docs/README.md"
+	"${sed_cmd[@]}" "${sed_inplace[@]}" \
+		'/<!--TO-BE-DELETED-AFTER-INIT-BEGIN-->/,/<!--TO-BE-DELETED-AFTER-INIT-END-->/d' "$ROOT_DIR/docs/README.md"
 else
 	echo "Would remove initialization section in $ROOT_DIR/docs/README.md"
 fi
 echo
 
 
-if ! [[ -z "$author_name" ]]; then
+if [[ -n "$author_name" ]]; then
 	display_status "Replacing '<<AuthorName>>' with '$author_name'"
 	replace_string "$dry_run" "$ROOT_DIR" "<<AuthorName>>" "$author_name"
 else
@@ -283,7 +291,7 @@ else
 fi
 
 
-if ! [[ -z "$github_username" ]]; then
+if [[ -n "$github_username" ]]; then
 	display_status "Replacing '<<GitHubUsername>>' with '$github_username'"
 	replace_string "$dry_run" "$ROOT_DIR" "<<GitHubUsername>>" "$github_username"
 else
