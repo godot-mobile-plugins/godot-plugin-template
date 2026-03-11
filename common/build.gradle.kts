@@ -167,7 +167,7 @@ tasks {
             val deps = readSpmDependencies(iosConfigFile)
             val pluginModuleName = project.extra["pluginModuleName"] as String
             val iosDir = file("$rootDir/../ios")
-            val xcodeproj = "$iosDir/${pluginModuleName}_plugin.xcodeproj"
+            val xcodeproj = "$iosDir/plugin.xcodeproj"
             val scriptDir = file("$rootDir/../script")
 
             if (deps.isEmpty()) {
@@ -225,16 +225,15 @@ tasks {
         description = "Adds SPM dependencies from ios/config/config.properties into the Xcode project"
 
         inputs.files(fileTree("$rootDir/../ios/config"))
-        outputs.dir("$rootDir/../ios/${project.extra["pluginModuleName"]}_plugin.xcodeproj")
+        outputs.dir("$rootDir/../ios/plugin.xcodeproj")
 
         finalizedBy("resolveSPMDependencies")
 
         doLast {
             val iosConfigFile = file("$rootDir/../ios/config/config.properties")
             val deps = readSpmDependencies(iosConfigFile)
-            val pluginModuleName = project.extra["pluginModuleName"] as String
             val iosDir = file("$rootDir/../ios")
-            val xcodeproj = "$iosDir/${pluginModuleName}_plugin.xcodeproj"
+            val xcodeproj = "$iosDir/plugin.xcodeproj"
             val scriptDir = file("$rootDir/../script")
 
             if (deps.isEmpty()) {
@@ -298,8 +297,7 @@ tasks {
         environment("INVOKED_BY_GRADLE", "true")
 
         val iosDir = file("$rootDir/../ios")
-        val pluginModuleName = project.extra["pluginModuleName"] as String
-        val xcodeproj = "$iosDir/${pluginModuleName}_plugin.xcodeproj"
+        val xcodeproj = "$iosDir/plugin.xcodeproj"
         val resolvedFile = file("$xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved")
 
         inputs.file("$rootDir/../ios/config/config.properties")

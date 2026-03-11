@@ -34,7 +34,7 @@ GODOT_VERSION=$("$SCRIPT_DIR"/get_config_property.sh -f "$COMMON_CONFIG_FILE" go
 GODOT_RELEASE_TYPE=$("$SCRIPT_DIR"/get_config_property.sh -f "$COMMON_CONFIG_FILE" godotReleaseType)
 
 SCHEME="${PLUGIN_MODULE_NAME}_plugin"
-PROJECT="${SCHEME}.xcodeproj"
+PROJECT="plugin.xcodeproj"
 WORKSPACE="${PROJECT}/project.xcworkspace"
 SPM_DIR=$IOS_DIR/$WORKSPACE/xcshareddata/swiftpm
 

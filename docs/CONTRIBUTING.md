@@ -62,7 +62,7 @@ Thank you for your interest in contributing to the Godot PluginTemplate Plugin! 
 │
 ├── ios/                                 # iOS platform module
 │   ├── src/                               # iOS platform code
-│   ├── plugin_template_plugin.xcodeproj/  # Xcode project
+│   ├── plugin.xcodeproj/                  # Xcode project
 │   ├── build/                             # iOS build outputs
 │   ├── config/
 │   │   ├── config.properties              # iOS configuration
