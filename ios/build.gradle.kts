@@ -39,7 +39,7 @@ fun readSpmDependencies(configFile: File): List<Map<String, String>> {
 }
 
 // Load configuration from project root
-apply(from = "$rootDir/config.gradle.kts")
+apply(from = "$projectDir/config.gradle.kts")
 
 /*
 spotless {
@@ -52,7 +52,10 @@ spotless {
 */
 
 tasks {
+    val pluginDir: String by project.extra
     val repositoryRootDir: String by project.extra
+    val archiveDir: String by project.extra
+    val demoDir: String by project.extra
 
     register<Exec>("removeGodotDirectory") {
         description = "Removes the directory where Godot sources were downloaded"
@@ -318,9 +321,8 @@ tasks {
         val pluginName = project.extra["pluginName"] as String
         val buildDir = file(projectDir).resolve("build")
         val frameworkDir = buildDir.resolve("framework")
-        val pluginDir = file(project.extra["pluginDir"] as String)
 
-        val destDir = pluginDir.resolve("ios")
+        val destDir = file(pluginDir).resolve("ios")
         destinationDir = destDir
 
         doFirst {
@@ -372,7 +374,7 @@ tasks {
         dependsOn("buildiOSDebug")
         dependsOn("copyiOSBuildArtifacts")
 
-        val destDir = file("${project.extra["demoDir"]}")
+        val destDir = file(demoDir)
         destinationDir = destDir
 
         doFirst {
@@ -385,15 +387,10 @@ tasks {
         duplicatesStrategy = DuplicatesStrategy.WARN
 
         into(".") {
-            from("${project.extra["pluginDir"]}/ios")
+            from("$pluginDir/ios")
         }
 
         outputs.dir(destinationDir)
-    }
-
-    register<Copy>("installToDemo") {
-        description = "Installs both the Android and iOS plugins to demo app"
-        dependsOn("installToDemoAndroid", "installToDemoiOS")
     }
 
     register<Delete>("uninstalliOS") {
@@ -403,7 +400,7 @@ tasks {
         )
 
         delete(
-            fileTree("${project.extra["demoDir"]}/addons/${project.extra["pluginName"]}") {
+            fileTree("$demoDir/addons/${project.extra["pluginName"]}") {
                 include("**/*")
                 exclude("**/*.uid")
                 exclude("**/*.import")
@@ -412,7 +409,7 @@ tasks {
 
         // iOS plugins cleanup (catches .gdip + .xcframework + .framework)
         val pluginName = project.extra["pluginName"] as String
-        val pluginsDir = file("${project.extra["demoDir"]}/ios/plugins")
+        val pluginsDir = file("$demoDir/ios/plugins")
 
         // Delete every file/folder that belongs to this plugin
         delete(
@@ -446,7 +443,7 @@ tasks {
 
         val archiveName = project.extra["pluginArchiveiOS"] as String
         val outputDir = project.extra["archiveDir"] as String
-        val sourceDir = "${project.extra["pluginDir"] as String}/ios"
+        val sourceDir = "$pluginDir/ios"
 
         archiveFileName.set(archiveName)
         destinationDirectory.set(layout.projectDirectory.dir(outputDir))

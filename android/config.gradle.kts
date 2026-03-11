@@ -15,6 +15,8 @@ extra.apply {
     set("pluginNodeName", commonProperties.getProperty("pluginNodeName"))
     set("pluginName", "${get("pluginNodeName")}Plugin")
     set("pluginPackageName", commonProperties.getProperty("pluginPackage"))
+    set("pluginVersion", commonProperties.getProperty("pluginVersion"))
+    set("pluginArchiveAndroid", "${get("pluginName")}-Android-v${get("pluginVersion")}.zip")
 
     // Godot
     set("godotVersion", commonProperties.getProperty("godotVersion"))
@@ -26,4 +28,11 @@ extra.apply {
             "godot-lib.${get("godotVersion")}.${get("releaseType")}.template_release.aar",
     )
     set("godotAarFile", "godot-lib-${get("godotVersion")}.${get("releaseType")}.aar")
+
+    set("pluginDir", "$rootDir/build/plugin")
+    set("repositoryRootDir", "$rootDir/..")
+    set("archiveDir", "${get("repositoryRootDir")}/release")
+
+    // Demo
+    set("demoDir", "${get("repositoryRootDir")}/demo")
 }
