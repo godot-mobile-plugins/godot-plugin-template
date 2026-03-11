@@ -11,36 +11,7 @@ plugins {
     alias(libs.plugins.undercouch.download) apply false
     alias(libs.plugins.openrewrite) apply false
     alias(libs.plugins.node) apply false
-//    alias(libs.plugins.spotless)
-}
-
-/**
- * Reads SPM dependency entries from a config.properties file.
- *
- * Each qualifying line has the form:
- *   dependency.<ProductName>=<URL>|<minimumVersion>
- *
- * Returns a list of Maps, each containing the keys "name", "url", and "version".
- */
-fun readSpmDependencies(configFile: File): List<Map<String, String>> {
-    val deps = mutableListOf<Map<String, String>>()
-    if (!configFile.exists()) return deps
-    configFile.forEachLine { raw ->
-        val line = raw.trim()
-        if (line.startsWith("dependency.") && line.contains("=")) {
-            val (rawKey, rawValue) = line.split("=", limit = 2)
-            val productName = rawKey.trim().removePrefix("dependency.").trim()
-            val parts = rawValue.trim().split("|", limit = 2)
-            if (productName.isNotEmpty() && parts.size == 2) {
-                val url = parts[0].trim()
-                val version = parts[1].trim()
-                if (url.isNotEmpty() && version.isNotEmpty()) {
-                    deps.add(mapOf("name" to productName, "url" to url, "version" to version))
-                }
-            }
-        }
-    }
-    return deps
+//    alias(libs.plugins.spotless) apply false
 }
 
 allprojects {
@@ -53,25 +24,20 @@ allprojects {
 // Load configuration from project root
 apply(from = "$rootDir/config.gradle.kts")
 
-/*
-spotless {
-    cpp {
-        target("../ios/src/**/*.m", "../ios/src/**/*.mm", "../ios/src/**/*.h")
-
-        clangFormat(libs.versions.clang.format.get()).style("../.github/config/.clang-format")
-    }
-}
-*/
-
 tasks {
-    val repositoryRootDir = file("$rootDir/..")
+    val pluginDir: String by project.extra
+    val repositoryRootDir: String by project.extra
+    val archiveDir: String by project.extra
+    val demoDir: String by project.extra
 
     register<Copy>("buildAndroidDebug") {
         description = "Copies the generated GDScript and debug AAR binary to the plugin directory"
 
-        dependsOn(":addon:generateGDScript")
-        dependsOn(":addon:copyAssets")
-        dependsOn(":android:assembleDebug")
+        dependsOn(
+            project(":addon").tasks.named("generateGDScript"),
+            project(":addon").tasks.named("copyAssets"),
+            project(":android").tasks.named("assembleDebug")
+        )
 
         into("${project.extra["pluginDir"]}/android")
 
@@ -96,9 +62,11 @@ tasks {
     register<Copy>("buildAndroidRelease") {
         description = "Copies the generated GDScript and release AAR binary to the plugin directory"
 
-        dependsOn(":addon:generateGDScript")
-        dependsOn(":addon:copyAssets")
-        dependsOn(":android:assembleRelease")
+        dependsOn(
+            project(":addon").tasks.named("generateGDScript"),
+            project(":addon").tasks.named("copyAssets"),
+            project(":android").tasks.named("assembleRelease")
+        )
 
         into("${project.extra["pluginDir"]}/android")
 
@@ -123,341 +91,31 @@ tasks {
     register("buildAndroid") {
         description = "Builds both debug and release"
 
-        dependsOn("buildAndroidDebug")
-        dependsOn("buildAndroidRelease")
-    }
-
-    register<Exec>("removeGodotDirectory") {
-        description = "Removes the directory where Godot sources were downloaded"
-
-        val buildScript = file("$rootDir/../script/build_ios.sh")
-        inputs.file(buildScript)
-
-        commandLine("bash", buildScript.absolutePath, "-g")
-        environment("INVOKED_BY_GRADLE", "true")
-    }
-
-    register<Exec>("downloadGodot") {
-        description = "Downloads Godot sources into the configured directory"
-
-        val buildScript = file("$rootDir/../script/build_ios.sh")
-        inputs.file(buildScript)
-
-        commandLine("bash", buildScript.absolutePath, "-G")
-        environment("INVOKED_BY_GRADLE", "true")
-    }
-
-    register<Exec>("generateGodotHeaders") {
-        description = "Runs Godot build and terminates after Godot header files have been generated"
-
-        val buildScript = file("$rootDir/../script/build_ios.sh")
-        inputs.file(buildScript)
-
-        commandLine("bash", buildScript.absolutePath, "-H")
-        environment("INVOKED_BY_GRADLE", "true")
-    }
-
-    register("resetSPMDependencies") {
-        description = "Removes SPM dependencies from the Xcode project and cleans up all SPM artifacts"
-
-        inputs.files(fileTree("$rootDir/../ios/config"))
-
-        doLast {
-            val iosConfigFile = file("$rootDir/../ios/config/config.properties")
-            val deps = readSpmDependencies(iosConfigFile)
-            val pluginModuleName = project.extra["pluginModuleName"] as String
-            val iosDir = file("$rootDir/../ios")
-            val xcodeproj = "$iosDir/plugin.xcodeproj"
-            val scriptDir = file("$rootDir/../script")
-
-            if (deps.isEmpty()) {
-                println("Warning: No dependencies found for plugin. Skipping SPM dependency removal.")
-            } else {
-                println("Removing SPM dependencies from project...")
-                deps.forEach { dep ->
-                    exec {
-                        commandLine(
-                            "ruby",
-                            "$scriptDir/spm_manager.rb",
-                            "-d",
-                            xcodeproj,
-                            dep["url"],
-                            dep["version"],
-                            dep["name"],
-                        )
-                    }
-                }
-
-                // Re-run xcodebuild to regenerate Package.resolved from the updated project state.
-                // This ensures transitive dependencies of removed packages are also purged.
-                println("Regenerating Package.resolved after dependency removal...")
-                exec {
-                    commandLine(
-                        "xcodebuild",
-                        "-resolvePackageDependencies",
-                        "-project",
-                        xcodeproj,
-                        "-scheme",
-                        "${pluginModuleName}_plugin",
-                        "-derivedDataPath",
-                        "$iosDir/build/DerivedData",
-                    )
-                    isIgnoreExitValue = true
-                }
-            }
-
-            val spmDir = file("$xcodeproj/project.xcworkspace/xcshareddata/swiftpm")
-            val resolvedFile = spmDir.resolve("Package.resolved")
-            if (resolvedFile.exists()) {
-                println("Removing ${resolvedFile.path} ...")
-                resolvedFile.delete()
-            }
-
-            val sourcePackagesDir = file("$iosDir/build/DerivedData/SourcePackages")
-            if (sourcePackagesDir.exists()) {
-                println("Removing SPM cache directory ${sourcePackagesDir.path} ...")
-                sourcePackagesDir.deleteRecursively()
-            }
-        }
-    }
-
-    register("updateSPMDependencies") {
-        description = "Adds SPM dependencies from ios/config/config.properties into the Xcode project"
-
-        inputs.files(fileTree("$rootDir/../ios/config"))
-        outputs.dir("$rootDir/../ios/plugin.xcodeproj")
-
-        finalizedBy("resolveSPMDependencies")
-
-        doLast {
-            val iosConfigFile = file("$rootDir/../ios/config/config.properties")
-            val deps = readSpmDependencies(iosConfigFile)
-            val iosDir = file("$rootDir/../ios")
-            val xcodeproj = "$iosDir/plugin.xcodeproj"
-            val scriptDir = file("$rootDir/../script")
-
-            if (deps.isEmpty()) {
-                println("Warning: No dependencies found for plugin. Skipping SPM update.")
-                return@doLast
-            }
-
-            val noun = if (deps.size == 1) "dependency" else "dependencies"
-            println("Found ${deps.size} SPM $noun:")
-            deps.forEach { println("\t• ${it["name"]} (${it["url"]} @ ${it["version"]})") }
-            println()
-
-            // Verify Ruby and the xcodeproj gem are available
-            val rubyAvailable =
-                exec {
-                    commandLine("which", "ruby")
-                    isIgnoreExitValue = true
-                }.exitValue == 0
-            if (!rubyAvailable) {
-                throw GradleException("Ruby is required to inject SPM dependencies but was not found on PATH.")
-            }
-
-            val gemAvailable =
-                exec {
-                    commandLine("gem", "list", "-i", "^xcodeproj\$")
-                    isIgnoreExitValue = true
-                }.exitValue == 0
-            if (!gemAvailable) {
-                println("Installing 'xcodeproj' Ruby gem...")
-                exec { commandLine("gem", "install", "xcodeproj", "--user-install") }
-            }
-
-            println("Updating Xcode project with SPM dependencies...")
-            deps.forEach { dep ->
-                exec {
-                    commandLine(
-                        "ruby",
-                        "$scriptDir/spm_manager.rb",
-                        "-a",
-                        xcodeproj,
-                        dep["url"],
-                        dep["version"],
-                        dep["name"],
-                    )
-                }
-            }
-
-            println("SPM update completed.")
-        }
-    }
-
-    register<Exec>("resolveSPMDependencies") {
-        description = "Resolves SPM package dependencies via xcodebuild (invoked by build_ios.sh -r)"
-
-        mustRunAfter("updateSPMDependencies")
-
-        val buildScript = file("$rootDir/../script/build_ios.sh")
-        inputs.file(buildScript)
-
-        commandLine("bash", buildScript.absolutePath, "-r")
-        environment("INVOKED_BY_GRADLE", "true")
-
-        val iosDir = file("$rootDir/../ios")
-        val xcodeproj = "$iosDir/plugin.xcodeproj"
-        val resolvedFile = file("$xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved")
-
-        inputs.file("$rootDir/../ios/config/config.properties")
-        inputs.files(
-            fileTree(xcodeproj) {
-                include("**/*.pbxproj", "**/project.pbxproj")
-            },
+        dependsOn(
+            "buildAndroidDebug",
+            "buildAndroidRelease"
         )
-        inputs.file(buildScript)
-
-        outputs.file(resolvedFile)
-        outputs.dir("$iosDir/build/DerivedData/SourcePackages")
-    }
-
-    register<Exec>("buildiOSDebug") {
-        dependsOn(project(":addon").tasks.named("generateGDScript"))
-        dependsOn(project(":addon").tasks.named("generateiOSConfig"))
-        dependsOn(project(":addon").tasks.named("copyAssets"))
-        dependsOn("updateSPMDependencies")
-        dependsOn("resolveSPMDependencies")
-
-        inputs.files(project(":addon").tasks.named("generateGDScript").map { it.outputs.files })
-        inputs.files(project(":addon").tasks.named("generateiOSConfig").map { it.outputs.files })
-        inputs.files(project(":addon").tasks.named("copyAssets").map { it.outputs.files })
-
-        inputs.dir("$rootDir/../ios/src")
-        inputs.files(fileTree("$rootDir/config"))
-        inputs.files(fileTree("$rootDir/../ios/config"))
-
-        val buildScript = file("$rootDir/../script/build_ios.sh")
-        inputs.file(buildScript)
-
-        outputs.dir("$rootDir/../ios/build/framework")
-
-        finalizedBy("copyiOSBuildArtifacts")
-
-        commandLine("bash", buildScript.absolutePath, "-b")
-        environment("INVOKED_BY_GRADLE", "true")
-
-        doLast {
-            val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
-            val current = LocalDateTime.now().format(formatter)
-            println("iOS build completed at: $current")
-        }
-    }
-
-    register<Exec>("buildiOSRelease") {
-        dependsOn(project(":addon").tasks.named("generateGDScript"))
-        dependsOn(project(":addon").tasks.named("generateiOSConfig"))
-        dependsOn(project(":addon").tasks.named("copyAssets"))
-        dependsOn("updateSPMDependencies")
-        dependsOn("resolveSPMDependencies")
-
-        inputs.files(project(":addon").tasks.named("generateGDScript").map { it.outputs.files })
-        inputs.files(project(":addon").tasks.named("generateiOSConfig").map { it.outputs.files })
-        inputs.files(project(":addon").tasks.named("copyAssets").map { it.outputs.files })
-
-        inputs.dir("$rootDir/../ios/src")
-        inputs.files(fileTree("$rootDir/config"))
-        inputs.files(fileTree("$rootDir/../ios/config"))
-
-        val buildScript = file("$rootDir/../script/build_ios.sh")
-        inputs.file(buildScript)
-
-        outputs.dir("$rootDir/../ios/build/framework")
-
-        finalizedBy("copyiOSBuildArtifacts")
-
-        commandLine("bash", buildScript.absolutePath, "-B")
-        environment("INVOKED_BY_GRADLE", "true")
-
-        doLast {
-            val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
-            val current = LocalDateTime.now().format(formatter)
-            println("iOS build completed at: $current")
-        }
-    }
-
-    register("buildiOS") {
-        description = "Builds both debug and release"
-
-        dependsOn("buildiOSDebug")
-        dependsOn("buildiOSRelease")
-    }
-
-    register<Sync>("copyiOSBuildArtifacts") {
-        description = "Copies iOS build artifacts (xcframeworks and addon files) to the plugin directory"
-
-        dependsOn(project(":addon").tasks.named("copyAssets"))
-        dependsOn(project(":addon").tasks.named("generateGDScript"))
-        dependsOn(project(":addon").tasks.named("generateiOSConfig"))
-        mustRunAfter("buildiOSDebug", "buildiOSRelease")
-
-        val pluginName = project.extra["pluginName"] as String
-        val iosDir = file(project.extra["iosDir"] as String)
-        val buildDir = iosDir.resolve("build")
-        val frameworkDir = buildDir.resolve("framework")
-        val pluginDir = file(project.extra["pluginDir"] as String)
-
-        val destDir = pluginDir.resolve("ios")
-        destinationDir = destDir
-
-        doFirst {
-            val frameworkCache = destDir.resolve("ios/framework")
-            if (frameworkCache.exists()) {
-                frameworkCache.walkBottomUp().forEach { it.setWritable(true) }
-            }
-        }
-
-        duplicatesStrategy = DuplicatesStrategy.EXCLUDE
-
-        // Search ALL DerivedData folders so it works for debug AND release builds
-        val derivedDataDir = buildDir.resolve("DerivedData")
-        inputs.dir(derivedDataDir).optional(true)
-        inputs.dir(frameworkDir).optional(true)
-
-        outputs.dir(destDir)
-
-        // Third-party xcframeworks (from SPM) – works even if only debug or release exists
-        from(fileTree(derivedDataDir) { include("**/artifacts/**/*.xcframework/**") }) {
-            includeEmptyDirs = false
-            eachFile {
-                val segs = relativePath.segments
-                val xcfwIdx = segs.indexOfFirst { it.endsWith(".xcframework", ignoreCase = true) }
-                if (xcfwIdx >= 0) {
-                    relativePath = RelativePath(true, "ios", "framework", *segs.drop(xcfwIdx).toTypedArray())
-                } else {
-                    exclude()
-                }
-            }
-        }
-
-        into("ios/plugins") {
-            from(frameworkDir) {
-                include("$pluginName.release.xcframework/**")
-                include("$pluginName.debug.xcframework/**")
-            }
-        }
-
-        from("$rootDir/../addon/build/output") {
-            include("addons/${project.extra["pluginName"]}/**")
-            include("ios/plugins/*.gdip")
-        }
     }
 
     register("build") {
         description = "Builds both Android and iOS"
 
-        dependsOn("buildAndroid")
-        dependsOn("buildiOS")
+        dependsOn(
+            "buildAndroid",
+            project(":ios").tasks.named("buildiOS")
+        )
     }
 
     register<Copy>("installToDemoAndroid") {
         description = "Copies the assembled Android plugin to demo application's addons directory"
 
-        dependsOn(project(":addon").tasks.named("generateGDScript"))
-        dependsOn(project(":addon").tasks.named("copyAssets"))
-        dependsOn("buildAndroidDebug")
+        dependsOn(
+            project(":addon").tasks.named("generateGDScript"),
+            project(":addon").tasks.named("copyAssets"),
+            "buildAndroidDebug"
+        )
 
-        destinationDir = file("${project.extra["demoDir"]}")
+        destinationDir = file(demoDir)
 
         duplicatesStrategy = DuplicatesStrategy.WARN
 
@@ -468,113 +126,53 @@ tasks {
         outputs.dir(destinationDir)
     }
 
-    register<Copy>("installToDemoiOS") {
-        description = "Copies the assembled iOS plugin to demo application's addons directory"
-
-        dependsOn("buildiOSDebug")
-        dependsOn("copyiOSBuildArtifacts")
-
-        val destDir = file("${project.extra["demoDir"]}")
-        destinationDir = destDir
-
-        doFirst {
-            val frameworkCache = destDir.resolve("ios/framework")
-            if (frameworkCache.exists()) {
-                frameworkCache.walkBottomUp().forEach { it.setWritable(true) }
-            }
-        }
-
-        duplicatesStrategy = DuplicatesStrategy.WARN
-
-        into(".") {
-            from("${project.extra["pluginDir"]}/ios")
-        }
-
-        outputs.dir(destinationDir)
-    }
-
     register<Copy>("installToDemo") {
         description = "Installs both the Android and iOS plugins to demo app"
-        dependsOn("installToDemoAndroid", "installToDemoiOS")
+
+        dependsOn(
+            "installToDemoAndroid",
+            project(":ios").tasks.named("installToDemoiOS")
+        )
     }
 
     register<Delete>("uninstallAndroid") {
         description = "Keep demo app's plugin directory and delete everything inside except for .uid and .import files"
         delete(
-            fileTree("${project.extra["demoDir"]}/addons/${project.extra["pluginName"]}").apply {
+            fileTree("$demoDir/addons/${project.extra["pluginName"]}").apply {
                 include("**/*")
                 exclude("**/*.uid")
                 exclude("**/*.import")
             },
-        )
-    }
-
-    register<Delete>("uninstalliOS") {
-        description = (
-            "Keep .uid and .import files and delete the rest inside demo app's plugin directory. " +
-                "Delete plugin files inside demo ios directory."
-        )
-
-        delete(
-            fileTree("${project.extra["demoDir"]}/addons/${project.extra["pluginName"]}") {
-                include("**/*")
-                exclude("**/*.uid")
-                exclude("**/*.import")
-            },
-        )
-
-        // iOS plugins cleanup (catches .gdip + .xcframework + .framework)
-        val pluginName = project.extra["pluginName"] as String
-        val pluginsDir = file("${project.extra["demoDir"]}/ios/plugins")
-
-        // Delete every file/folder that belongs to this plugin
-        delete(
-            pluginsDir.listFiles()?.filter { it.name.startsWith("$pluginName.") }.orEmpty(),
         )
     }
 
     register("uninstall") {
         description = "Cleans all build outputs"
-        dependsOn("uninstallAndroid", "uninstalliOS")
-    }
 
-    register<Delete>("cleaniOSBuild") {
-        group = "clean"
-        description = "Cleans iOS build outputs"
-
-        val iosDir: String by project.extra
-
-        val iosBuildDir =
-            provider {
-                project.file("$iosDir/build")
-            }
-
-        delete(iosBuildDir)
-
-        doLast {
-            val dir = iosBuildDir.get()
-            if (dir.exists()) {
-                logger.lifecycle("Removed iOS build directory: ${dir.absolutePath}")
-            } else {
-                logger.lifecycle("iOS build directory did not exist (already clean): ${dir.absolutePath}")
-            }
-        }
+        dependsOn(
+            "uninstallAndroid",
+            project(":ios").tasks.named("uninstalliOS")
+        )
     }
 
     register<Delete>("clean") {
         description = "Cleans all build outputs"
-        dependsOn(":android:clean", ":addon:cleanOutput", "cleaniOSBuild")
+
+        dependsOn(
+            ":android:clean",
+            ":addon:cleanOutput",
+            project(":ios").tasks.named("cleaniOSBuild")
+        )
     }
 
     register<Zip>("createAndroidArchive") {
         dependsOn("buildAndroidDebug", "buildAndroidRelease")
 
         val archiveName = project.extra["pluginArchiveAndroid"] as String
-        val outputDir = project.extra["archiveDir"] as String
         val sourceDir = "${project.extra["pluginDir"] as String}/android"
 
         archiveFileName.set(archiveName)
-        destinationDirectory.set(layout.projectDirectory.dir(outputDir))
+        destinationDirectory.set(layout.projectDirectory.dir(archiveDir))
 
         into("res") {
             from(layout.projectDirectory.dir(sourceDir)) {
@@ -587,39 +185,20 @@ tasks {
         }
     }
 
-    register<Zip>("createiOSArchive") {
-        dependsOn("buildiOS", "copyiOSBuildArtifacts")
-
-        val archiveName = project.extra["pluginArchiveiOS"] as String
-        val outputDir = project.extra["archiveDir"] as String
-        val sourceDir = "${project.extra["pluginDir"] as String}/ios"
-
-        archiveFileName.set(archiveName)
-        destinationDirectory.set(layout.projectDirectory.dir(outputDir))
-
-        duplicatesStrategy = DuplicatesStrategy.EXCLUDE
-
-        into("res") {
-            from(layout.projectDirectory.dir(sourceDir)) {
-                includeEmptyDirs = false
-            }
-        }
-
-        doLast {
-            println("iOS zip archive created at: ${archiveFile.get().asFile.path}")
-        }
-    }
-
     register<Zip>("createMultiArchive") {
-        dependsOn("buildAndroidDebug", "buildAndroidRelease", "buildiOS", "copyiOSBuildArtifacts")
+        dependsOn(
+            "buildAndroidDebug",
+            "buildAndroidRelease",
+            project(":ios").tasks.named("buildiOS"),
+            project(":ios").tasks.named("copyiOSBuildArtifacts")
+        )
 
         val archiveName = project.extra["pluginArchiveMulti"] as String
-        val outputDir = project.extra["archiveDir"] as String
         val androidDir = "${project.extra["pluginDir"] as String}/android"
         val iosDir = "${project.extra["pluginDir"] as String}/ios"
 
         archiveFileName.set(archiveName)
-        destinationDirectory.set(layout.projectDirectory.dir(outputDir))
+        destinationDirectory.set(layout.projectDirectory.dir(archiveDir))
 
         duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 
@@ -640,88 +219,32 @@ tasks {
 
     register("createArchives") {
         description = "Creates both the Android and iOS zip archives"
-        dependsOn("createAndroidArchive", "createiOSArchive", "createMultiArchive")
-    }
-
-    register<Exec>("checkIosFormat") {
-        description = "Checks clang-format compliance of iOS source files (dry-run, no changes written)"
-        group = "formatting"
-
-        val iosSrcDir = file("$rootDir/../ios/src")
-        workingDir = iosSrcDir
-
-        doFirst {
-            val sourceFiles =
-                fileTree(iosSrcDir) {
-                    include("**/*.mm", "**/*.m", "**/*.h")
-                }.files
-                    .map { it.relativeTo(iosSrcDir).path }
-                    .sorted()
-
-            if (sourceFiles.isEmpty()) {
-                throw GradleException("checkIosFormat: no source files found under ${iosSrcDir.absolutePath}")
-            }
-
-            commandLine(
-                buildList {
-                    add("clang-format")
-                    add("--style=file:../../.github/config/.clang-format")
-                    add("--dry-run")
-                    add("--Werror")
-                    addAll(sourceFiles)
-                },
-            )
-        }
-    }
-
-    register<Exec>("formatIosSource") {
-        description = "Formats iOS source files in-place using clang-format"
-        group = "formatting"
-
-        val iosSrcDir = file("$rootDir/../ios/src")
-        workingDir = iosSrcDir
-
-        doFirst {
-            val sourceFiles =
-                fileTree(iosSrcDir) {
-                    include("**/*.mm", "**/*.m", "**/*.h")
-                }.files
-                    .map { it.relativeTo(iosSrcDir).path }
-                    .sorted()
-
-            if (sourceFiles.isEmpty()) {
-                throw GradleException("formatIosSource: no source files found under ${iosSrcDir.absolutePath}")
-            }
-
-            commandLine(
-                buildList {
-                    add("clang-format")
-                    add("--style=file:../../.github/config/.clang-format")
-                    add("-i")
-                    addAll(sourceFiles)
-                },
-            )
-        }
+        dependsOn(
+            "createAndroidArchive",
+            project(":ios").tasks.named("createiOSArchive"),
+            "createMultiArchive"
+        )
     }
 
     register<Exec>("checkKtsFormat") {
         description = "Checks ktlint compliance of Gradle Kotlin DSL files (dry-run, no changes written)"
         group = "formatting"
 
-        workingDir = repositoryRootDir
+        workingDir = file(repositoryRootDir)
 
         doFirst {
             val sourceFiles =
-                listOf("addon", "android", "common")
+                listOf("addon", "android", "common", "ios")
                     .flatMap { dir ->
                         fileTree("$repositoryRootDir/$dir") {
                             include("*.gradle.kts")
                         }.files
-                    }.map { it.relativeTo(repositoryRootDir).path }
+                    }.map { it.relativeTo(file(repositoryRootDir)).path }
                     .sorted()
 
             if (sourceFiles.isEmpty()) {
-                throw GradleException("checkKtsFormat: no *.gradle.kts files found under addon/, android/, or common/")
+                throw GradleException("checkKtsFormat: no *.gradle.kts files found under addon/, android/, or common/, "
+                    + "or ios/")
             }
 
             commandLine(
@@ -737,20 +260,21 @@ tasks {
         description = "Formats Gradle Kotlin DSL files in-place using ktlint --format"
         group = "formatting"
 
-        workingDir = repositoryRootDir
+        workingDir = file(repositoryRootDir)
 
         doFirst {
             val sourceFiles =
-                listOf("addon", "android", "common")
+                listOf("addon", "android", "common", "ios")
                     .flatMap { dir ->
                         fileTree("$repositoryRootDir/$dir") {
                             include("*.gradle.kts")
                         }.files
-                    }.map { it.relativeTo(repositoryRootDir).path }
+                    }.map { it.relativeTo(file(repositoryRootDir)).path }
                     .sorted()
 
             if (sourceFiles.isEmpty()) {
-                throw GradleException("formatKtsSource: no *.gradle.kts files found under addon/, android/, or common/")
+                throw GradleException("formatKtsSource: no *.gradle.kts files found under addon/, android/, common/, or"
+                    + " ios/")
             }
 
             commandLine(
@@ -770,7 +294,7 @@ tasks {
         dependsOn(
             ":android:rewriteDryRun",
             ":android:checkXmlFormat",
-            "checkIosFormat",
+            project(":ios").tasks.named("checkIosFormat"),
             "checkKtsFormat",
             ":addon:checkGdscriptFormat",
         )
@@ -783,7 +307,7 @@ tasks {
         dependsOn(
             ":android:rewriteRun",
             ":android:formatXml",
-            "formatIosSource",
+            project(":ios").tasks.named("formatIosSource"),
             "formatKtsSource",
             ":addon:formatGdscriptSource",
         )

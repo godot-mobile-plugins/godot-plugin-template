@@ -49,8 +49,10 @@ dependencyResolutionManagement {
 }
 
 rootProject.name = "godot-plugin-template-plugin"
-include(":android")
 include(":addon")
+include(":android")
+include(":ios")
 
-project(":android").projectDir = file("../android")
 project(":addon").projectDir = file("../addon")
+project(":android").projectDir = file("../android")
+project(":ios").projectDir = file("../ios")

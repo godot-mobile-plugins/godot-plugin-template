@@ -17,9 +17,7 @@ extra.apply {
     set("pluginModuleName", "${commonProperties.getProperty("pluginModuleName")}")
     set("pluginPackageName", commonProperties.getProperty("pluginPackage"))
     set("pluginVersion", commonProperties.getProperty("pluginVersion"))
-    set("pluginArchiveAndroid", "${get("pluginName")}-Android-v${get("pluginVersion")}.zip")
     set("pluginArchiveiOS", "${get("pluginName")}-iOS-v${get("pluginVersion")}.zip")
-    set("pluginArchiveMulti", "${get("pluginName")}-Multi-v${get("pluginVersion")}.zip")
 
     set("pluginDir", "$rootDir/build/plugin")
     set("repositoryRootDir", "$rootDir/..")
