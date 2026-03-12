@@ -17,7 +17,7 @@ plugins {
     alias(libs.plugins.node)
 }
 
-apply(from = "$projectDir/config.gradle.kts")
+apply(from = "$projectDir/config/android.gradle.kts")
 
 configure<org.openrewrite.gradle.RewriteExtension> {
     activeRecipe(
@@ -101,7 +101,7 @@ val androidDependencies =
 dependencies {
     "rewrite"(libs.rewrite.static.analysis)
 
-    implementation("godot:godot-lib:${project.extra["godotVersion"]}.${project.extra["releaseType"]}@aar")
+    implementation("godot:godot-lib:${project.extra["godotVersion"]}.${project.extra["godotReleaseType"]}@aar")
     androidDependencies.forEach {
         println("[DEBUG] Adding Android dependency: $it")
         implementation(it)

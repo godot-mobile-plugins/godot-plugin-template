@@ -14,25 +14,20 @@ extra.apply {
     // Plugin details
     set("pluginNodeName", commonProperties.getProperty("pluginNodeName"))
     set("pluginName", "${get("pluginNodeName")}Plugin")
+    set("pluginModuleName", "${commonProperties.getProperty("pluginModuleName")}")
     set("pluginPackageName", commonProperties.getProperty("pluginPackage"))
     set("pluginVersion", commonProperties.getProperty("pluginVersion"))
-    set("pluginArchiveAndroid", "${get("pluginName")}-Android-v${get("pluginVersion")}.zip")
 
     // Godot
     set("godotVersion", commonProperties.getProperty("godotVersion"))
-    set("releaseType", commonProperties.getProperty("godotReleaseType"))
-    set(
-        "godotAarUrl",
-        "https://github.com/godotengine/godot-builds/releases/download/" +
-            "${get("godotVersion")}-${get("releaseType")}/" +
-            "godot-lib.${get("godotVersion")}.${get("releaseType")}.template_release.aar",
-    )
-    set("godotAarFile", "godot-lib-${get("godotVersion")}.${get("releaseType")}.aar")
+    set("godotReleaseType", commonProperties.getProperty("godotReleaseType"))
 
+    // Project directories
     set("pluginDir", "$rootDir/build/plugin")
     set("repositoryRootDir", "$rootDir/..")
     set("archiveDir", "${get("repositoryRootDir")}/release")
-
-    // Demo
     set("demoDir", "${get("repositoryRootDir")}/demo")
+
+    // Release archive
+    set("pluginArchiveMulti", "${get("pluginName")}-Multi-v${get("pluginVersion")}.zip")
 }

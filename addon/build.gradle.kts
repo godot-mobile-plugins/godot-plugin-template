@@ -4,7 +4,7 @@
 
 import org.apache.tools.ant.filters.ReplaceTokens
 
-apply(from = "$projectDir/config.gradle.kts")
+apply(from = "$projectDir/config/addon.gradle.kts")
 
 // Access the library catalog by name ("libs")
 val catalog = extensions.getByType<VersionCatalogsExtension>().named("libs")

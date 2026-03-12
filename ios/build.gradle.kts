@@ -39,7 +39,7 @@ fun readSpmDependencies(configFile: File): List<Map<String, String>> {
 }
 
 // Load configuration from project root
-apply(from = "$projectDir/config.gradle.kts")
+apply(from = "$projectDir/config/ios.gradle.kts")
 
 /*
 spotless {

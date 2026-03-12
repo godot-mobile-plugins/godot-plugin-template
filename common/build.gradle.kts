@@ -19,7 +19,7 @@ allprojects {
 }
 
 // Load configuration from project root
-apply(from = "$rootDir/config.gradle.kts")
+apply(from = "$rootDir/config/common.gradle.kts")
 
 tasks {
     val pluginDir: String by project.extra
