@@ -31,7 +31,7 @@ tasks {
 
         dependsOn(
             project(":android").tasks.named("buildAndroid"),
-            project(":ios").tasks.named("buildiOS")
+            project(":ios").tasks.named("buildiOS"),
         )
     }
 
@@ -40,7 +40,7 @@ tasks {
 
         dependsOn(
             project(":android").tasks.named("installToDemoAndroid"),
-            project(":ios").tasks.named("installToDemoiOS")
+            project(":ios").tasks.named("installToDemoiOS"),
         )
     }
 
@@ -49,7 +49,7 @@ tasks {
 
         dependsOn(
             project(":android").tasks.named("uninstallAndroid"),
-            project(":ios").tasks.named("uninstalliOS")
+            project(":ios").tasks.named("uninstalliOS"),
         )
     }
 
@@ -59,7 +59,7 @@ tasks {
         dependsOn(
             project(":addon").tasks.named("cleanOutput"),
             project(":android").tasks.named("clean"),
-            project(":ios").tasks.named("cleaniOSBuild")
+            project(":ios").tasks.named("cleaniOSBuild"),
         )
     }
 
@@ -68,7 +68,7 @@ tasks {
             project(":android").tasks.named("buildAndroidDebug"),
             project(":android").tasks.named("buildAndroidRelease"),
             project(":ios").tasks.named("buildiOS"),
-            project(":ios").tasks.named("copyiOSBuildArtifacts")
+            project(":ios").tasks.named("copyiOSBuildArtifacts"),
         )
 
         val archiveName = project.extra["pluginArchiveMulti"] as String
@@ -100,7 +100,7 @@ tasks {
         dependsOn(
             project(":android").tasks.named("createAndroidArchive"),
             project(":ios").tasks.named("createiOSArchive"),
-            "createMultiArchive"
+            "createMultiArchive",
         )
     }
 
@@ -121,8 +121,10 @@ tasks {
                     .sorted()
 
             if (sourceFiles.isEmpty()) {
-                throw GradleException("checkKtsFormat: no *.gradle.kts files found under addon/, android/, or common/, "
-                    + "or ios/")
+                throw GradleException(
+                    "checkKtsFormat: no *.gradle.kts files found under addon/, android/, or common/, " +
+                        "or ios/",
+                )
             }
 
             commandLine(
@@ -151,8 +153,10 @@ tasks {
                     .sorted()
 
             if (sourceFiles.isEmpty()) {
-                throw GradleException("formatKtsSource: no *.gradle.kts files found under addon/, android/, common/, or"
-                    + " ios/")
+                throw GradleException(
+                    "formatKtsSource: no *.gradle.kts files found under addon/, android/, common/, or" +
+                        " ios/",
+                )
             }
 
             commandLine(

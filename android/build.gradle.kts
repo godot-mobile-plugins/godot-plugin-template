@@ -5,7 +5,6 @@
 import com.android.build.gradle.internal.api.LibraryVariantOutputImpl
 import com.github.gradle.node.npm.task.NpmTask
 import com.github.gradle.node.npm.task.NpxTask
-
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
@@ -120,7 +119,7 @@ tasks {
         dependsOn(
             project(":addon").tasks.named("generateGDScript"),
             project(":addon").tasks.named("copyAssets"),
-            project(":android").tasks.named("assembleDebug")
+            project(":android").tasks.named("assembleDebug"),
         )
 
         into("$pluginDir/android")
@@ -149,7 +148,7 @@ tasks {
         dependsOn(
             project(":addon").tasks.named("generateGDScript"),
             project(":addon").tasks.named("copyAssets"),
-            project(":android").tasks.named("assembleRelease")
+            project(":android").tasks.named("assembleRelease"),
         )
 
         into("$pluginDir/android")
@@ -177,14 +176,14 @@ tasks {
 
         dependsOn(
             "buildAndroidDebug",
-            "buildAndroidRelease"
+            "buildAndroidRelease",
         )
     }
 
     register<Zip>("createAndroidArchive") {
         dependsOn(
             "buildAndroidDebug",
-            "buildAndroidRelease"
+            "buildAndroidRelease",
         )
 
         val archiveName = project.extra["pluginArchiveAndroid"] as String
@@ -210,7 +209,7 @@ tasks {
         dependsOn(
             project(":addon").tasks.named("generateGDScript"),
             project(":addon").tasks.named("copyAssets"),
-            "buildAndroidDebug"
+            "buildAndroidDebug",
         )
 
         destinationDir = file(demoDir)
