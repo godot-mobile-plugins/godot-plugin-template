@@ -30,19 +30,27 @@ Thank you for your interest in contributing to the Godot PluginTemplate Plugin! 
 │   │                                      # common/config/config.properties) for the plugin goes here
 │   ├── build/
 │   │   └── output/                        # Generated GDScript code
+│   │
+│   ├── config/
+│   │   └── addon.gradle.kts               # Gradle configuration for addon module
+│   │
 │   └── src/                               # GDScript templates
 │
 ├── android/                             # Android platform module
 │   ├── build.gradle.kts                   # Android build configuration
-│   ├── config.gradle.kts                  # Android configuration
+│   │
 │   ├── build/
 │   │   └── outputs/                       # Generated Android AAR files
+│   │
+│   ├── config/
+│   │   └── android.gradle.kts             # Gradle configuration for android module
+│   │
 │   ├── libs/                              # Godot library for Android (default location; configurable via local.properties)
 │   └── src/main/                          # Android source code
 │
 ├── common/                              # Shared build configuration
 │   ├── build.gradle.kts                   # Root build configuration
-│   ├── config.gradle.kts                  # Common configuration
+│   │
 │   ├── gradle.properties                  # Gradle properties
 │   ├── local.properties                   # Local machine config (gitignored)
 │   ├── settings.gradle.kts                # Gradle settings
@@ -50,8 +58,11 @@ Thank you for your interest in contributing to the Godot PluginTemplate Plugin! 
 │   │   ├── archive/                       # Generated archives
 │   │   ├── plugin/                        # Built plugin files
 │   │   └── reports/                       # Build reports
+│   │
 │   ├── config/
+│   │   ├── common.gradle.kts              # Common Gradle configuration
 │   │   └── config.properties              # Common plugin configuration
+│   │
 │   └── gradle/                            # Gradle wrapper and version catalogs
 │       └── libs.versions.toml             # Dependencies and versions
 │
@@ -64,13 +75,17 @@ Thank you for your interest in contributing to the Godot PluginTemplate Plugin! 
 │   ├── src/                               # iOS platform code
 │   ├── plugin.xcodeproj/                  # Xcode project
 │   ├── build/                             # iOS build outputs
+│   │
 │   ├── config/
 │   │   ├── config.properties              # iOS configuration
+│   │   ├── ios.gradle.kts                 # iOS Gradle configuration
 │   │   └── *.gdip                         # Godot iOS plugin config
+│   │
 │   └── godot/                             # Downloaded Godot source (default location; configurable via local.properties)
 │
 ├── script/                              # Build and utility scripts
 │   ├── build.sh                           # Main build script
+│   ├── build_android.sh                   # Android build script
 │   ├── build_ios.sh                       # iOS build script
 │   ├── install.sh                         # Plugin installation script
 │   ├── run_gradle_task.sh                 # Gradle task runner
