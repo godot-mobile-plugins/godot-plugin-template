@@ -7,12 +7,10 @@
 <br>
 
 <div align="center">
-	<a href="https://github.com/godot-mobile-plugins/godot-plugin-template">
-		<img src="https://img.shields.io/github/stars/godot-mobile-plugins/godot-plugin-template?label=Stars&style=plastic" height="32"/>
-	</a>
-	<img src="https://img.shields.io/github/v/release/godot-mobile-plugins/godot-plugin-template?label=Latest%20Release&style=plastic" height="32"/>
-	<img src="https://img.shields.io/github/downloads/godot-mobile-plugins/godot-plugin-template/latest/total?label=Downloads&style=plastic" height="32"/>
-	<img src="https://img.shields.io/github/downloads/godot-mobile-plugins/godot-plugin-template/total?label=Total%20Downloads&style=plastic" height="32"/>
+	<a href="https://github.com/godot-mobile-plugins/godot-plugin-template"><img src="https://img.shields.io/github/stars/godot-mobile-plugins/godot-plugin-template?label=Stars&style=plastic" height="40"/></a>
+	<img src="https://img.shields.io/github/v/release/godot-mobile-plugins/godot-plugin-template?label=Latest%20Release&style=plastic" height="40"/>
+	<img src="https://img.shields.io/github/downloads/godot-mobile-plugins/godot-plugin-template/latest/total?label=Downloads&style=plastic" height="40"/>
+	<img src="https://img.shields.io/github/downloads/godot-mobile-plugins/godot-plugin-template/total?label=Total%20Downloads&style=plastic" height="40"/>
 </div>
 
 <br>
