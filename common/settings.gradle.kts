@@ -3,6 +3,8 @@
 //
 
 pluginManagement {
+    // Make convention plugins from build-logic available during plugin resolution
+    includeBuild("build-logic")
     repositories {
         gradlePluginPortal()
         google()
