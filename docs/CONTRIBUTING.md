@@ -79,6 +79,7 @@ Thank you for your interest in contributing to the Godot PluginTemplate Plugin! 
 │   ├── config/
 │   │   ├── config.properties              # iOS configuration
 │   │   ├── ios.gradle.kts                 # iOS Gradle configuration
+│   │   ├── spm_dependencies.json          # SPM dependency configuration
 │   │   └── *.gdip                         # Godot iOS plugin config
 │   │
 │   └── godot/                             # Downloaded Godot source (default location; configurable via local.properties)
@@ -285,10 +286,36 @@ embedded_frameworks=res://ios/framework/*.xcframework,...
 
 # Linker flags
 flags=-ObjC,-Wl,...
+```
 
-# SPM dependencies (format: dependency.<ProductName>=<URL>|<minimumVersion>)
-dependency.ProductName=https://github.com/owner/repo.git|minimumVersion
-dependency.ProductName2=https://github.com/owner/repo2.git|minimumVersion2
+SPM dependencies are configured in the `ios/config/spm_dependencies.json` file in the following format:
+
+```json
+[
+  {
+    "url": "https://github.com/Alamofire/Alamofire",
+    "version": "5.8.1",
+    "products": [
+      "Alamofire",
+      "AlamofireImage"
+    ]
+  },
+  {
+    "url": "https://github.com/kishikawakatsumi/KeychainAccess",
+    "version": "4.2.2",
+    "products": [
+      "KeychainAccess"
+    ]
+  }
+]
+```
+
+If the plugin has no SPM dependencies:
+
+```json
+[
+
+]
 ```
 
 ---

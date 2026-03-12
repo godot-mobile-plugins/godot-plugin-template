@@ -6,36 +6,8 @@ import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
 plugins {
+    id("spm-conventions")
 //    alias(libs.plugins.spotless)
-}
-
-/**
- * Reads SPM dependency entries from a config.properties file.
- *
- * Each qualifying line has the form:
- *   dependency.<ProductName>=<URL>|<minimumVersion>
- *
- * Returns a list of Maps, each containing the keys "name", "url", and "version".
- */
-fun readSpmDependencies(configFile: File): List<Map<String, String>> {
-    val deps = mutableListOf<Map<String, String>>()
-    if (!configFile.exists()) return deps
-    configFile.forEachLine { raw ->
-        val line = raw.trim()
-        if (line.startsWith("dependency.") && line.contains("=")) {
-            val (rawKey, rawValue) = line.split("=", limit = 2)
-            val productName = rawKey.trim().removePrefix("dependency.").trim()
-            val parts = rawValue.trim().split("|", limit = 2)
-            if (productName.isNotEmpty() && parts.size == 2) {
-                val url = parts[0].trim()
-                val version = parts[1].trim()
-                if (url.isNotEmpty() && version.isNotEmpty()) {
-                    deps.add(mapOf("name" to productName, "url" to url, "version" to version))
-                }
-            }
-        }
-    }
-    return deps
 }
 
 // Load configuration from project root
@@ -50,6 +22,10 @@ spotless {
     }
 }
 */
+
+@Suppress("UNCHECKED_CAST")
+val readSpmDependencies = project.extra["readSpmDependencies"]
+    as (File) -> List<SpmDependency>
 
 tasks {
     val pluginDir: String by project.extra
@@ -93,7 +69,7 @@ tasks {
         inputs.files(fileTree("$projectDir/config"))
 
         doLast {
-            val iosConfigFile = file("$projectDir/config/config.properties")
+            val iosConfigFile = file("$projectDir/config/spm_dependencies.json")
             val deps = readSpmDependencies(iosConfigFile)
             val pluginModuleName = project.extra["pluginModuleName"] as String
             val xcodeproj = "$projectDir/plugin.xcodeproj"
@@ -104,16 +80,18 @@ tasks {
             } else {
                 println("Removing SPM dependencies from project...")
                 deps.forEach { dep ->
-                    exec {
-                        commandLine(
-                            "ruby",
-                            "$scriptDir/spm_manager.rb",
-                            "-d",
-                            xcodeproj,
-                            dep["url"],
-                            dep["version"],
-                            dep["name"],
-                        )
+                    dep.products.forEach { product ->
+                        exec {
+                            commandLine(
+                                "ruby",
+                                "$scriptDir/spm_manager.rb",
+                                "-d",
+                                xcodeproj,
+                                dep.url,
+                                dep.version,
+                                product,
+                            )
+                        }
                     }
                 }
 
@@ -151,7 +129,7 @@ tasks {
     }
 
     register("updateSPMDependencies") {
-        description = "Adds SPM dependencies from $projectDir/config/config.properties into the Xcode project"
+        description = "Adds SPM dependencies from $projectDir/config/spm_dependencies.json into the Xcode project"
 
         inputs.files(fileTree("$projectDir/config"))
         outputs.dir("$projectDir/plugin.xcodeproj")
@@ -159,7 +137,7 @@ tasks {
         finalizedBy("resolveSPMDependencies")
 
         doLast {
-            val iosConfigFile = file("$projectDir/config/config.properties")
+            val iosConfigFile = file("$projectDir/config/spm_dependencies.json")
             val deps = readSpmDependencies(iosConfigFile)
             val xcodeproj = "$projectDir/plugin.xcodeproj"
             val scriptDir = file("$repositoryRootDir/script")
@@ -169,9 +147,14 @@ tasks {
                 return@doLast
             }
 
-            val noun = if (deps.size == 1) "dependency" else "dependencies"
-            println("Found ${deps.size} SPM $noun:")
-            deps.forEach { println("\t• ${it["name"]} (${it["url"]} @ ${it["version"]})") }
+            val totalProducts = deps.sumOf { it.products.size }
+            val noun = if (totalProducts == 1) "dependency" else "dependencies"
+            println("Found $totalProducts SPM $noun:")
+            deps.forEach { dep ->
+                dep.products.forEach { product ->
+                    println("\t• $product (${dep.url} @ ${dep.version})")
+                }
+            }
             println()
 
             // Verify Ruby and the xcodeproj gem are available
@@ -196,16 +179,18 @@ tasks {
 
             println("Updating Xcode project with SPM dependencies...")
             deps.forEach { dep ->
-                exec {
-                    commandLine(
-                        "ruby",
-                        "$scriptDir/spm_manager.rb",
-                        "-a",
-                        xcodeproj,
-                        dep["url"],
-                        dep["version"],
-                        dep["name"],
-                    )
+                dep.products.forEach { product ->
+                    exec {
+                        commandLine(
+                            "ruby",
+                            "$scriptDir/spm_manager.rb",
+                            "-a",
+                            xcodeproj,
+                            dep.url,
+                            dep.version,
+                            product,
+                        )
+                    }
                 }
             }
 
@@ -227,7 +212,7 @@ tasks {
         val xcodeproj = "$projectDir/plugin.xcodeproj"
         val resolvedFile = file("$xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved")
 
-        inputs.file("$projectDir/config/config.properties")
+        inputs.file("$projectDir/config/spm_dependencies.json")
         inputs.files(
             fileTree(xcodeproj) {
                 include("**/*.pbxproj", "**/project.pbxproj")

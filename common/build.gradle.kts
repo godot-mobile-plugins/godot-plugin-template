@@ -8,6 +8,7 @@ plugins {
     alias(libs.plugins.undercouch.download) apply false
     alias(libs.plugins.openrewrite) apply false
     alias(libs.plugins.node) apply false
+    alias(libs.plugins.kotlin.serialization) apply false
 //    alias(libs.plugins.spotless) apply false
 }
 
