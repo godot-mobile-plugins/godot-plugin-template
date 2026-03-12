@@ -9,10 +9,10 @@ on:
     branches: [ main ]
     paths:
       - 'common/config/**'
-      - 'common/*.gradle.kts'
+      - 'common/**/*.gradle.kts'
       - 'ios/src/**'
       - 'ios/config/**'
-      - 'ios/*.gradle.kts'
+      - 'ios/**/*.gradle.kts'
       - 'ios/*.xcodeproj/**'
 
 jobs:

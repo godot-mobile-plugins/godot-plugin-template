@@ -9,9 +9,10 @@ on:
     branches: [ main ]
     paths:
       - 'common/config/**'
-      - 'common/*.gradle.kts'
+      - 'common/**/*.gradle.kts'
+      - 'android/config/**'
       - 'android/src/**'
-      - 'android/*.gradle.kts'
+      - 'android/**/*.gradle.kts'
 
 jobs:
   build-android-debug:
