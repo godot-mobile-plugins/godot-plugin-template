@@ -19,6 +19,15 @@ val localProperties =
             ?.use { props.load(it) }
     }
 
+val configProperties =
+    java.util.Properties().also { props ->
+        rootDir
+            .resolve("config.properties")
+            .takeIf { it.exists() }
+            ?.inputStream()
+            ?.use { props.load(it) }
+    }
+
 gradle.extra["libDir"] = localProperties.getProperty("lib.dir")
     ?: "$rootDir/../android/libs"
 
@@ -48,7 +57,7 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "godot-plugin-template-plugin"
+rootProject.name = configProperties.getProperty("gradleProjectName", "godot-plugin")
 include(":addon")
 include(":android")
 include(":ios")
