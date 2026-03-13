@@ -33,6 +33,8 @@ tasks {
     val archiveDir: String by project.extra
     val demoDir: String by project.extra
 
+    val godotDir: String by gradle.extra
+
     register<Exec>("removeGodotDirectory") {
         description = "Removes the directory where Godot sources were downloaded"
 
@@ -49,6 +51,47 @@ tasks {
         val buildScript = file("$repositoryRootDir/script/build_ios.sh")
         inputs.file(buildScript)
 
+        val godotVersion: String by project.extra
+        val godotReleaseType: String by project.extra
+        inputs.property("godotVersion", godotVersion)
+        inputs.property("godotReleaseType", godotReleaseType)
+
+        inputs.property("godotDir", godotDir)
+
+        // ── Output: godot directory from local.properties (or default) ────────────────
+        val godotDirectory: File = file(godotDir)
+        outputs.dir(godotDirectory)
+
+        // ── Pre-flight check when the output directory already exists ─────────────────
+        doFirst {
+            if (godotDirectory.exists()) {
+                val versionFile = godotDirectory.resolve("GODOT_VERSION")
+                if (!versionFile.exists()) {
+                    throw GradleException(
+                        "ERROR: Godot directory '${godotDirectory.absolutePath}' already exists " +
+                            "but contains no GODOT_VERSION file."
+                    )
+                } else {
+                    val existingVersion = versionFile.readText().trim()
+                    if (existingVersion == godotVersion) {
+                        val message = "WARNING: Godot directory '${godotDirectory.absolutePath}' already " +
+                                "exists and matches the configured version ($godotVersion). Skipping " +
+                                "download."
+                        logger.warn(message)
+                        throw StopExecutionException(message)
+                    } else {
+                        throw GradleException(
+                            "ERROR: Godot directory '${godotDirectory.absolutePath}' already exists but " +
+                                "contains version '$existingVersion', which does not match the " +
+                                "configured version '$godotVersion'. " +
+                                "Remove the directory (or run 'removeGodotDirectory') before downloading again, " +
+                                "or update 'godotVersion' in config/config.properties.",
+                        )
+                    }
+                }
+            }
+        }
+
         commandLine("bash", buildScript.absolutePath, "-G")
         environment("INVOKED_BY_GRADLE", "true")
     }
@@ -56,8 +99,24 @@ tasks {
     register<Exec>("generateGodotHeaders") {
         description = "Runs Godot build and terminates after Godot header files have been generated"
 
+        dependsOn(
+            "downloadGodot",
+        )
+
         val buildScript = file("$repositoryRootDir/script/build_ios.sh")
         inputs.file(buildScript)
+
+        val godotDirectory: File = file(godotDir)
+        val generatedFiles = project.fileTree(godotDirectory).matching {
+            include("**/*.gen.h")
+            include("**/*.gen.cpp")
+        }
+
+        // Inputs: Include everything in the directory EXCEPT the generated files
+        inputs.files(project.fileTree(godotDirectory).minus(generatedFiles))
+
+        // Outputs: Use the defined generated files pattern
+        outputs.files(generatedFiles)
 
         commandLine("bash", buildScript.absolutePath, "-H")
         environment("INVOKED_BY_GRADLE", "true")
@@ -225,11 +284,14 @@ tasks {
     }
 
     register<Exec>("buildiOSDebug") {
-        dependsOn(project(":addon").tasks.named("generateGDScript"))
-        dependsOn(project(":addon").tasks.named("generateiOSConfig"))
-        dependsOn(project(":addon").tasks.named("copyAssets"))
-        dependsOn("updateSPMDependencies")
-        dependsOn("resolveSPMDependencies")
+        dependsOn(
+            project(":addon").tasks.named("generateGDScript"),
+            project(":addon").tasks.named("generateiOSConfig"),
+            project(":addon").tasks.named("copyAssets"),
+            "updateSPMDependencies",
+            "resolveSPMDependencies",
+            "generateGodotHeaders",
+        )
 
         inputs.files(project(":addon").tasks.named("generateGDScript").map { it.outputs.files })
         inputs.files(project(":addon").tasks.named("generateiOSConfig").map { it.outputs.files })
@@ -257,11 +319,14 @@ tasks {
     }
 
     register<Exec>("buildiOSRelease") {
-        dependsOn(project(":addon").tasks.named("generateGDScript"))
-        dependsOn(project(":addon").tasks.named("generateiOSConfig"))
-        dependsOn(project(":addon").tasks.named("copyAssets"))
-        dependsOn("updateSPMDependencies")
-        dependsOn("resolveSPMDependencies")
+        dependsOn(
+            project(":addon").tasks.named("generateGDScript"),
+            project(":addon").tasks.named("generateiOSConfig"),
+            project(":addon").tasks.named("copyAssets"),
+            "updateSPMDependencies",
+            "resolveSPMDependencies",
+            "generateGodotHeaders",
+        )
 
         inputs.files(project(":addon").tasks.named("generateGDScript").map { it.outputs.files })
         inputs.files(project(":addon").tasks.named("generateiOSConfig").map { it.outputs.files })
