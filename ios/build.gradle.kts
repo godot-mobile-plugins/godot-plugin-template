@@ -55,17 +55,18 @@ tasks {
         val godotReleaseType: String by project.extra
         inputs.property("godotVersion", godotVersion)
         inputs.property("godotReleaseType", godotReleaseType)
-
         inputs.property("godotDir", godotDir)
 
-        // Output: GODOT_VERSION file in the configured godot directory from local.properties (or default)
         val godotDirectory: File = file(godotDir)
-        outputs.file(godotDirectory.resolve("GODOT_VERSION"))
+        val versionFile = godotDirectory.resolve("GODOT_VERSION")
 
-        // Pre-flight check when the output directory already exists
+        // Let Gradle check staleness without creating any directories
+        outputs.upToDateWhen {
+            versionFile.exists() && versionFile.readText().trim() == godotVersion
+        }
+
         doFirst {
             if (godotDirectory.exists()) {
-                val versionFile = godotDirectory.resolve("GODOT_VERSION")
                 if (!versionFile.exists()) {
                     throw GradleException(
                         "ERROR: Godot directory '${godotDirectory.absolutePath}' already exists " +
@@ -73,21 +74,16 @@ tasks {
                     )
                 } else {
                     val existingVersion = versionFile.readText().trim()
-                    if (existingVersion == godotVersion) {
-                        val message = "WARNING: Godot directory '${godotDirectory.absolutePath}' already " +
-                                "exists and matches the configured version ($godotVersion). Skipping " +
-                                "download."
-                        logger.warn(message)
-                        throw StopExecutionException(message)
-                    } else {
+                    if (existingVersion != godotVersion) {
                         throw GradleException(
                             "ERROR: Godot directory '${godotDirectory.absolutePath}' already exists but " +
                                 "contains version '$existingVersion', which does not match the " +
                                 "configured version '$godotVersion'. " +
                                 "Remove the directory (or run 'removeGodotDirectory') before downloading again, " +
-                                "or update 'godotVersion' in config/config.properties.",
+                                "or update 'godotVersion' in config/config.properties."
                         )
                     }
+                    // Version matches — skip silently (upToDateWhen will have already short-circuited in normal runs)
                 }
             }
         }
