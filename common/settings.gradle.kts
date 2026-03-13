@@ -33,6 +33,9 @@ val configProperties =
 gradle.extra["libDir"] = localProperties.getProperty("lib.dir")
     ?: "$rootDir/../android/libs"
 
+gradle.extra["godotDir"] = localProperties.getProperty("godot.dir")
+    ?: "$rootDir/../ios/godot"
+
 dependencyResolutionManagement {
     repositoriesMode.set(RepositoriesMode.PREFER_SETTINGS)
     repositories {

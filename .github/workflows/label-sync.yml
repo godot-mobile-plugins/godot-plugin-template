@@ -5,7 +5,7 @@
 name: Sync Labels
 
 on:
-  pull_request:
+  push:
     branches: [ main ]
     paths:
       - '.github/config/labels.yml'

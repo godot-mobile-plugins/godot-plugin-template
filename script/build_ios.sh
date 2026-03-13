@@ -182,8 +182,22 @@ function resolve_spm_dependencies()
 function download_godot()
 {
 	if [[ -d "$GODOT_DIR" ]]; then
-		display_error "$GODOT_DIR directory already exists. Remove it first or use a different directory."
-		exit 1
+		if [[ -f "$GODOT_DIR/GODOT_VERSION" ]]; then
+			local existing_version
+			existing_version=$(tr -d '[:space:]' < "$GODOT_DIR/GODOT_VERSION")
+			if [[ "$existing_version" == "$GODOT_VERSION" ]]; then
+				display_progress "Godot $GODOT_VERSION already present in $GODOT_DIR. Skipping download."
+				return 0
+			else
+				display_error "$GODOT_DIR exists with version '$existing_version', expected '$GODOT_VERSION'. \
+Remove it first or run with -g."
+				exit 1
+			fi
+		else
+			display_error "$GODOT_DIR directory already exists but contains no GODOT_VERSION file. \
+Remove it first or run with -g."
+			exit 1
+		fi
 	fi
 
 	local filename="godot-${GODOT_VERSION}-${GODOT_RELEASE_TYPE}.tar.xz"
