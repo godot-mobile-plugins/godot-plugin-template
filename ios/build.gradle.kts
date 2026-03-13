@@ -58,11 +58,11 @@ tasks {
 
         inputs.property("godotDir", godotDir)
 
-        // ── Output: godot directory from local.properties (or default) ────────────────
+        // Output: GODOT_VERSION file in the configured godot directory from local.properties (or default)
         val godotDirectory: File = file(godotDir)
-        outputs.dir(godotDirectory)
+        outputs.file(godotDirectory.resolve("GODOT_VERSION"))
 
-        // ── Pre-flight check when the output directory already exists ─────────────────
+        // Pre-flight check when the output directory already exists
         doFirst {
             if (godotDirectory.exists()) {
                 val versionFile = godotDirectory.resolve("GODOT_VERSION")
