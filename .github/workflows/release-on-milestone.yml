@@ -14,6 +14,7 @@ permissions:
 jobs:
   draft-release:
     name: Build archives & create draft release
+    if: ${{ !github.event.repository.is_template }}
     runs-on: macos-latest
 
     env:
@@ -74,23 +75,43 @@ jobs:
           echo "  iOS     : ${IOS_ZIP}"
           echo "  Multi   : ${MULTI_ZIP}"
 
+      # ── Read plugin config ───────────────────────────────────────────────────
+      - name: Read plugin config
+        id: plugin_config
+        run: |
+          PLUGIN_NODE_NAME=$(grep '^pluginNodeName=' common/config/config.properties \
+            | cut -d'=' -f2 | tr -d '[:space:]')
+          echo "plugin_node_name=${PLUGIN_NODE_NAME}" >> "$GITHUB_OUTPUT"
+          echo "Plugin node name: ${PLUGIN_NODE_NAME}"
+
+          GODOT_VERSION=$(grep '^godotVersion=' common/config/config.properties \
+            | cut -d'=' -f2 | tr -d '[:space:]')
+          echo "godot_version=${GODOT_VERSION}" >> "$GITHUB_OUTPUT"
+          echo "Godot version: ${GODOT_VERSION}"
+
       # ── Draft release ────────────────────────────────────────────────────────
       - name: Create draft release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          ISSUE_LINES=$(gh issue list \
+            --milestone "${{ github.event.milestone.title }}" \
+            --state closed \
+            --json number \
+            --jq '.[].number | "          - #\(.)"')
+
           gh release create "$TAG_NAME" \
             --draft \
-            --title "Plugin $TAG_NAME" \
+            --title "${{ steps.plugin_config.outputs.plugin_node_name }} Plugin $TAG_NAME" \
             --notes "## New in this release:
 
-          - ...
+${ISSUE_LINES}
 
           <br />
 
           _This version..._
 
-          -  _has been tested against and supports Godot version ...._" \
+          -  _has been tested against and supports Godot version ${{ steps.plugin_config.outputs.godot_version }}._" \
             "${{ steps.archives.outputs.android_zip }}" \
             "${{ steps.archives.outputs.ios_zip }}" \
             "${{ steps.archives.outputs.multi_zip }}"
