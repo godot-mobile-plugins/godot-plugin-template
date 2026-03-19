@@ -53,6 +53,7 @@ do_update_spm=false
 do_resolve_spm_dependencies=false
 do_debug_build=false
 do_release_build=false
+do_simulator_build=false
 do_create_archive=false
 do_uninstall=false
 do_install=false
@@ -67,14 +68,14 @@ function display_help()
 	echo_yellow "If plugin version is not set with the -z option, then Godot version will be used."
 	echo
 	"$SCRIPT_DIR"/echocolor.sh -Y "Syntax:"
-	echo_yellow "	$0 [-a|A|b|B|c|d|D|g|G|h|H|p|P|r|R|t <timeout>]"
+	echo_yellow "	$0 [-a|A|b|B|c|d|D|g|G|h|H|p|P|r|R|s|t <timeout>]"
 	echo
 	"$SCRIPT_DIR"/echocolor.sh -Y "Options:"
 	echo_yellow "	a	generate godot headers and build plugin"
 	echo_yellow "	A	download configured godot version, generate godot headers, and"
 	echo_yellow "	 	build plugin"
-	echo_yellow "	b	build debug variant of plugin"
-	echo_yellow "	B	build release variant of plugin"
+	echo_yellow "	b	build debug variant of plugin (device); combine with -s for simulator"
+	echo_yellow "	B	build release variant of plugin (device); combine with -s for simulator"
 	echo_yellow "	c	remove any existing plugin build"
 	echo_yellow "	d	uninstall iOS plugin from demo app"
 	echo_yellow "	D	install iOS plugin to demo app"
@@ -86,6 +87,7 @@ function display_help()
 	echo_yellow "	P	add SPM packages from configuration"
 	echo_yellow "	r	resolve SPM dependencies"
 	echo_yellow "	R	create iOS release archive"
+	echo_yellow "	s	simulator build; use with -b for simulator debug, -B for simulator release"
 	echo_yellow "	t	change timeout value for godot build"
 	echo
 	"$SCRIPT_DIR"/echocolor.sh -Y "Examples:"
@@ -346,6 +348,35 @@ dependencies."
 		GODOT_DIR="$GODOT_DIR" \
 		SWIFT_VERSION="$SWIFT_VERSION"
 
+	mv "$LIB_DIR/ios_debug.xcarchive/Products/usr/local/lib/lib${SCHEME}.a" \
+		"$LIB_DIR/ios_debug.xcarchive/Products/usr/local/lib/${PLUGIN_NAME}.a"
+}
+
+
+function build_debug_simulator()
+{
+	if [[ ! -d "$GODOT_DIR" ]]; then
+		display_error "$GODOT_DIR directory does not exist. Can't build plugin."
+		exit 1
+	fi
+
+	if [[ ! -f "$GODOT_DIR/GODOT_VERSION" ]]
+	then
+		display_error "godot wasn't downloaded properly. Can't build plugin."
+		exit 1
+	fi
+
+	# Validate that the Godot version matches the configured version
+	validate_godot_version
+
+	if [[ ! -d "$SPM_DIR" ]]; then
+		display_warning "Swift Package Manager directory does not exist. Run with '-P' option if project has \
+dependencies."
+	fi
+
+	mkdir -p "$FRAMEWORK_DIR"
+	mkdir -p "$LIB_DIR"
+
 	display_status "Building iOS simulator debug"
 	xcodebuild archive \
 		-workspace "$IOS_DIR/$WORKSPACE" \
@@ -358,21 +389,8 @@ dependencies."
 		GODOT_DIR="$GODOT_DIR" \
 		SWIFT_VERSION="$SWIFT_VERSION"
 
-	mv "$LIB_DIR/ios_debug.xcarchive/Products/usr/local/lib/lib${SCHEME}.a" \
-		"$LIB_DIR/ios_debug.xcarchive/Products/usr/local/lib/${PLUGIN_NAME}.a"
 	mv "$LIB_DIR/sim_debug.xcarchive/Products/usr/local/lib/lib${SCHEME}.a" \
 		"$LIB_DIR/sim_debug.xcarchive/Products/usr/local/lib/${PLUGIN_NAME}.a"
-
-	if [[ -d "$FRAMEWORK_DIR/${PLUGIN_NAME}.debug.xcframework" ]]
-	then
-		rm -rf "$FRAMEWORK_DIR/${PLUGIN_NAME}.debug.xcframework"
-	fi
-
-	display_status "Creating debug framework"
-	xcodebuild -create-xcframework \
-		-library "$LIB_DIR/ios_debug.xcarchive/Products/usr/local/lib/${PLUGIN_NAME}.a" \
-		-library "$LIB_DIR/sim_debug.xcarchive/Products/usr/local/lib/${PLUGIN_NAME}.a" \
-		-output "$FRAMEWORK_DIR/${PLUGIN_NAME}.debug.xcframework"
 }
 
 
@@ -411,6 +429,35 @@ dependencies."
 		GODOT_DIR="$GODOT_DIR" \
 		SWIFT_VERSION="$SWIFT_VERSION"
 
+	mv "$LIB_DIR/ios_release.xcarchive/Products/usr/local/lib/lib${SCHEME}.a" \
+		"$LIB_DIR/ios_release.xcarchive/Products/usr/local/lib/${PLUGIN_NAME}.a"
+}
+
+
+function build_release_simulator()
+{
+	if [[ ! -d "$GODOT_DIR" ]]; then
+		display_error "$GODOT_DIR directory does not exist. Can't build plugin."
+		exit 1
+	fi
+
+	if [[ ! -f "$GODOT_DIR/GODOT_VERSION" ]]
+	then
+		display_error "godot wasn't downloaded properly. Can't build plugin."
+		exit 1
+	fi
+
+	# Validate that the Godot version matches the configured version
+	validate_godot_version
+
+	if [[ ! -d "$SPM_DIR" ]]; then
+		display_warning "Swift Package Manager directory does not exist. Run with '-P' option if project has \
+dependencies."
+	fi
+
+	mkdir -p "$FRAMEWORK_DIR"
+	mkdir -p "$LIB_DIR"
+
 	display_status "Building iOS simulator release"
 	xcodebuild archive \
 		-workspace "$IOS_DIR/$WORKSPACE" \
@@ -422,25 +469,12 @@ dependencies."
 		GODOT_DIR="$GODOT_DIR" \
 		SWIFT_VERSION="$SWIFT_VERSION"
 
-	mv "$LIB_DIR/ios_release.xcarchive/Products/usr/local/lib/lib${SCHEME}.a" \
-		"$LIB_DIR/ios_release.xcarchive/Products/usr/local/lib/${PLUGIN_NAME}.a"
 	mv "$LIB_DIR/sim_release.xcarchive/Products/usr/local/lib/lib${SCHEME}.a" \
 		"$LIB_DIR/sim_release.xcarchive/Products/usr/local/lib/${PLUGIN_NAME}.a"
-
-	if [[ -d "$FRAMEWORK_DIR/${PLUGIN_NAME}.release.xcframework" ]]
-	then
-		rm -rf "$FRAMEWORK_DIR/${PLUGIN_NAME}.release.xcframework"
-	fi
-
-	display_status "Creating release framework"
-	xcodebuild -create-xcframework \
-		-library "$LIB_DIR/ios_release.xcarchive/Products/usr/local/lib/${PLUGIN_NAME}.a" \
-		-library "$LIB_DIR/sim_release.xcarchive/Products/usr/local/lib/${PLUGIN_NAME}.a" \
-		-output "$FRAMEWORK_DIR/${PLUGIN_NAME}.release.xcframework"
 }
 
 
-while getopts "aAbBcdDgGhHpPrRt:" option; do
+while getopts "aAbBcdDgGhHpPrRst:" option; do
 	case $option in
 		h)
 			display_help
@@ -493,6 +527,9 @@ while getopts "aAbBcdDgGhHpPrRt:" option; do
 			;;
 		R)
 			do_create_archive=true
+			;;
+		s)
+			do_simulator_build=true
 			;;
 		t)
 			regex='^[0-9]+$'
@@ -574,19 +611,35 @@ fi
 
 if [[ "$do_debug_build" == true ]]
 then
-	if [[ "${INVOKED_BY_GRADLE:-}" == "true" ]]; then
-		build_debug
+	if [[ "$do_simulator_build" == true ]]; then
+		if [[ "${INVOKED_BY_GRADLE:-}" == "true" ]]; then
+			build_debug_simulator
+		else
+			"$SCRIPT_DIR"/run_gradle_task.sh "buildiOSDebugSimulator"
+		fi
 	else
-		"$SCRIPT_DIR"/run_gradle_task.sh "buildiOSDebug"
+		if [[ "${INVOKED_BY_GRADLE:-}" == "true" ]]; then
+			build_debug
+		else
+			"$SCRIPT_DIR"/run_gradle_task.sh "buildiOSDebug"
+		fi
 	fi
 fi
 
 if [[ "$do_release_build" == true ]]
 then
-	if [[ "${INVOKED_BY_GRADLE:-}" == "true" ]]; then
-		build_release
+	if [[ "$do_simulator_build" == true ]]; then
+		if [[ "${INVOKED_BY_GRADLE:-}" == "true" ]]; then
+			build_release_simulator
+		else
+			"$SCRIPT_DIR"/run_gradle_task.sh "buildiOSReleaseSimulator"
+		fi
 	else
-		"$SCRIPT_DIR"/run_gradle_task.sh "buildiOSRelease"
+		if [[ "${INVOKED_BY_GRADLE:-}" == "true" ]]; then
+			build_release
+		else
+			"$SCRIPT_DIR"/run_gradle_task.sh "buildiOSRelease"
+		fi
 	fi
 fi
 

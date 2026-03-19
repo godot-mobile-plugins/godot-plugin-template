@@ -30,6 +30,8 @@ demo/assets/store_icons/*
 .gradle/
 *.jar
 !common/gradle/wrapper/gradle-wrapper.jar
+common/build-logic/bin/
+common/build-logic/.kotlin/
 
 # Android-specific
 *.aar

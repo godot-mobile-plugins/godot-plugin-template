@@ -76,6 +76,15 @@ android {
     }
 }
 
+androidComponents {
+    beforeVariants(selector().all()) { variantBuilder ->
+        (variantBuilder as com.android.build.api.variant.HasHostTestsBuilder)
+            .hostTests[com.android.build.api.variant.HostTestBuilder.UNIT_TEST_TYPE]
+            ?.enable = false
+        variantBuilder.androidTest.enable = false
+    }
+}
+
 node {
     download = true
     version =
