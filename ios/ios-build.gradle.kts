@@ -301,8 +301,29 @@ tasks {
         outputs.dir("$projectDir/build/DerivedData/SourcePackages")
     }
 
+    register("validateSwiftVersion") {
+        description = "Fails the build with a clear error if swift_version is missing from iOS config.properties"
+
+        val iosConfigFile = file("$projectDir/config/config.properties")
+        inputs.file(iosConfigFile)
+
+        doLast {
+            val props = java.util.Properties()
+            iosConfigFile.inputStream().use { props.load(it) }
+            val swiftVersion = props.getProperty("swift_version")?.trim()
+            if (swiftVersion.isNullOrBlank()) {
+                throw GradleException(
+                    "ERROR: 'swift_version' is not configured in ${iosConfigFile.absolutePath}.\n" +
+                        "Please add it before building, e.g.:\n" +
+                        "    swift_version=5.9",
+                )
+            }
+        }
+    }
+
     register<Exec>("buildiOSDebug") {
         dependsOn(
+            "validateSwiftVersion",
             project(":addon").tasks.named("generateGDScript"),
             project(":addon").tasks.named("generateiOSConfig"),
             project(":addon").tasks.named("copyAssets"),
@@ -338,6 +359,7 @@ tasks {
 
     register<Exec>("buildiOSRelease") {
         dependsOn(
+            "validateSwiftVersion",
             project(":addon").tasks.named("generateGDScript"),
             project(":addon").tasks.named("generateiOSConfig"),
             project(":addon").tasks.named("copyAssets"),
@@ -373,6 +395,7 @@ tasks {
 
     register<Exec>("buildiOSDebugSimulator") {
         dependsOn(
+            "validateSwiftVersion",
             project(":addon").tasks.named("generateGDScript"),
             project(":addon").tasks.named("generateiOSConfig"),
             project(":addon").tasks.named("copyAssets"),
@@ -408,6 +431,7 @@ tasks {
 
     register<Exec>("buildiOSReleaseSimulator") {
         dependsOn(
+            "validateSwiftVersion",
             project(":addon").tasks.named("generateGDScript"),
             project(":addon").tasks.named("generateiOSConfig"),
             project(":addon").tasks.named("copyAssets"),

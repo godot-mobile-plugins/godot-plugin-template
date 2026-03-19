@@ -302,8 +302,16 @@ function validate_godot_version()
 
 function sync_swift_version_to_pbxproj()
 {
+	if [[ -z "$SWIFT_VERSION" ]]; then
+		display_error "'swift_version' is not configured in $IOS_CONFIG_FILE."
+		"$SCRIPT_DIR"/echocolor.sh -r "Please add it before building, e.g.:"
+		"$SCRIPT_DIR"/echocolor.sh -r "    swift_version=5.9"
+		echo
+		exit 1
+	fi
+
 	local pbxproj="$IOS_DIR/$PROJECT/project.pbxproj"
-	display_status "Syncing SWIFT_VERSION ($SWIFT_VERSION) into project.pbxproj..."
+	display_status "Syncing SWIFT_VERSION ($SWIFT_VERSION) into $pbxproj..."
 
 	local tmpfile
 	tmpfile=$(mktemp)
