@@ -67,6 +67,17 @@ include(":addon")
 include(":android")
 include(":ios")
 
-project(":addon").projectDir = file("../addon")
-project(":android").projectDir = file("../android")
-project(":ios").projectDir = file("../ios")
+project(":addon").apply {
+    projectDir = file("$rootDir/../addon")
+    buildFileName = "addon-build.gradle.kts"
+}
+
+project(":android").apply {
+    projectDir = file("$rootDir/../android")
+    buildFileName = "android-build.gradle.kts"
+}
+
+project(":ios").apply {
+    projectDir = file("$rootDir/../ios")
+    buildFileName = "ios-build.gradle.kts"
+}
