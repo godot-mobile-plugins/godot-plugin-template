@@ -7,8 +7,8 @@ extends Node
 @onready var plugin_template_node: PluginTemplate = $PluginTemplate
 @onready var get_plugin_template_button: Button = $CanvasLayer/MainContainer/VBoxContainer/GetStateButton
 @onready var _label: RichTextLabel = $CanvasLayer/MainContainer/VBoxContainer/RichTextLabel as RichTextLabel
-@onready var _android_texture_rect: TextureRect = $CanvasLayer/MainContainer/VBoxContainer/TextureHBoxContainer/AndroidTextureRect as TextureRect
-@onready var _ios_texture_rect: TextureRect = $CanvasLayer/MainContainer/VBoxContainer/TextureHBoxContainer/iOSTextureRect as TextureRect
+@onready var _android_texture_rect := %AndroidTextureRect as TextureRect
+@onready var _ios_texture_rect := %iOSTextureRect as TextureRect
 
 var _active_texture_rect: TextureRect
 

@@ -2,6 +2,8 @@
 // © 2026-present https://github.com/cengiz-pz
 //
 
+import org.gradle.process.ExecOperations
+import org.gradle.process.ExecSpec
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
@@ -21,11 +23,17 @@ spotless {
         clangFormat(libs.versions.clang.format.get()).style("../.github/config/.clang-format")
     }
 }
-*/
+"*/
+
+interface Injected {
+    @get:Inject
+    val execOps: ExecOperations
+}
 
 @Suppress("UNCHECKED_CAST")
-val readSpmDependencies = project.extra["readSpmDependencies"]
-    as (File) -> List<SpmDependency>
+val readSpmDependencies =
+    project.extra["readSpmDependencies"]
+        as (File) -> List<SpmDependency>
 
 tasks {
     val pluginDir: String by project.extra
@@ -70,7 +78,7 @@ tasks {
                 if (!versionFile.exists()) {
                     throw GradleException(
                         "ERROR: Godot directory '${godotDirectory.absolutePath}' already exists " +
-                            "but contains no GODOT_VERSION file."
+                            "but contains no GODOT_VERSION file.",
                     )
                 } else {
                     val existingVersion = versionFile.readText().trim()
@@ -80,7 +88,7 @@ tasks {
                                 "contains version '$existingVersion', which does not match the " +
                                 "configured version '$godotVersion'. " +
                                 "Remove the directory (or run 'removeGodotDirectory') before downloading again, " +
-                                "or update 'godotVersion' in config/config.properties."
+                                "or update 'godotVersion' in config/config.properties.",
                         )
                     }
                     // Version matches — skip silently (upToDateWhen will have already short-circuited in normal runs)
@@ -103,13 +111,19 @@ tasks {
         inputs.file(buildScript)
 
         val godotDirectory: File = file(godotDir)
-        val generatedFiles = project.fileTree(godotDirectory).matching {
-            include("**/*.gen.h")
-            include("**/*.gen.cpp")
-        }
+        val generatedFiles =
+            project.fileTree(godotDirectory).matching {
+                include("**/*.gen.h")
+                include("**/*.gen.cpp")
+            }
+
+        val internalBuildFiles =
+            project.fileTree(godotDirectory).matching {
+                include(".scons*")
+            }
 
         // Inputs: Include everything in the directory EXCEPT the generated files
-        inputs.files(project.fileTree(godotDirectory).minus(generatedFiles))
+        inputs.files(project.fileTree(godotDirectory).minus(generatedFiles).minus(internalBuildFiles))
 
         // Outputs: Use the defined generated files pattern
         outputs.files(generatedFiles)
@@ -122,6 +136,8 @@ tasks {
         description = "Removes SPM dependencies from the Xcode project and cleans up all SPM artifacts"
 
         inputs.files(fileTree("$projectDir/config"))
+
+        val execOps = objects.newInstance<Injected>().execOps
 
         doLast {
             val iosConfigFile = file("$projectDir/config/spm_dependencies.json")
@@ -136,7 +152,7 @@ tasks {
                 println("Removing SPM dependencies from project...")
                 deps.forEach { dep ->
                     dep.products.forEach { product ->
-                        exec {
+                        execOps.exec {
                             commandLine(
                                 "ruby",
                                 "$scriptDir/spm_manager.rb",
@@ -153,7 +169,7 @@ tasks {
                 // Re-run xcodebuild to regenerate Package.resolved from the updated project state.
                 // This ensures transitive dependencies of removed packages are also purged.
                 println("Regenerating Package.resolved after dependency removal...")
-                exec {
+                execOps.exec {
                     commandLine(
                         "xcodebuild",
                         "-resolvePackageDependencies",
@@ -191,6 +207,8 @@ tasks {
 
         finalizedBy("resolveSPMDependencies")
 
+        val execOps = objects.newInstance<Injected>().execOps
+
         doLast {
             val iosConfigFile = file("$projectDir/config/spm_dependencies.json")
             val deps = readSpmDependencies(iosConfigFile)
@@ -214,28 +232,32 @@ tasks {
 
             // Verify Ruby and the xcodeproj gem are available
             val rubyAvailable =
-                exec {
-                    commandLine("which", "ruby")
-                    isIgnoreExitValue = true
-                }.exitValue == 0
+                execOps
+                    .exec {
+                        commandLine("which", "ruby")
+                        isIgnoreExitValue = true
+                    }.exitValue == 0
             if (!rubyAvailable) {
                 throw GradleException("Ruby is required to inject SPM dependencies but was not found on PATH.")
             }
 
             val gemAvailable =
-                exec {
-                    commandLine("gem", "list", "-i", "^xcodeproj\$")
-                    isIgnoreExitValue = true
-                }.exitValue == 0
+                execOps
+                    .exec {
+                        commandLine("gem", "list", "-i", "^xcodeproj\$")
+                        isIgnoreExitValue = true
+                    }.exitValue == 0
             if (!gemAvailable) {
                 println("Installing 'xcodeproj' Ruby gem...")
-                exec { commandLine("gem", "install", "xcodeproj", "--user-install") }
+                execOps.exec {
+                    commandLine("gem", "install", "xcodeproj", "--user-install")
+                }
             }
 
             println("Updating Xcode project with SPM dependencies...")
             deps.forEach { dep ->
                 dep.products.forEach { product ->
-                    exec {
+                    execOps.exec {
                         commandLine(
                             "ruby",
                             "$scriptDir/spm_manager.rb",
@@ -349,6 +371,76 @@ tasks {
         }
     }
 
+    register<Exec>("buildiOSDebugSimulator") {
+        dependsOn(
+            project(":addon").tasks.named("generateGDScript"),
+            project(":addon").tasks.named("generateiOSConfig"),
+            project(":addon").tasks.named("copyAssets"),
+            "updateSPMDependencies",
+            "resolveSPMDependencies",
+            "generateGodotHeaders",
+        )
+
+        inputs.files(project(":addon").tasks.named("generateGDScript").map { it.outputs.files })
+        inputs.files(project(":addon").tasks.named("generateiOSConfig").map { it.outputs.files })
+        inputs.files(project(":addon").tasks.named("copyAssets").map { it.outputs.files })
+
+        inputs.dir("$projectDir/src")
+        inputs.files(fileTree("$rootDir/config"))
+        inputs.files(fileTree("$projectDir/config"))
+
+        val buildScript = file("$repositoryRootDir/script/build_ios.sh")
+        inputs.file(buildScript)
+
+        outputs.dir("$projectDir/build/framework")
+
+        finalizedBy("copyiOSBuildArtifacts")
+
+        commandLine("bash", buildScript.absolutePath, "-bs")
+        environment("INVOKED_BY_GRADLE", "true")
+
+        doLast {
+            val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
+            val current = LocalDateTime.now().format(formatter)
+            println("iOS build completed at: $current")
+        }
+    }
+
+    register<Exec>("buildiOSReleaseSimulator") {
+        dependsOn(
+            project(":addon").tasks.named("generateGDScript"),
+            project(":addon").tasks.named("generateiOSConfig"),
+            project(":addon").tasks.named("copyAssets"),
+            "updateSPMDependencies",
+            "resolveSPMDependencies",
+            "generateGodotHeaders",
+        )
+
+        inputs.files(project(":addon").tasks.named("generateGDScript").map { it.outputs.files })
+        inputs.files(project(":addon").tasks.named("generateiOSConfig").map { it.outputs.files })
+        inputs.files(project(":addon").tasks.named("copyAssets").map { it.outputs.files })
+
+        inputs.dir("$projectDir/src")
+        inputs.files(fileTree("$rootDir/config"))
+        inputs.files(fileTree("$projectDir/config"))
+
+        val buildScript = file("$repositoryRootDir/script/build_ios.sh")
+        inputs.file(buildScript)
+
+        outputs.dir("$projectDir/build/framework")
+
+        finalizedBy("copyiOSBuildArtifacts")
+
+        commandLine("bash", buildScript.absolutePath, "-Bs")
+        environment("INVOKED_BY_GRADLE", "true")
+
+        doLast {
+            val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
+            val current = LocalDateTime.now().format(formatter)
+            println("iOS build completed at: $current")
+        }
+    }
+
     register("buildiOS") {
         description = "Builds both debug and release"
 
@@ -359,23 +451,66 @@ tasks {
     register<Sync>("copyiOSBuildArtifacts") {
         description = "Copies iOS build artifacts (xcframeworks and addon files) to the plugin directory"
 
-        dependsOn(project(":addon").tasks.named("copyAssets"))
-        dependsOn(project(":addon").tasks.named("generateGDScript"))
-        dependsOn(project(":addon").tasks.named("generateiOSConfig"))
-        mustRunAfter("buildiOSDebug", "buildiOSRelease")
+        dependsOn(
+            project(":addon").tasks.named("copyAssets"),
+            project(":addon").tasks.named("generateGDScript"),
+            project(":addon").tasks.named("generateiOSConfig"),
+        )
+        mustRunAfter(
+            "buildiOSDebug",
+            "buildiOSDebugSimulator",
+            "buildiOSRelease",
+            "buildiOSReleaseSimulator",
+        )
 
         val pluginName = project.extra["pluginName"] as String
         val buildDir = file(projectDir).resolve("build")
         val frameworkDir = buildDir.resolve("framework")
+        val libDir = buildDir.resolve("lib")
 
         val destDir = file(pluginDir).resolve("ios")
         destinationDir = destDir
 
         doFirst {
+            // Make sure existing framework cache is writable before the sync overwrites it
             val frameworkCache = destDir.resolve("ios/framework")
             if (frameworkCache.exists()) {
                 frameworkCache.walkBottomUp().forEach { it.setWritable(true) }
             }
+
+            val execOps = objects.newInstance<Injected>().execOps
+            frameworkDir.mkdirs()
+
+            // Combine per-slice archives into a single xcframework per variant.
+            // Any slice whose .a file does not exist (i.e. was not built) is silently skipped,
+            // so partial builds (debug-only, release-only, device-only, etc.) still work.
+            fun createXcframework(variantName: String, archiveNames: List<String>) {
+                val availableLibs = archiveNames.mapNotNull { archiveName ->
+                    val lib = libDir.resolve("$archiveName/Products/usr/local/lib/$pluginName.a")
+                    if (lib.exists()) lib else null
+                }
+                if (availableLibs.isEmpty()) {
+                    println("Skipping $pluginName.$variantName.xcframework: no build artifacts found.")
+                    return
+                }
+                val output = frameworkDir.resolve("$pluginName.$variantName.xcframework")
+                if (output.exists()) output.deleteRecursively()
+
+                val args = mutableListOf("xcodebuild", "-create-xcframework")
+                availableLibs.forEach { lib -> args += listOf("-library", lib.absolutePath) }
+                args += listOf("-output", output.absolutePath)
+
+                println(
+                    "Creating $pluginName.$variantName.xcframework " +
+                        "from ${availableLibs.size} slice(s): ${availableLibs.map { it.parentFile.parentFile.parentFile.name }}",
+                )
+                execOps.exec { commandLine(args) }
+            }
+
+            // Debug xcframework: debug device + debug simulator
+            createXcframework("debug", listOf("ios_debug.xcarchive", "sim_debug.xcarchive"))
+            // Release xcframework: release device + release simulator
+            createXcframework("release", listOf("ios_release.xcarchive", "sim_release.xcarchive"))
         }
 
         duplicatesStrategy = DuplicatesStrategy.EXCLUDE
@@ -401,10 +536,11 @@ tasks {
             }
         }
 
+        // Plugin xcframeworks: one combined debug, one combined release
         into("ios/plugins") {
             from(frameworkDir) {
-                include("$pluginName.release.xcframework/**")
                 include("$pluginName.debug.xcframework/**")
+                include("$pluginName.release.xcframework/**")
             }
         }
 
@@ -417,8 +553,10 @@ tasks {
     register<Copy>("installToDemoiOS") {
         description = "Copies the assembled iOS plugin to demo application's addons directory"
 
-        dependsOn("buildiOSDebug")
-        dependsOn("copyiOSBuildArtifacts")
+        dependsOn(
+            "buildiOSDebug",
+            "copyiOSBuildArtifacts",
+        )
 
         val destDir = file(demoDir)
         destinationDir = destDir

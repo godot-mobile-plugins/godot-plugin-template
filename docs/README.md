@@ -4,8 +4,6 @@
 	<img width="128" height="128" src="https://raw.githubusercontent.com/godot-mobile-plugins/godot-plugin-template/main/demo/assets/plugin-template-ios.png">
 </p>
 
-<br>
-
 <div align="center">
 	<a href="https://github.com/godot-mobile-plugins/godot-plugin-template"><img src="https://img.shields.io/github/stars/godot-mobile-plugins/godot-plugin-template?label=Stars&style=plastic" height="40"/></a>
 	<img src="https://img.shields.io/github/v/release/godot-mobile-plugins/godot-plugin-template?label=Latest%20Release&style=plastic" height="40"/>
@@ -128,10 +126,7 @@ Steps:
 - copy to your Godot project's root directory
 - enable the plugin via the `Plugins` tab of `Project->Project Settings...` menu, in the Godot Editor
 
-<br>
-
 <a name="usage"></a>
-
 
 ## <img src="https://raw.githubusercontent.com/godot-mobile-plugins/godot-plugin-template/main/addon/src/icon.png" width="20"> Usage
 Add `PluginTemplate` node to your main scene or an autoload global scene.
@@ -156,8 +151,6 @@ func _on_template_ready(template: PluginTemplateInfo):
 	print("Template ready:", template.get_description())
 ```
 
-<br>
-
 <a name="signals"></a>
 
 ## <img src="https://raw.githubusercontent.com/godot-mobile-plugins/godot-plugin-template/main/addon/src/icon.png" width="20"> Signals
@@ -165,14 +158,10 @@ func _on_template_ready(template: PluginTemplateInfo):
 	- `template_ready(a_template: PluginTemplateInfo)`
 	- ...
 
-<br>
-
 <a name="methods"></a>
 
 ## <img src="https://raw.githubusercontent.com/godot-mobile-plugins/godot-plugin-template/main/addon/src/icon.png" width="20"> Methods
 - `get_plugin_template() -> Array[PluginTemplateInfo]` - returns an array of `PluginTemplateInfo` objects
-
-<br>
 
 <a name="classes"></a>
 
@@ -184,8 +173,6 @@ func _on_template_ready(template: PluginTemplateInfo):
 	- `description`: description of the template
 	- `other`: ...
 	- ...
-
-<br>
 
 <a name="platform-specific-notes"></a>
 
@@ -265,8 +252,6 @@ If this plugin has helped you, consider supporting its development! Every bit of
 |💡✨| **Give Feedback** | [Open an issue](https://github.com/godot-mobile-plugins/godot-plugin-template/issues) or [suggest a feature](https://github.com/godot-mobile-plugins/godot-plugin-template/issues/new). |
 |🧩| **Contribute** | [Submit a PR](https://github.com/godot-mobile-plugins/godot-plugin-template?tab=contributing-ov-file) to help improve the codebase. |
 |❤️| **Buy a Coffee** | Support the maintainers on GitHub Sponsors or other platforms. |
-
-<br>
 
 ## ⭐ Star History
 [![Star History Chart](https://api.star-history.com/svg?repos=godot-mobile-plugins/godot-plugin-template&type=Date)](https://star-history.com/#godot-mobile-plugins/godot-plugin-template&Date)

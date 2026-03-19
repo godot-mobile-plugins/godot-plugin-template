@@ -20,3 +20,9 @@ plugins {
 dependencies {
     implementation(libs.kotlinx.serialization.json)
 }
+
+sourceSets {
+    main {
+        java.srcDirs("src/main/kotlin")
+    }
+}
