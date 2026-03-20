@@ -105,6 +105,49 @@ tasks {
         )
     }
 
+    register<Exec>("checkEditorConfig") {
+        description = "Checks editorconfig compliance of all source files"
+        group = "formatting"
+
+        workingDir = file(repositoryRootDir)
+
+        val namePatterns =
+            listOf(
+                "*.gradle.kts",
+                "*.properties",
+                "*.json",
+                "*.gd",
+                "*.java",
+                "*.kt",
+                "*.h",
+                "*.m",
+                "*.mm",
+                "*.swift",
+                "*.sh",
+                "*.rb",
+            ).joinToString(" -o ") { "-name \"$it\"" }
+
+        val excludePatterns =
+            listOf("node_modules", ".git", "build", ".gradle", ".idea")
+                .joinToString(" ") { "-not -path \"*/$it/*\"" }
+
+        commandLine(
+            "sh",
+            "-c",
+            """
+            files=$(find . \( $namePatterns \) $excludePatterns \
+                -not -path "./demo/addons/*" \
+                -not -name "package.json" \
+                -not -name "package-lock.json")
+            if [ -z "${'$'}files" ]; then
+                echo "checkEditorConfig: no source files found" >&2
+                exit 1
+            fi
+            echo "${'$'}files" | tr '\n' '\0' | xargs -0 editorconfig-checker
+            """.trimIndent(),
+        )
+    }
+
     register<Exec>("checkKtsFormat") {
         description = "Checks ktlint compliance of Gradle Kotlin DSL files (dry-run, no changes written)"
         group = "formatting"
@@ -180,6 +223,7 @@ tasks {
             project(":android").tasks.named("checkXmlFormat"),
             project(":ios").tasks.named("checkIosFormat"),
             "checkKtsFormat",
+            "checkEditorConfig",
         )
     }
 
