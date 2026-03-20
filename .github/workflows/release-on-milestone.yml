@@ -79,12 +79,12 @@ jobs:
       - name: Read plugin config
         id: plugin_config
         run: |
-          PLUGIN_NODE_NAME=$(grep '^pluginNodeName=' common/config/config.properties \
+          PLUGIN_NODE_NAME=$(grep '^pluginNodeName=' common/config/plugin.properties \
             | cut -d'=' -f2 | tr -d '[:space:]')
           echo "plugin_node_name=${PLUGIN_NODE_NAME}" >> "$GITHUB_OUTPUT"
           echo "Plugin node name: ${PLUGIN_NODE_NAME}"
 
-          GODOT_VERSION=$(grep '^godotVersion=' common/config/config.properties \
+          GODOT_VERSION=$(grep '^godotVersion=' common/config/godot.properties \
             | cut -d'=' -f2 | tr -d '[:space:]')
           echo "godot_version=${GODOT_VERSION}" >> "$GITHUB_OUTPUT"
           echo "Godot version: ${GODOT_VERSION}"
@@ -105,7 +105,7 @@ jobs:
             --title "${{ steps.plugin_config.outputs.plugin_node_name }} Plugin $TAG_NAME" \
             --notes "## New in this release:
 
-${ISSUE_LINES}
+          ${ISSUE_LINES}
 
           <br />
 

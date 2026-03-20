@@ -5,22 +5,27 @@
 import java.io.FileInputStream
 import java.util.Properties
 
-val commonProperties =
+val pluginProperties =
     Properties().apply {
-        load(FileInputStream("$rootDir/config/config.properties"))
+        load(FileInputStream("$rootDir/config/plugin.properties"))
+    }
+
+val godotProperties =
+    Properties().apply {
+        load(FileInputStream("$rootDir/config/godot.properties"))
     }
 
 extra.apply {
     // Plugin details
-    set("pluginNodeName", commonProperties.getProperty("pluginNodeName"))
+    set("pluginNodeName", pluginProperties.getProperty("pluginNodeName"))
     set("pluginName", "${get("pluginNodeName")}Plugin")
-    set("pluginModuleName", "${commonProperties.getProperty("pluginModuleName")}")
-    set("pluginPackageName", commonProperties.getProperty("pluginPackage"))
-    set("pluginVersion", commonProperties.getProperty("pluginVersion"))
+    set("pluginModuleName", "${pluginProperties.getProperty("pluginModuleName")}")
+    set("pluginPackageName", pluginProperties.getProperty("pluginPackage"))
+    set("pluginVersion", pluginProperties.getProperty("pluginVersion"))
 
     // Godot
-    set("godotVersion", commonProperties.getProperty("godotVersion"))
-    set("godotReleaseType", commonProperties.getProperty("godotReleaseType"))
+    set("godotVersion", godotProperties.getProperty("godotVersion"))
+    set("godotReleaseType", godotProperties.getProperty("godotReleaseType"))
 
     // Project directories
     set("pluginDir", "$rootDir/build/plugin")

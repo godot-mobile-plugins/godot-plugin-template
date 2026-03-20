@@ -125,8 +125,8 @@ tasks {
 
         inputs.dir(addonSrcDir)
         inputs.files(
-            rootProject.file("config/config.properties"),
-            rootProject.file("../ios/config/config.properties"),
+            rootProject.file("config/plugin.properties"),
+            rootProject.file("../ios/config/ios.properties"),
         )
 
         // Declare every token that appears in templates
@@ -176,8 +176,8 @@ tasks {
         }
 
         inputs.files(
-            rootProject.file("config/config.properties"),
-            rootProject.file("../ios/config/config.properties"),
+            rootProject.file("config/plugin.properties"),
+            rootProject.file("../ios/config/ios.properties"),
         )
 
         inputs.property("pluginName", project.extra["pluginName"])

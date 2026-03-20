@@ -14,8 +14,9 @@ DERIVED_DATA_DIR="$BUILD_DIR/DerivedData"
 FRAMEWORK_DIR="$BUILD_DIR/framework"
 LIB_DIR="$BUILD_DIR/lib"
 
-COMMON_CONFIG_FILE="$COMMON_DIR/config/config.properties"
-IOS_CONFIG_FILE="$IOS_DIR/config/config.properties"
+PLUGIN_CONFIG_FILE="$COMMON_DIR/config/plugin.properties"
+GODOT_CONFIG_FILE="$COMMON_DIR/config/godot.properties"
+IOS_CONFIG_FILE="$IOS_DIR/config/ios.properties"
 LOCAL_PROPERTIES_FILE="$COMMON_DIR/local.properties"
 
 # Resolve GODOT_DIR: use godot.dir from local.properties if set, otherwise default to $IOS_DIR/godot
@@ -28,11 +29,11 @@ if [[ -f "$LOCAL_PROPERTIES_FILE" ]]; then
 	unset _godot_dir_prop
 fi
 
-PLUGIN_NODE_NAME=$("$SCRIPT_DIR"/get_config_property.sh -f "$COMMON_CONFIG_FILE" pluginNodeName)
+PLUGIN_NODE_NAME=$("$SCRIPT_DIR"/get_config_property.sh -f "$PLUGIN_CONFIG_FILE" pluginNodeName)
 PLUGIN_NAME="${PLUGIN_NODE_NAME}Plugin"
-PLUGIN_MODULE_NAME=$("$SCRIPT_DIR"/get_config_property.sh -f "$COMMON_CONFIG_FILE" pluginModuleName)
-GODOT_VERSION=$("$SCRIPT_DIR"/get_config_property.sh -f "$COMMON_CONFIG_FILE" godotVersion)
-GODOT_RELEASE_TYPE=$("$SCRIPT_DIR"/get_config_property.sh -f "$COMMON_CONFIG_FILE" godotReleaseType)
+PLUGIN_MODULE_NAME=$("$SCRIPT_DIR"/get_config_property.sh -f "$PLUGIN_CONFIG_FILE" pluginModuleName)
+GODOT_VERSION=$("$SCRIPT_DIR"/get_config_property.sh -f "$GODOT_CONFIG_FILE" godotVersion)
+GODOT_RELEASE_TYPE=$("$SCRIPT_DIR"/get_config_property.sh -f "$GODOT_CONFIG_FILE" godotReleaseType)
 
 SWIFT_VERSION=$("$SCRIPT_DIR"/get_config_property.sh -f "$IOS_CONFIG_FILE" swift_version)
 
@@ -291,7 +292,8 @@ function validate_godot_version()
 		"$SCRIPT_DIR"/echocolor.sh -r "	Found:		$downloaded_version"
 		echo
 		"$SCRIPT_DIR"/echocolor.sh -r "The Godot version in $GODOT_DIR/GODOT_VERSION does not match"
-		"$SCRIPT_DIR"/echocolor.sh -r "the godotVersion property in $COMMON_CONFIG_FILE"
+		"$SCRIPT_DIR"/echocolor.sh -r "the godotVersion property in $GODOT_CONFIG_FILE. Please ensure they match to "
+		"$SCRIPT_DIR"/echocolor.sh -r "avoid build issues."
 		echo
 		exit 1
 	fi

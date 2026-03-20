@@ -88,7 +88,7 @@ tasks {
                                 "contains version '$existingVersion', which does not match the " +
                                 "configured version '$godotVersion'. " +
                                 "Remove the directory (or run 'removeGodotDirectory') before downloading again, " +
-                                "or update 'godotVersion' in config/config.properties.",
+                                "or update 'godotVersion' in config/godot.properties.",
                         )
                     }
                     // Version matches — skip silently (upToDateWhen will have already short-circuited in normal runs)
@@ -302,9 +302,9 @@ tasks {
     }
 
     register("validateSwiftVersion") {
-        description = "Fails the build with a clear error if swift_version is missing from iOS config.properties"
+        description = "Fails the build with a clear error if swift_version is missing from ios.properties"
 
-        val iosConfigFile = file("$projectDir/config/config.properties")
+        val iosConfigFile = file("$projectDir/config/ios.properties")
         inputs.file(iosConfigFile)
 
         doLast {

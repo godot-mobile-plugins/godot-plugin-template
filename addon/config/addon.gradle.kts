@@ -5,18 +5,18 @@
 import java.io.FileInputStream
 import java.util.Properties
 
-val commonProperties =
+val pluginProperties =
     Properties().apply {
-        load(FileInputStream("$rootDir/config/config.properties"))
+        load(FileInputStream("$rootDir/config/plugin.properties"))
     }
 
 val iosProperties =
     Properties().apply {
-        load(FileInputStream("$rootDir/../ios/config/config.properties"))
+        load(FileInputStream("$rootDir/../ios/config/ios.properties"))
     }
 
 // Apply extra gradle build files that are configured to be applied
-commonProperties.forEach { entry ->
+pluginProperties.forEach { entry ->
     val key = entry.key.toString()
     if (key.startsWith("gradle.")) {
         val fileName = entry.value.toString().trim()
@@ -30,7 +30,7 @@ commonProperties.forEach { entry ->
 
 extra.apply {
     // Set extra properties from config
-    commonProperties.forEach { entry ->
+    pluginProperties.forEach { entry ->
         val key = entry.key.toString()
         if (key.startsWith("extra.")) {
             val propertyName = key.removePrefix("extra.")
@@ -45,16 +45,16 @@ extra.apply {
     set("outputDir", "${get("buildDir")}/output")
 
     // Plugin details
-    set("pluginNodeName", commonProperties.getProperty("pluginNodeName"))
+    set("pluginNodeName", pluginProperties.getProperty("pluginNodeName"))
     set("pluginName", "${get("pluginNodeName")}Plugin")
-    set("pluginPackageName", commonProperties.getProperty("pluginPackage"))
-    set("pluginVersion", commonProperties.getProperty("pluginVersion"))
+    set("pluginPackageName", pluginProperties.getProperty("pluginPackage"))
+    set("pluginVersion", pluginProperties.getProperty("pluginVersion"))
 
     // iOS
     set("iosPlatformVersion", iosProperties.getProperty("platform_version"))
     set("iosFrameworks", iosProperties.getProperty("frameworks"))
     set("iosEmbeddedFrameworks", iosProperties.getProperty("embedded_frameworks"))
     set("iosLinkerFlags", iosProperties.getProperty("flags"))
-    set("iosInitializationMethod", "${commonProperties.getProperty("pluginModuleName")}_plugin_init")
-    set("iosDeinitializationMethod", "${commonProperties.getProperty("pluginModuleName")}_plugin_deinit")
+    set("iosInitializationMethod", "${pluginProperties.getProperty("pluginModuleName")}_plugin_init")
+    set("iosDeinitializationMethod", "${pluginProperties.getProperty("pluginModuleName")}_plugin_deinit")
 }
