@@ -508,11 +508,15 @@ tasks {
             // Combine per-slice archives into a single xcframework per variant.
             // Any slice whose .a file does not exist (i.e. was not built) is silently skipped,
             // so partial builds (debug-only, release-only, device-only, etc.) still work.
-            fun createXcframework(variantName: String, archiveNames: List<String>) {
-                val availableLibs = archiveNames.mapNotNull { archiveName ->
-                    val lib = libDir.resolve("$archiveName/Products/usr/local/lib/$pluginName.a")
-                    if (lib.exists()) lib else null
-                }
+            fun createXcframework(
+                variantName: String,
+                archiveNames: List<String>,
+            ) {
+                val availableLibs =
+                    archiveNames.mapNotNull { archiveName ->
+                        val lib = libDir.resolve("$archiveName/Products/usr/local/lib/$pluginName.a")
+                        if (lib.exists()) lib else null
+                    }
                 if (availableLibs.isEmpty()) {
                     println("Skipping $pluginName.$variantName.xcframework: no build artifacts found.")
                     return
@@ -526,7 +530,9 @@ tasks {
 
                 println(
                     "Creating $pluginName.$variantName.xcframework " +
-                        "from ${availableLibs.size} slice(s): ${availableLibs.map { it.parentFile.parentFile.parentFile.name }}",
+                        "from ${availableLibs.size} slice(s): ${availableLibs.map {
+                            it.parentFile.parentFile.parentFile.name
+                        }}",
                 )
                 execOps.exec { commandLine(args) }
             }
