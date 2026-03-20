@@ -21,10 +21,10 @@ val localProperties =
             ?.use { props.load(it) }
     }
 
-val configProperties =
+val buildProperties =
     java.util.Properties().also { props ->
         rootDir
-            .resolve("config/config.properties")
+            .resolve("config/build.properties")
             .takeIf { it.exists() }
             ?.inputStream()
             ?.use { props.load(it) }
@@ -62,7 +62,7 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = configProperties.getProperty("gradleProjectName", "godot-plugin")
+rootProject.name = buildProperties.getProperty("gradleProjectName", "godot-plugin")
 include(":addon")
 include(":android")
 include(":ios")

@@ -23,26 +23,29 @@ Thank you for your interest in contributing to the Godot PluginTemplate Plugin! 
 
 ```text
 .
-├── addon/                               # GDScript addon module
-│   ├── build.gradle.kts                   # Gradle build configuration
-│   ├── config.gradle.kts                  # Gradle configuration
-│   ├── ?.gradle.kts                       # Any extra Gradle configuration (configured in
-│   │                                      # common/config/config.properties) for the plugin goes here
+├── addon/                               # GDScript interface module
+│   ├── addon-build.gradle.kts             # Gradle build configuration for addon module
+│   ├── ?.gradle.kts                       # Any extra addon-specific Gradle configuration (configured in
+│   │                                      # addon/config/addon-build.properties) for the plugin goes here
 │   ├── build/
 │   │   └── output/                        # Generated GDScript code
 │   │
 │   ├── config/
+│   │   ├── addon-build.properties         # Gradle build customization for addon module
 │   │   └── addon.gradle.kts               # Gradle configuration for addon module
 │   │
 │   └── src/                               # GDScript templates
 │
 ├── android/                             # Android platform module
-│   ├── build.gradle.kts                   # Android build configuration
+│   ├── android-build.gradle.kts           # Android build configuration
+│   ├── ?.gradle.kts                       # Any extra Android-specific Gradle configuration (configured in
+│   │                                      # android/config/android-build.properties) for the plugin goes here
 │   │
 │   ├── build/
 │   │   └── outputs/                       # Generated Android AAR files
 │   │
 │   ├── config/
+│   │   ├── android-build.properties       # Gradle build customization for android module
 │   │   └── android.gradle.kts             # Gradle configuration for android module
 │   │
 │   ├── libs/                              # Godot library for Android (default location; configurable via local.properties)
@@ -50,6 +53,8 @@ Thank you for your interest in contributing to the Godot PluginTemplate Plugin! 
 │
 ├── common/                              # Shared build configuration
 │   ├── build.gradle.kts                   # Root build configuration
+│   ├── ?.gradle.kts                       # Any extra Gradle configuration (configured in
+│   │                                      # common/config/build.properties) for the plugin goes here
 │   │
 │   ├── gradle.properties                  # Gradle properties
 │   ├── local.properties                   # Local machine config (gitignored)
@@ -60,8 +65,10 @@ Thank you for your interest in contributing to the Godot PluginTemplate Plugin! 
 │   │   └── reports/                       # Build reports
 │   │
 │   ├── config/
+│   │   ├── build.properties               # Build-related property configuration & customization
 │   │   ├── common.gradle.kts              # Common Gradle configuration
-│   │   └── config.properties              # Common plugin configuration
+│   │   ├── godot.properties               # Godot version configuration
+│   │   └── plugin.properties              # Plugin configuration
 │   │
 │   └── gradle/                            # Gradle wrapper and version catalogs
 │       └── libs.versions.toml             # Dependencies and versions
@@ -72,12 +79,17 @@ Thank you for your interest in contributing to the Godot PluginTemplate Plugin! 
 │   └── *.gd                               # Demo app scripts
 │
 ├── ios/                                 # iOS platform module
+│   ├── ios-build.gradle.kts               # iOS build configuration
+│   ├── ?.gradle.kts                       # Any extra iOS-specific Gradle configuration (configured in
+│   │                                      # ios/config/build.properties) for the plugin goes here
+│   │
 │   ├── src/                               # iOS platform code
 │   ├── plugin.xcodeproj/                  # Xcode project
 │   ├── build/                             # iOS build outputs
 │   │
 │   ├── config/
-│   │   ├── config.properties              # iOS configuration
+│   │   ├── ios.properties                 # iOS configuration
+│   │   ├── ios-build.properties           # Gradle build customization for ios module
 │   │   ├── ios.gradle.kts                 # iOS Gradle configuration
 │   │   ├── spm_dependencies.json          # SPM dependency configuration
 │   │   └── *.gdip                         # Godot iOS plugin config
@@ -164,39 +176,62 @@ scons --version
 
 ## <img src="https://raw.githubusercontent.com/godot-mobile-plugins/godot-plugin-template/main/addon/src/icon.png" width="24"> Configuration
 
-The build files are largely static and shared across all GMP plugins. Any plugin-specific build customization is handled through the following configuration files:
+The build files are static and shared across all GMP plugins. Any plugin-specific build customization is handled through the following configuration files:
 
 ```text
 .
 ├── addon/
-│   └── ?.gradle.kts                   # Any extra Gradle configuration (configured in
-│                                      # common/config/config.properties) for the plugin goes here
+│   ├── ?.gradle.kts                       # Any extra addon-specific Gradle configuration (configured in
+│   │                                      # addon/config/addon-build.properties) for the plugin goes here
+│   └── config/
+│       └── addon-build.properties         # Gradle build customization for addon module
+│
+├── android/
+│   ├── android-build.gradle.kts           # Android build configuration
+│   ├── ?.gradle.kts                       # Any extra Android-specific Gradle configuration (configured in
+│   │                                      # android/config/android-build.properties) for the plugin goes here
+│   └── config/
+│       └── android-build.properties       # Gradle build customization for android module
 │
 ├── common/
 │   ├── config/
-│   │   └── config.properties          # Common plugin configuration
+│   │   ├── build.properties               # Build-related property configuration & customization
+│   │   ├── godot.properties               # Godot version configuration
+│   │   └── plugin.properties              # Plugin configuration
 │   │
 │   └── gradle/
-│       └── libs.versions.toml         # Android dependencies and versions
+│       └── libs.versions.toml             # Android dependencies and versions
 │
 └── ios/
     └── config/
-        └── config.properties          # iOS configuration
+        ├── ios.properties                 # iOS configuration
+        ├── ios-build.properties           # Gradle build customization for ios module
+        └── spm_dependencies.json          # SPM dependency configuration
 ```
 
 ### <img src="https://raw.githubusercontent.com/godot-mobile-plugins/godot-plugin-template/main/addon/src/icon.png" width="20"> Common Configuration
 
-The `common/config/config.properties` file contains core plugin settings:
+The `common/config/plugin.properties` file contains core plugin settings:
 
 ```properties
 # Plugin identification
 pluginNodeName=...                # Name of the plugin node in Godot
 pluginModuleName=...              # Module name for native code
 pluginVersion=1.0                 # Plugin version
+```
 
+The `common/config/godot.properties` file contains core Godot version settings:
+
+```properties
 # Godot configuration
 godotVersion=4.6                  # Target Godot version
 godotReleaseType=stable           # Release type: stable, dev6, beta3, rc1, etc.
+```
+
+The `common/config/build.properties` file contains core Gradle build-related property settings:
+
+```properties
+gradleProjectName=godot-*-plugin
 
 # Extra properties configured in the following format
 extra.anotherProperty=property value
@@ -211,22 +246,48 @@ gradle.another=another.gradle.kts
 - `godotVersion` - Must match your target Godot version
 - `godotReleaseType` - Determines which Godot binary to download
 
-### <img src="https://raw.githubusercontent.com/godot-mobile-plugins/godot-plugin-template/main/addon/src/icon.png" width="20"> Gradle Configuration
+### <img src="https://raw.githubusercontent.com/godot-mobile-plugins/godot-plugin-template/main/addon/src/icon.png" width="20"> Build Customization
 
-The `common/gradle/libs.versions.toml` defines dependency versions:
+Plugin-specific build customizations can be configured in the following files:
 
-```toml
-[versions]
-android-plugin = "8.5.0"
-kotlin = "1.9.0"
-...
+`common/config/build.properties` for general customizations:
 
-[libraries]
-...
+```properties
+# Set plugin-specific extra properties common for all modules
+#extra.myProperty=value
 
-[plugins]
-android-library = { id = "com.android.library", version.ref = "android-plugin" }
-kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
+# Configure plugin-specific Gradle scripts common for all modules
+#gradle.extraGradle=extra.gradle.kts
+```
+
+`addon/config/addon-build.properties` for addon-module build customizations:
+
+```properties
+# Set plugin-specific extra properties for addon module
+#extra.myProperty=value
+
+# Configure plugin-specific Gradle scripts for addon module
+#gradle.extraGradle=extra.gradle.kts
+```
+
+`android/config/android-build.properties` for android-module build customizations:
+
+```properties
+# Set plugin-specific extra properties for android module
+#extra.myProperty=value
+
+# Configure plugin-specific Gradle scripts for android module
+#gradle.extraGradle=extra.gradle.kts
+```
+
+`ios/config/ios-build.properties` for ios-module build customizations:
+
+```properties
+# Set plugin-specific extra properties for ios module
+#extra.myProperty=value
+
+# Configure plugin-specific Gradle scripts for ios module
+#gradle.extraGradle=extra.gradle.kts
 ```
 
 ### <img src="https://raw.githubusercontent.com/godot-mobile-plugins/godot-plugin-template/main/addon/src/icon.png" width="20"> Local Configuration
@@ -268,11 +329,11 @@ lib.dir=/path/to/your/shared/aar
 
 When `lib.dir` is not set, the build uses the `android/libs/` directory. The path supports `~` and environment variable expansion.
 
-**Note:** The specified directory must contain a valid `GODOT_VERSION` file matching the `godotVersion` property in `common/config/config.properties`. If you use the `-G` option to download Godot, it will be downloaded to whichever directory is configured and the `GODOT_VERSION` file will be created automatically.
+**Note:** The specified directory must contain a valid `GODOT_VERSION` file matching the `godotVersion` property in `common/config/godot.properties`. If you use the `-G` option to download Godot, it will be downloaded to whichever directory is configured and the `GODOT_VERSION` file will be created automatically.
 
 ### <img src="https://raw.githubusercontent.com/godot-mobile-plugins/godot-plugin-template/main/addon/src/icon.png" width="20"> iOS Configuration
 
-The `ios/config/config.properties` file contains iOS-specific settings:
+The `ios/config/ios.properties` file contains iOS-specific settings:
 
 ```properties
 # iOS deployment target
@@ -500,7 +561,7 @@ The iOS build process involves several steps:
 
 1. **Download Godot** (if needed):
    - Downloads the official Godot binary from GitHub
-   - Version specified in `config.properties`
+   - Version specified in `godot.properties`
    - Extracted to `ios/godot/` by default, or to the path set by `godot.dir` in `common/local.properties`
 
 2. **Generate Headers**:
@@ -611,7 +672,7 @@ This creates:
 
 ### Release Checklist
 
-- [ ] Update version in `common/config/config.properties`
+- [ ] Update version in `common/config/plugin.properties`
 - [ ] Update versions in issue templates (`.github/ISSUE_TEMPLATE`)
 - [ ] Test on both platforms
 - [ ] Build release archives
@@ -693,7 +754,7 @@ rm -rf ios/build/DerivedData
 **Problem:** Godot version mismatch when using a custom `godot.dir`
 ```
 # The GODOT_VERSION file in the configured directory must match
-# the godotVersion property in common/config/config.properties.
+# the godotVersion property in common/config/godot.properties.
 # Solution: remove and re-download Godot into the configured directory
 ./script/build_ios.sh -gG
 ```
