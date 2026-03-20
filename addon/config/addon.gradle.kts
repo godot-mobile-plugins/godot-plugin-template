@@ -5,18 +5,13 @@
 import java.io.FileInputStream
 import java.util.Properties
 
-val pluginProperties =
+val buildProperties =
     Properties().apply {
-        load(FileInputStream("$rootDir/config/plugin.properties"))
-    }
-
-val iosProperties =
-    Properties().apply {
-        load(FileInputStream("$rootDir/../ios/config/ios.properties"))
+        load(FileInputStream("$projectDir/config/addon-build.properties"))
     }
 
 // Apply extra gradle build files that are configured to be applied
-pluginProperties.forEach { entry ->
+buildProperties.forEach { entry ->
     val key = entry.key.toString()
     if (key.startsWith("gradle.")) {
         val fileName = entry.value.toString().trim()
@@ -28,9 +23,19 @@ pluginProperties.forEach { entry ->
     }
 }
 
+val pluginProperties =
+    Properties().apply {
+        load(FileInputStream("$rootDir/config/plugin.properties"))
+    }
+
+val iosProperties =
+    Properties().apply {
+        load(FileInputStream("$rootDir/../ios/config/ios.properties"))
+    }
+
 extra.apply {
-    // Set extra properties from config
-    pluginProperties.forEach { entry ->
+    // Set extra properties from build config
+    buildProperties.forEach { entry ->
         val key = entry.key.toString()
         if (key.startsWith("extra.")) {
             val propertyName = key.removePrefix("extra.")
