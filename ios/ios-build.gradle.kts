@@ -42,6 +42,7 @@ tasks {
     val demoDir: String by project.extra
 
     val godotDir: String by gradle.extra
+    val iosSrcDir = file("$projectDir/src")
 
     register<Exec>("removeGodotDirectory") {
         description = "Removes the directory where Godot sources were downloaded"
@@ -675,11 +676,10 @@ tasks {
         }
     }
 
-    register<Exec>("checkIosFormat") {
+    register<Exec>("checkObjCFormat") {
         description = "Checks clang-format compliance of iOS source files (dry-run, no changes written)"
         group = "formatting"
 
-        val iosSrcDir = file("$projectDir/src")
         workingDir = iosSrcDir
 
         doFirst {
@@ -691,7 +691,7 @@ tasks {
                     .sorted()
 
             if (sourceFiles.isEmpty()) {
-                throw GradleException("checkIosFormat: no source files found under ${iosSrcDir.absolutePath}")
+                throw GradleException("checkObjCFormat: no source files found under ${iosSrcDir.absolutePath}")
             }
 
             commandLine(
@@ -706,11 +706,10 @@ tasks {
         }
     }
 
-    register<Exec>("formatIosSource") {
+    register<Exec>("formatObjCSource") {
         description = "Formats iOS source files in-place using clang-format"
         group = "formatting"
 
-        val iosSrcDir = file("$projectDir/src")
         workingDir = iosSrcDir
 
         doFirst {
@@ -722,7 +721,7 @@ tasks {
                     .sorted()
 
             if (sourceFiles.isEmpty()) {
-                throw GradleException("formatIosSource: no source files found under ${iosSrcDir.absolutePath}")
+                throw GradleException("formatObjCSource: no source files found under ${iosSrcDir.absolutePath}")
             }
 
             commandLine(
@@ -730,6 +729,66 @@ tasks {
                     add("clang-format")
                     add("--style=file:../../.github/config/.clang-format")
                     add("-i")
+                    addAll(sourceFiles)
+                },
+            )
+        }
+    }
+
+    register<Exec>("checkSwiftFormat") {
+        description = "Checks swiftlint compliance of Swift source files (lint only, no changes written)"
+        group = "formatting"
+
+        workingDir = iosSrcDir
+
+        doFirst {
+            val sourceFiles =
+                fileTree(iosSrcDir) {
+                    include("**/*.swift")
+                }.files
+                    .map { it.relativeTo(iosSrcDir).path }
+                    .sorted()
+
+            if (sourceFiles.isEmpty()) {
+                throw GradleException("checkSwiftFormat: no source files found under ${iosSrcDir.absolutePath}")
+            }
+
+            commandLine(
+                buildList {
+                    add("swiftlint")
+                    add("lint")
+                    add("--config")
+                    add("../../.github/config/.swiftlint.yml")
+                    addAll(sourceFiles)
+                },
+            )
+        }
+    }
+
+    register<Exec>("formatSwiftSource") {
+        description = "Formats Swift source files in-place using swiftlint --fix"
+        group = "formatting"
+
+        workingDir = iosSrcDir
+
+        doFirst {
+            val sourceFiles =
+                fileTree(iosSrcDir) {
+                    include("**/*.swift")
+                }.files
+                    .map { it.relativeTo(iosSrcDir).path }
+                    .sorted()
+
+            if (sourceFiles.isEmpty()) {
+                throw GradleException("checkSwiftFormat: no source files found under ${iosSrcDir.absolutePath}")
+            }
+
+            commandLine(
+                buildList {
+                    add("swiftlint")
+                    add("--fix")
+                    add("--config")
+                    add("../../.github/config/.swiftlint.yml")
                     addAll(sourceFiles)
                 },
             )

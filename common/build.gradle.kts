@@ -221,7 +221,8 @@ tasks {
             project(":addon").tasks.named("checkGdscriptFormat"),
             project(":android").tasks.named("rewriteDryRun"),
             project(":android").tasks.named("checkXmlFormat"),
-            project(":ios").tasks.named("checkIosFormat"),
+            project(":ios").tasks.named("checkObjCFormat"),
+            project(":ios").tasks.named("checkSwiftFormat"),
             "checkKtsFormat",
             "checkEditorConfig",
         )
@@ -235,7 +236,8 @@ tasks {
             project(":addon").tasks.named("formatGdscriptSource"),
             project(":android").tasks.named("rewriteRun"),
             project(":android").tasks.named("formatXml"),
-            project(":ios").tasks.named("formatIosSource"),
+            project(":ios").tasks.named("formatObjCSource"),
+            project(":ios").tasks.named("formatSwiftSource"),
             "formatKtsSource",
         )
     }
