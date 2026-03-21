@@ -219,7 +219,7 @@ tasks {
         // Removed "spotlessCheck"
         dependsOn(
             project(":addon").tasks.named("checkGdscriptFormat"),
-            project(":android").tasks.named("rewriteDryRun"),
+            project(":android").tasks.named("checkJavaFormat"),
             project(":android").tasks.named("checkXmlFormat"),
             project(":ios").tasks.named("checkObjCFormat"),
             project(":ios").tasks.named("checkSwiftFormat"),

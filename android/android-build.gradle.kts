@@ -20,10 +20,12 @@ apply(from = "$projectDir/config/android.gradle.kts")
 
 configure<org.openrewrite.gradle.RewriteExtension> {
     activeRecipe(
-        "org.openrewrite.java.format.AutoFormat",
         "org.openrewrite.java.RemoveUnusedImports",
-        "org.openrewrite.staticanalysis.NeedBraces",
+        "org.openrewrite.java.format.AutoFormat",
+        "org.openrewrite.java.format.EmptyNewlineAtEndOfFile",
         "org.openrewrite.java.format.RemoveTrailingWhitespace",
+        "org.openrewrite.staticanalysis.NeedBraces",
+        "org.openrewrite.staticanalysis.WhileInsteadOfFor",
     )
     activeStyle("org.godotengine.plugin.JavaStyle")
 
@@ -275,6 +277,59 @@ tasks {
                 "src/**/*.xml",
             ),
         )
+    }
+
+    register<de.undercouch.gradle.tasks.download.Download>("downloadCheckstyleJar") {
+        val checkstyleVersion = libs.versions.checkstyle.get()
+        val destFile = file("${gradle.extra["libDir"]}/checkstyle-$checkstyleVersion-all.jar")
+
+        inputs.property("checkstyleVersion", checkstyleVersion)
+        outputs.file(destFile)
+
+        src(
+            "https://github.com/checkstyle/checkstyle/releases/download/" +
+                "checkstyle-$checkstyleVersion/checkstyle-$checkstyleVersion-all.jar",
+        )
+        dest(destFile)
+        overwrite(false)
+
+        onlyIf {
+            val exists = destFile.exists() && destFile.length() > 0
+            if (exists) {
+                println(
+                    "[CHECKSTYLE] Jar already exists and is non-empty: " +
+                        "${destFile.absolutePath} (${destFile.length()} bytes)",
+                )
+                println("[CHECKSTYLE] Skipping download.")
+            } else {
+                if (destFile.exists()) {
+                    println("[CHECKSTYLE] Jar exists but is empty: ${destFile.absolutePath}")
+                } else {
+                    println("[CHECKSTYLE] Jar not found: ${destFile.absolutePath}")
+                }
+                println("[CHECKSTYLE] Proceeding with download...")
+            }
+            !exists
+        }
+    }
+
+    register<JavaExec>("checkJavaFormat") {
+        description = "Runs Checkstyle on all Java sources under \$projectDir/src"
+
+        dependsOn("downloadCheckstyleJar")
+
+        val checkstyleVersion = libs.versions.checkstyle.get()
+        val jarFile = file("${gradle.extra["libDir"]}/checkstyle-$checkstyleVersion-all.jar")
+        val configFile = rootProject.file("../.github/config/checkstyle.xml")
+        val sourceDir = file("$projectDir/src")
+
+        classpath = files(jarFile)
+        mainClass.set("com.puppycrawl.tools.checkstyle.Main")
+        args = listOf("-c", configFile.absolutePath, sourceDir.absolutePath)
+
+        doLast {
+            println("Checkstyle completed for: ${sourceDir.path}")
+        }
     }
 
     register<de.undercouch.gradle.tasks.download.Download>("downloadGodotAar") {
