@@ -9,6 +9,7 @@ import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
 plugins {
+    id("base-conventions")
     alias(libs.plugins.android.library)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.undercouch.download)
@@ -28,8 +29,6 @@ configure<org.openrewrite.gradle.RewriteExtension> {
         "org.openrewrite.staticanalysis.WhileInsteadOfFor",
     )
     activeStyle("org.godotengine.plugin.JavaStyle")
-
-    // Path to the rewrite.yml defining the named style
     configFile = projectDir.resolve("config/rewrite.yml")
 }
 
@@ -39,6 +38,7 @@ android {
         libs.versions.compileSdk
             .get()
             .toInt()
+    buildToolsVersion = libs.versions.buildTools.get()
 
     buildFeatures {
         buildConfig = true
@@ -49,7 +49,6 @@ android {
             libs.versions.minSdk
                 .get()
                 .toInt()
-
         manifestPlaceholders["godotPluginName"] = project.extra["pluginName"] as String
         manifestPlaceholders["godotPluginPackageName"] = project.extra["pluginPackageName"] as String
         buildConfigField("String", "GODOT_PLUGIN_NAME", "\"${project.extra["pluginName"]}\"")
@@ -66,14 +65,11 @@ android {
         }
     }
 
-    buildToolsVersion = libs.versions.buildTools.get()
-
     // Force AAR filenames to match original case and format
     libraryVariants.all {
         outputs.all {
-            val outputImpl = this as LibraryVariantOutputImpl
-            val buildType = name // "debug" or "release"
-            outputImpl.outputFileName = "${project.extra["pluginName"]}-$buildType.aar"
+            (this as LibraryVariantOutputImpl).outputFileName =
+                "${project.extra["pluginName"]}-$name.aar"
         }
     }
 }
@@ -94,29 +90,60 @@ node {
             .get()
 }
 
-// Access the library catalog by name ("libs")
-val catalog = extensions.getByType<VersionCatalogsExtension>().named("libs")
-
-// Map all library aliases to their actual dependency provider
+// Collect all catalog library aliases except the rewrite recipe dependency
 val androidDependencies =
-    catalog.libraryAliases
-        .filter { it != "rewrite.static.analysis" }
-        .map { alias ->
-            catalog
-                .findLibrary(alias)
-                .get()
-                .get()
+    extensions
+        .getByType<VersionCatalogsExtension>()
+        .named("libs")
+        .run {
+            libraryAliases
+                .filter { it != "rewrite.static.analysis" }
+                .map { findLibrary(it).get().get() }
         }
 
 dependencies {
     "rewrite"(libs.rewrite.static.analysis)
-
     implementation("godot:godot-lib:${project.extra["godotVersion"]}.${project.extra["godotReleaseType"]}@aar")
-    androidDependencies.forEach {
-        println("[DEBUG] Adding Android dependency: $it")
-        implementation(it)
+    androidDependencies.forEach { implementation(it) }
+}
+
+// ── Helpers ──────────────────────────────────────────────────────────────────
+
+fun buildTimestamp(): String = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))
+
+/** Registers a Copy task that assembles one build variant of the Android plugin. */
+fun TaskContainerScope.registerAndroidBuildVariant(variant: String) {
+    val taskName = "buildAndroid${variant.replaceFirstChar { it.uppercase() }}"
+    val pluginDir: String by project.extra
+    val repositoryRootDir: String by project.extra
+
+    register<Copy>(taskName) {
+        description = "Copies the generated GDScript and $variant AAR binary to the plugin directory"
+
+        dependsOn(
+            project(":addon").tasks.named("generateGDScript"),
+            project(":addon").tasks.named("copyAssets"),
+            project(":android").tasks.named("assemble${variant.replaceFirstChar { it.uppercase() }}"),
+        )
+
+        into("$pluginDir/android")
+
+        from("$repositoryRootDir/addon/build/output") {
+            include("addons/${project.extra["pluginName"]}/**")
+        }
+
+        from("$projectDir/build/outputs/aar") {
+            include("${project.extra["pluginName"]}-$variant.aar")
+            into("addons/${project.extra["pluginName"]}/bin/$variant")
+        }
+
+        doLast { println("Android $variant build completed at: ${buildTimestamp()}") }
+
+        outputs.dir("$pluginDir/android")
     }
 }
+
+// ── Tasks ─────────────────────────────────────────────────────────────────────
 
 tasks {
     val pluginDir: String by project.extra
@@ -124,94 +151,25 @@ tasks {
     val archiveDir: String by project.extra
     val demoDir: String by project.extra
 
-    register<Copy>("buildAndroidDebug") {
-        description = "Copies the generated GDScript and debug AAR binary to the plugin directory"
-
-        dependsOn(
-            project(":addon").tasks.named("generateGDScript"),
-            project(":addon").tasks.named("copyAssets"),
-            project(":android").tasks.named("assembleDebug"),
-        )
-
-        into("$pluginDir/android")
-
-        from("$repositoryRootDir/addon/build/output") {
-            include("addons/${project.extra["pluginName"]}/**")
-        }
-
-        from("$projectDir/build/outputs/aar") {
-            include("${project.extra["pluginName"]}-debug.aar")
-            into("addons/${project.extra["pluginName"]}/bin/debug")
-        }
-
-        doLast {
-            val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
-            val current = LocalDateTime.now().format(formatter)
-            println("Android debug build completed at: $current")
-        }
-
-        outputs.dir("$pluginDir/android")
-    }
-
-    register<Copy>("buildAndroidRelease") {
-        description = "Copies the generated GDScript and release AAR binary to the plugin directory"
-
-        dependsOn(
-            project(":addon").tasks.named("generateGDScript"),
-            project(":addon").tasks.named("copyAssets"),
-            project(":android").tasks.named("assembleRelease"),
-        )
-
-        into("$pluginDir/android")
-
-        from("$repositoryRootDir/addon/build/output") {
-            include("addons/${project.extra["pluginName"]}/**")
-        }
-
-        from("$projectDir/build/outputs/aar") {
-            include("${project.extra["pluginName"]}-release.aar")
-            into("addons/${project.extra["pluginName"]}/bin/release")
-        }
-
-        doLast {
-            val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
-            val current = LocalDateTime.now().format(formatter)
-            println("Android release build completed at: $current")
-        }
-
-        outputs.dir("$pluginDir/android")
-    }
+    registerAndroidBuildVariant("debug")
+    registerAndroidBuildVariant("release")
 
     register("buildAndroid") {
         description = "Builds both debug and release"
-
-        dependsOn(
-            "buildAndroidDebug",
-            "buildAndroidRelease",
-        )
+        dependsOn("buildAndroidDebug", "buildAndroidRelease")
     }
 
     register<Zip>("createAndroidArchive") {
-        dependsOn(
-            "buildAndroidDebug",
-            "buildAndroidRelease",
-        )
+        dependsOn("buildAndroidDebug", "buildAndroidRelease")
 
-        val archiveName = project.extra["pluginArchiveAndroid"] as String
-        val sourceDir = "$pluginDir/android"
-
-        archiveFileName.set(archiveName)
+        archiveFileName.set(project.extra["pluginArchiveAndroid"] as String)
         destinationDirectory.set(layout.projectDirectory.dir(archiveDir))
 
         into("res") {
-            from(layout.projectDirectory.dir(sourceDir)) {
-                includeEmptyDirs = false
-            }
+            from(layout.projectDirectory.dir("$pluginDir/android")) { includeEmptyDirs = false }
         }
 
-        doLast {
-            println("Android zip archive created at: ${archiveFile.get().asFile.path}")
-        }
+        doLast { println("Android zip archive created at: ${archiveFile.get().asFile.path}") }
     }
 
     register<Copy>("installToDemoAndroid") {
@@ -224,20 +182,17 @@ tasks {
         )
 
         destinationDir = file(demoDir)
-
         duplicatesStrategy = DuplicatesStrategy.WARN
 
-        into(".") {
-            from("$pluginDir/android")
-        }
+        into(".") { from("$pluginDir/android") }
 
         outputs.dir(destinationDir)
     }
 
     register<Delete>("uninstallAndroid") {
-        description = "Keep demo app's plugin directory and delete everything inside except for .uid and .import files"
+        description = "Removes plugin files from demo app (preserves .uid and .import files)"
         delete(
-            fileTree("$demoDir/addons/${project.extra["pluginName"]}").apply {
+            fileTree("$demoDir/addons/${project.extra["pluginName"]}") {
                 include("**/*")
                 exclude("**/*.uid")
                 exclude("**/*.import")
@@ -292,25 +247,6 @@ tasks {
         )
         dest(destFile)
         overwrite(false)
-
-        onlyIf {
-            val exists = destFile.exists() && destFile.length() > 0
-            if (exists) {
-                println(
-                    "[CHECKSTYLE] Jar already exists and is non-empty: " +
-                        "${destFile.absolutePath} (${destFile.length()} bytes)",
-                )
-                println("[CHECKSTYLE] Skipping download.")
-            } else {
-                if (destFile.exists()) {
-                    println("[CHECKSTYLE] Jar exists but is empty: ${destFile.absolutePath}")
-                } else {
-                    println("[CHECKSTYLE] Jar not found: ${destFile.absolutePath}")
-                }
-                println("[CHECKSTYLE] Proceeding with download...")
-            }
-            !exists
-        }
     }
 
     register<JavaExec>("checkJavaFormat") {
@@ -320,47 +256,26 @@ tasks {
 
         val checkstyleVersion = libs.versions.checkstyle.get()
         val jarFile = file("${gradle.extra["libDir"]}/checkstyle-$checkstyleVersion-all.jar")
-        val configFile = rootProject.file("../.github/config/checkstyle.xml")
-        val sourceDir = file("$projectDir/src")
 
         classpath = files(jarFile)
         mainClass.set("com.puppycrawl.tools.checkstyle.Main")
-        args = listOf("-c", configFile.absolutePath, sourceDir.absolutePath)
-
-        doLast {
-            println("Checkstyle completed for: ${sourceDir.path}")
-        }
+        args =
+            listOf(
+                "-c",
+                rootProject.file("../.github/config/checkstyle.xml").absolutePath,
+                file("$projectDir/src").absolutePath,
+            )
     }
 
     register<de.undercouch.gradle.tasks.download.Download>("downloadGodotAar") {
         val destFile = file("${gradle.extra["libDir"]}/${project.extra["godotAarFile"]}")
 
-        val godotAarUrl = project.extra["godotAarUrl"] as String
-        inputs.property("godotAarUrl", godotAarUrl)
+        inputs.property("godotAarUrl", project.extra["godotAarUrl"] as String)
         outputs.file(destFile)
 
-        src(godotAarUrl)
+        src(project.extra["godotAarUrl"] as String)
         dest(destFile)
         overwrite(false)
-
-        onlyIf {
-            val exists = destFile.exists() && destFile.length() > 0
-            if (exists) {
-                println(
-                    "[GODOT-AAR] File already exists and is non-empty: " +
-                        "${destFile.absolutePath} (${destFile.length()} bytes)",
-                )
-                println("[GODOT-AAR] Skipping download.")
-            } else {
-                if (destFile.exists()) {
-                    println("[GODOT-AAR] File exists but is empty: ${destFile.absolutePath}")
-                } else {
-                    println("[GODOT-AAR] File not found: ${destFile.absolutePath}")
-                }
-                println("[GODOT-AAR] Proceeding with download...")
-            }
-            !exists // run task only if file does NOT exist or is empty
-        }
     }
 
     named("preBuild") {

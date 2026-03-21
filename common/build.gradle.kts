@@ -3,13 +3,13 @@
 //
 
 plugins {
+    id("base-conventions")
     alias(libs.plugins.android.library) apply false
     alias(libs.plugins.kotlin.android) apply false
     alias(libs.plugins.undercouch.download) apply false
     alias(libs.plugins.openrewrite) apply false
     alias(libs.plugins.node) apply false
     alias(libs.plugins.kotlin.serialization) apply false
-//    alias(libs.plugins.spotless) apply false
 }
 
 allprojects {
@@ -19,8 +19,17 @@ allprojects {
     }
 }
 
-// Load configuration from project root
 apply(from = "$rootDir/config/common.gradle.kts")
+
+/** Returns all *.gradle.kts files under addon/, android/, common/, and ios/. */
+fun ktsSourceFiles(): List<String> {
+    val repositoryRootDir: String by project.extra
+    return listOf("addon", "android", "common", "ios")
+        .flatMap { dir ->
+            fileTree("$repositoryRootDir/$dir") { include("*.gradle.kts") }.files
+        }.map { it.relativeTo(file(repositoryRootDir)).path }
+        .sorted()
+}
 
 tasks {
     val pluginDir: String by project.extra
@@ -29,16 +38,14 @@ tasks {
 
     register("build") {
         description = "Builds both Android and iOS"
-
         dependsOn(
             project(":android").tasks.named("buildAndroid"),
             project(":ios").tasks.named("buildiOS"),
         )
     }
 
-    register<Copy>("installToDemo") {
+    register("installToDemo") {
         description = "Installs both the Android and iOS plugins to demo app"
-
         dependsOn(
             project(":android").tasks.named("installToDemoAndroid"),
             project(":ios").tasks.named("installToDemoiOS"),
@@ -46,17 +53,15 @@ tasks {
     }
 
     register("uninstall") {
-        description = "Cleans all build outputs"
-
+        description = "Uninstalls all plugins from demo app"
         dependsOn(
             project(":android").tasks.named("uninstallAndroid"),
             project(":ios").tasks.named("uninstalliOS"),
         )
     }
 
-    register<Delete>("clean") {
+    register("clean") {
         description = "Cleans all build outputs"
-
         dependsOn(
             project(":addon").tasks.named("cleanOutput"),
             project(":android").tasks.named("clean"),
@@ -72,28 +77,16 @@ tasks {
             project(":ios").tasks.named("copyiOSBuildArtifacts"),
         )
 
-        val archiveName = project.extra["pluginArchiveMulti"] as String
-        val androidDir = "$pluginDir/android"
-        val iosDir = "$pluginDir/ios"
-
-        archiveFileName.set(archiveName)
+        archiveFileName.set(project.extra["pluginArchiveMulti"] as String)
         destinationDirectory.set(layout.projectDirectory.dir(archiveDir))
-
         duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 
         into("res") {
-            from(layout.projectDirectory.dir(androidDir)) {
-                includeEmptyDirs = false
-            }
-
-            from(layout.projectDirectory.dir(iosDir)) {
-                includeEmptyDirs = false
-            }
+            from(layout.projectDirectory.dir("$pluginDir/android")) { includeEmptyDirs = false }
+            from(layout.projectDirectory.dir("$pluginDir/ios")) { includeEmptyDirs = false }
         }
 
-        doLast {
-            println("Multi zip archive created at: ${archiveFile.get().asFile.path}")
-        }
+        doLast { println("Multi zip archive created at: ${archiveFile.get().asFile.path}") }
     }
 
     register("createArchives") {
@@ -149,34 +142,19 @@ tasks {
     }
 
     register<Exec>("checkKtsFormat") {
-        description = "Checks ktlint compliance of Gradle Kotlin DSL files (dry-run, no changes written)"
+        description = "Checks ktlint compliance of Gradle Kotlin DSL files (dry-run)"
         group = "formatting"
 
         workingDir = file(repositoryRootDir)
 
         doFirst {
-            val sourceFiles =
-                listOf("addon", "android", "common", "ios")
-                    .flatMap { dir ->
-                        fileTree("$repositoryRootDir/$dir") {
-                            include("*.gradle.kts")
-                        }.files
-                    }.map { it.relativeTo(file(repositoryRootDir)).path }
-                    .sorted()
-
+            val sourceFiles = ktsSourceFiles()
             if (sourceFiles.isEmpty()) {
                 throw GradleException(
-                    "checkKtsFormat: no *.gradle.kts files found under addon/, android/, or common/, " +
-                        "or ios/",
+                    "checkKtsFormat: no *.gradle.kts files found under addon/, android/, common/, or ios/",
                 )
             }
-
-            commandLine(
-                buildList {
-                    add("ktlint")
-                    addAll(sourceFiles)
-                },
-            )
+            commandLine(listOf("ktlint") + sourceFiles)
         }
     }
 
@@ -187,36 +165,18 @@ tasks {
         workingDir = file(repositoryRootDir)
 
         doFirst {
-            val sourceFiles =
-                listOf("addon", "android", "common", "ios")
-                    .flatMap { dir ->
-                        fileTree("$repositoryRootDir/$dir") {
-                            include("*.gradle.kts")
-                        }.files
-                    }.map { it.relativeTo(file(repositoryRootDir)).path }
-                    .sorted()
-
+            val sourceFiles = ktsSourceFiles()
             if (sourceFiles.isEmpty()) {
                 throw GradleException(
-                    "formatKtsSource: no *.gradle.kts files found under addon/, android/, common/, or" +
-                        " ios/",
+                    "formatKtsSource: no *.gradle.kts files found under addon/, android/, common/, or ios/",
                 )
             }
-
-            commandLine(
-                buildList {
-                    add("ktlint")
-                    add("--format")
-                    addAll(sourceFiles)
-                },
-            )
+            commandLine(listOf("ktlint", "--format") + sourceFiles)
         }
     }
 
     register("checkFormat") {
         description = "Validates format in all source code"
-
-        // Removed "spotlessCheck"
         dependsOn(
             project(":addon").tasks.named("checkGdscriptFormat"),
             project(":android").tasks.named("checkJavaFormat"),
@@ -230,8 +190,6 @@ tasks {
 
     register("applyFormat") {
         description = "Formats all source code"
-
-        // Removed "spotlessApply"
         dependsOn(
             project(":addon").tasks.named("formatGdscriptSource"),
             project(":android").tasks.named("rewriteRun"),
