@@ -22,10 +22,10 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: '3.14'
 
       - name: Install Dependencies
-        run: pip install pyyaml google-generativeai requests
+        run: pip install pyyaml google-genai requests
 
       - name: Analyze Issue and Apply Labels
         env:
@@ -38,7 +38,8 @@ jobs:
         run: |
           python - <<'EOF'
           import os, yaml, json, requests
-          import google.generativeai as genai
+          from google import genai
+          from google.genai import types
 
           # 1. Load configured labels
           try:
@@ -49,52 +50,49 @@ jobs:
               exit(1)
 
           valid_labels = {item['name']: item['description'] for item in labels_data if item and 'name' in item}
+          valid_label_names = list(valid_labels.keys())
 
           # 2. Configure Gemini
-          genai.configure(api_key=os.environ['GEMINI_API_KEY'])
-          model = genai.GenerativeModel('gemini-1.5-flash')
+          client = genai.Client(api_key=os.environ['GEMINI_API_KEY'])
 
           prompt = f"""
           You are an automated triage assistant for a Godot game engine plugin GitHub repository dealing with Android,
           iOS, and GDScript.
-          Your task is to analyze the following GitHub issue and return a JSON list of the most appropriate label names.
-          Choose ONLY from the 'Valid Labels' dictionary below. Match the exact string keys.
-
-          Valid Labels:
+          Your task is to analyze the following GitHub issue and return the most appropriate label names.
+          
+          Valid Labels and their descriptions:
           {json.dumps(valid_labels, indent=2)}
 
           Issue Title: {os.environ.get('ISSUE_TITLE', '')}
           Issue Body:
           {os.environ.get('ISSUE_BODY', '')}
-
-          Return strictly a JSON array of strings representing the label names, e.g. ["confirmed bug", "android"].
           """
 
           print("Sending prompt to Gemini...")
           try:
-              # Forcing JSON output directly from the API for better reliability
-              response = model.generate_content(
-                  prompt,
-                  generation_config={"response_mime_type": "application/json"}
+              # Enforcing Structured Outputs using a JSON schema
+              response = client.models.generate_content(
+                  model='gemini-2.5-flash',
+                  contents=prompt,
+                  config=types.GenerateContentConfig(
+                      response_mime_type="application/json",
+                      response_schema={
+                          "type": "ARRAY",
+                          "items": {
+                              "type": "STRING",
+                              "enum": valid_label_names
+                          }
+                      }
+                  )
               )
               output = response.text.strip()
           except Exception as e:
               print(f"Error calling Gemini API: {e}")
               exit(1)
 
-          # 3. Parse and filter labels
+          # 3. Parse labels (Filtering is no longer strictly necessary, but good for sanity)
           try:
               selected_labels = json.loads(output)
-              
-              # Ensure the response is a list
-              if not isinstance(selected_labels, list):
-                  if isinstance(selected_labels, dict) and 'labels' in selected_labels:
-                      selected_labels = selected_labels['labels']
-                  else:
-                      selected_labels = [selected_labels]
-                      
-              # Ensure the model didn't hallucinate labels outside your yml file
-              selected_labels = [lbl for lbl in selected_labels if lbl in valid_labels]
           except json.JSONDecodeError:
               print(f"Failed to parse Gemini output as JSON.\nRaw Output:\n{output}")
               exit(1)
