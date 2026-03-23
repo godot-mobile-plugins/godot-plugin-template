@@ -26,6 +26,10 @@ fun String.toQuotedList(): String =
  *
  * Both [checkGdscriptFormat] and [formatGdscriptSource] share identical source-file
  * discovery, gdformatrc lifecycle, and working directory — only the gdformat flag differs.
+ *
+ * If a `src/shared/` sibling directory exists alongside the src/main directory, its GDScript
+ * files are included in formatting as well, and the `.gdformatrc` config is temporarily
+ * copied there so that gdformat can locate it when traversing up from shared file paths.
  */
 fun TaskContainerScope.registerGdscriptFormatTask(
     name: String,
@@ -33,8 +37,10 @@ fun TaskContainerScope.registerGdscriptFormatTask(
     check: Boolean,
 ) {
     val addonSrcDir = file(project.extra["templateDir"] as String)
+    val sharedSrcDir = file(project.extra["sharedTemplateDir"] as String)
     val gdformatrcSource = file("$projectDir/../.github/config/.gdformatrc")
     val gdformatrcDest = addonSrcDir.resolve(".gdformatrc")
+    val sharedGdformatrcDest = sharedSrcDir.resolve(".gdformatrc")
     val excludePatterns = listOf("**/*Plugin.gd")
 
     register<Exec>(name) {
@@ -49,18 +55,33 @@ fun TaskContainerScope.registerGdscriptFormatTask(
                 into(addonSrcDir)
             }
 
+            // Copy .gdformatrc into the shared directory so gdformat can locate it when
+            // resolving config for files outside the main source tree.
+            if (sharedSrcDir.exists()) {
+                copy {
+                    from(gdformatrcSource)
+                    into(sharedSrcDir)
+                }
+            }
+
             val sourceFiles =
-                (
-                    fileTree(addonSrcDir) {
-                        include("**/*.gd")
-                        excludePatterns.forEach { exclude(it) }
-                    } +
+                buildList {
+                    addAll(
+                        fileTree(addonSrcDir) {
+                            include("**/*.gd")
+                            excludePatterns.forEach { exclude(it) }
+                        }.files,
+                    )
+                    if (sharedSrcDir.exists()) {
+                        addAll(fileTree(sharedSrcDir) { include("**/*.gd") }.files)
+                    }
+                    addAll(
                         fileTree("${rootProject.projectDir}/../demo") {
                             include("**/*.gd")
                             exclude("addons/**")
-                        }
-                ).files
-                    .map { it.relativeTo(addonSrcDir).path }
+                        }.files,
+                    )
+                }.map { it.relativeTo(addonSrcDir).path }
                     .sorted()
 
             if (sourceFiles.isEmpty()) {
@@ -78,6 +99,7 @@ fun TaskContainerScope.registerGdscriptFormatTask(
 
         doLast {
             if (gdformatrcDest.exists()) gdformatrcDest.delete()
+            if (sharedGdformatrcDest.exists()) sharedGdformatrcDest.delete()
         }
     }
 }
@@ -86,11 +108,12 @@ fun TaskContainerScope.registerGdscriptFormatTask(
 
 tasks {
     val addonSrcDir = file(project.extra["templateDir"] as String)
+    val sharedSrcDir = file(project.extra["sharedTemplateDir"] as String)
 
     register<Delete>("cleanOutput") {
         delete(
-            fileTree("${project.extra["outputDir"]}/${project.extra["pluginName"]}") {
-                include("**/*.gd", "**/*.cfg", "**/*.png")
+            fileTree(project.extra["outputDir"] as String) {
+                include("**/*.gd", "**/*.cfg", "**/*.png", "**/*.gdip")
             },
         )
     }
@@ -102,8 +125,66 @@ tasks {
         include("**/*.png")
     }
 
+    register<Copy>("generateSharedGDScript") {
+        description = "Copies shared GDScript templates to the GMPShared output directory and replaces tokens"
+        onlyIf("shared source directory contains GDScript or config files") {
+            sharedSrcDir.exists() &&
+                fileTree(sharedSrcDir) { include("**/*.gd", "**/*.cfg") }.files.isNotEmpty()
+        }
+
+        from(sharedSrcDir)
+        into("${project.extra["outputDir"]}/addons/GMPShared")
+        include("**/*.gd", "**/*.cfg")
+
+        eachFile { println("[DEBUG] Processing shared file $relativePath") }
+
+        // Identical token map to generateGDScript — shared scripts may reference any token.
+        val allTokens: Map<String, String> =
+            buildMap {
+                project.extra.properties.forEach { (k, v) -> put(k, v.toString()) }
+                put("androidDependencies", androidDependencies.joinToString(", ") { "\"$it\"" })
+                put("iosFrameworks", (project.extra["iosFrameworks"] as String).toQuotedList())
+                put("iosEmbeddedFrameworks", (project.extra["iosEmbeddedFrameworks"] as String).toQuotedList())
+                put("iosLinkerFlags", (project.extra["iosLinkerFlags"] as String).toQuotedList())
+            }
+
+        filter { line: String ->
+            allTokens.entries.fold(line) { acc, (key, value) ->
+                val token = "@$key@"
+                if (acc.contains(token)) {
+                    println("\t[DEBUG] Replacing token $token with: $value")
+                    acc.replace(token, value)
+                } else {
+                    acc
+                }
+            }
+        }
+
+        // Inputs are declared only when the directory exists so that Gradle does not
+        // warn about a missing input directory on projects that have no shared sources.
+        if (sharedSrcDir.exists()) {
+            inputs.dir(sharedSrcDir)
+        }
+        inputs.files(
+            rootProject.file("config/plugin.properties"),
+            rootProject.file("../ios/config/ios.properties"),
+        )
+        inputs.property("pluginName", project.extra["pluginName"])
+        inputs.property("pluginNodeName", project.extra["pluginNodeName"])
+        inputs.property("pluginVersion", project.extra["pluginVersion"])
+        inputs.property("pluginPackage", project.extra["pluginPackageName"])
+        inputs.property("androidDependencies", androidDependencies.joinToString())
+        inputs.property("iosPlatformVersion", project.extra["iosPlatformVersion"])
+        inputs.property("iosFrameworks", project.extra["iosFrameworks"])
+        inputs.property("iosEmbeddedFrameworks", project.extra["iosEmbeddedFrameworks"])
+        inputs.property("iosLinkerFlags", project.extra["iosLinkerFlags"])
+
+        outputs.dir("${project.extra["outputDir"]}/addons/GMPShared")
+    }
+
     register<Copy>("generateGDScript") {
         description = "Copies the GDScript templates and plugin config to the output directory and replaces tokens"
+        dependsOn("generateSharedGDScript")
         finalizedBy("copyAssets")
 
         from(addonSrcDir)
