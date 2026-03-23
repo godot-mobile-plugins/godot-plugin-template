@@ -586,6 +586,7 @@ tasks {
 
         from("$repositoryRootDir/addon/build/output") {
             include("addons/${project.extra["pluginName"]}/**")
+            include("addons/GMPShared/**")
             include("ios/plugins/*.gdip")
         }
     }

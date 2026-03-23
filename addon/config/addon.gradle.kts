@@ -19,7 +19,8 @@ applyGradleScripts(project, buildProperties)
 extra.apply {
     forwardExtraProperties(project, buildProperties)
 
-    set("templateDir", "$projectDir/src")
+    set("templateDir", "$projectDir/src/main")
+    set("sharedTemplateDir", "$projectDir/src/shared")
     set("buildDir",    "$projectDir/build")
     set("outputDir",   "${get("buildDir")}/output")
 

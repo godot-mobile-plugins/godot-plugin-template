@@ -130,6 +130,7 @@ fun TaskContainerScope.registerAndroidBuildVariant(variant: String) {
 
         from("$repositoryRootDir/addon/build/output") {
             include("addons/${project.extra["pluginName"]}/**")
+            include("addons/GMPShared/**")
         }
 
         from("$projectDir/build/outputs/aar") {

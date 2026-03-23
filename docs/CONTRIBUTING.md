@@ -1,3 +1,6 @@
+![Android Build](../../../actions/workflows/android-build.yml/badge.svg)
+![iOS Build](../../../actions/workflows/ios-build.yml/badge.svg)
+
 # <img src="https://raw.githubusercontent.com/godot-mobile-plugins/godot-plugin-template/main/addon/src/icon.png" width="28"> Contributing
 
 Thank you for your interest in contributing to the Godot PluginTemplate Plugin! This guide will help you understand the project structure, build processes, and development workflows.
@@ -34,7 +37,9 @@ Thank you for your interest in contributing to the Godot PluginTemplate Plugin! 
 │   │   ├── addon-build.properties         # Gradle build customization for addon module
 │   │   └── addon.gradle.kts               # Gradle configuration for addon module
 │   │
-│   └── src/                               # GDScript templates
+│   └── src/
+│       ├── main                           # Main GDScript templates
+│       └── shared                         # GDScript templates in common with other plugins, if any
 │
 ├── android/                             # Android platform module
 │   ├── android-build.gradle.kts           # Android build configuration
