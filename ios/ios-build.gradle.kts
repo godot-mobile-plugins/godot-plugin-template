@@ -6,6 +6,10 @@ import org.gradle.process.ExecOperations
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
+plugins {
+    alias(libs.plugins.undercouch.download)
+}
+
 apply(from = "$projectDir/config/ios.gradle.kts")
 
 interface Injected {
@@ -170,32 +174,49 @@ tasks {
 
     val godotDir: String by gradle.extra
 
-    register<Exec>("removeGodotDirectory") {
+    register<Delete>("removeGodotDirectory") {
         description = "Removes the directory where Godot sources were downloaded"
 
-        val buildScript = file("$repositoryRootDir/script/build_ios.sh")
-        inputs.file(buildScript)
+        val godotDirectory = file(godotDir)
 
-        commandLine("bash", buildScript.absolutePath, "-g")
-        environment("INVOKED_BY_GRADLE", "true")
+        doFirst {
+            if (godotDirectory.exists()) {
+                logger.lifecycle("Removing '{}' directory...", godotDirectory.absolutePath)
+            } else {
+                logger.warn("Warning: '{}' directory not found!", godotDirectory.absolutePath)
+            }
+        }
+
+        delete(godotDirectory)
     }
 
-    register<Exec>("downloadGodot") {
+    register<de.undercouch.gradle.tasks.download.Download>("downloadGodot") {
         description = "Downloads Godot sources into the configured directory"
 
-        val buildScript = file("$repositoryRootDir/script/build_ios.sh")
         val godotVersion: String by project.extra
         val godotReleaseType: String by project.extra
         val godotDirectory = file(godotDir)
         val versionFile = godotDirectory.resolve("GODOT_VERSION")
+        val filename = "godot-$godotVersion-$godotReleaseType.tar.xz"
+        val releaseUrl =
+            "https://github.com/godotengine/godot-builds/releases/download/" +
+                "$godotVersion-$godotReleaseType/$filename"
+        val archiveFile = file("$godotDir.tar.xz")
 
-        inputs.file(buildScript)
         inputs.property("godotVersion", godotVersion)
         inputs.property("godotReleaseType", godotReleaseType)
         inputs.property("godotDir", godotDir)
 
-        outputs.upToDateWhen {
-            versionFile.exists() && versionFile.readText().trim() == godotVersion
+        onlyIf {
+            if (versionFile.exists() && versionFile.readText().trim() == godotVersion) {
+                logger.info(
+                    "Godot {} already present in {}. Skipping download.",
+                    godotVersion,
+                    godotDirectory.absolutePath,
+                )
+                return@onlyIf false
+            }
+            true
         }
 
         doFirst {
@@ -207,20 +228,51 @@ tasks {
                     )
                 }
                 val existingVersion = versionFile.readText().trim()
-                if (existingVersion != godotVersion) {
-                    throw GradleException(
-                        "ERROR: Godot directory '${godotDirectory.absolutePath}' already exists but " +
-                            "contains version '$existingVersion', which does not match the " +
-                            "configured version '$godotVersion'. " +
-                            "Remove the directory (or run 'removeGodotDirectory') before downloading again, " +
-                            "or update 'godotVersion' in config/godot.properties.",
-                    )
-                }
+                throw GradleException(
+                    "ERROR: Godot directory '${godotDirectory.absolutePath}' already exists but " +
+                        "contains version '$existingVersion', which does not match the " +
+                        "configured version '$godotVersion'. " +
+                        "Remove the directory (or run 'removeGodotDirectory') before downloading again, " +
+                        "or update 'godotVersion' in config/godot.properties.",
+                )
             }
         }
 
-        commandLine("bash", buildScript.absolutePath, "-G")
-        environment("INVOKED_BY_GRADLE", "true")
+        src(releaseUrl)
+        dest(archiveFile)
+        overwrite(false)
+
+        doLast {
+            val tempExtractDir = temporaryDir.resolve("godot_extract")
+            tempExtractDir.deleteRecursively()
+            tempExtractDir.mkdirs()
+
+            project.exec {
+                commandLine(
+                    "tar",
+                    "-xaf",
+                    archiveFile.absolutePath,
+                    "-C",
+                    tempExtractDir.absolutePath,
+                    "--strip-components=1",
+                )
+            }
+
+            godotDirectory.mkdirs()
+            tempExtractDir.listFiles()?.forEach { entry ->
+                entry.renameTo(godotDirectory.resolve(entry.name))
+            }
+
+            archiveFile.delete()
+            tempExtractDir.deleteRecursively()
+
+            versionFile.writeText(godotVersion)
+
+            println(
+                "Godot $godotVersion-$godotReleaseType successfully downloaded " +
+                    "and extracted to ${godotDirectory.absolutePath}",
+            )
+        }
     }
 
     register<Exec>("generateGodotHeaders") {
