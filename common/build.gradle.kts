@@ -175,6 +175,67 @@ tasks {
         }
     }
 
+    register<Exec>("checkBashScriptFormat") {
+        description = "Checks ShellCheck compliance of all shell scripts under script/"
+        group = "formatting"
+
+        workingDir = file(repositoryRootDir)
+
+        doFirst {
+            val shellcheckAvailable =
+                project
+                    .exec {
+                        commandLine("which", "shellcheck")
+                        isIgnoreExitValue = true
+                    }.exitValue == 0
+            if (!shellcheckAvailable) {
+                throw GradleException(
+                    "shellcheck is not installed or not on PATH.\n" +
+                        "See https://github.com/koalaman/shellcheck for installation instructions.",
+                )
+            }
+
+            val sourceFiles =
+                fileTree("$repositoryRootDir/script") { include("**/*.sh") }
+                    .files
+                    .map { it.absolutePath }
+                    .sorted()
+            if (sourceFiles.isEmpty()) {
+                throw GradleException("checkBashScriptFormat: no *.sh files found under script/")
+            }
+
+            commandLine(listOf("shellcheck") + sourceFiles)
+        }
+    }
+
+    register<Exec>("applyBashScriptFormat") {
+        description = "Applies ShellCheck suggested fixes to shell scripts under script/ via git apply"
+        group = "formatting"
+
+        workingDir = file(repositoryRootDir)
+
+        doFirst {
+            val shellcheckAvailable =
+                project
+                    .exec {
+                        commandLine("which", "shellcheck")
+                        isIgnoreExitValue = true
+                    }.exitValue == 0
+            if (!shellcheckAvailable) {
+                throw GradleException(
+                    "shellcheck is not installed or not on PATH.\n" +
+                        "See https://github.com/koalaman/shellcheck for installation instructions.",
+                )
+            }
+
+            commandLine(
+                "sh",
+                "-c",
+                "find script -name '*.sh' -print0 | xargs -0 shellcheck --format=diff | git apply --allow-empty",
+            )
+        }
+    }
+
     register("checkFormat") {
         description = "Validates format in all source code"
         dependsOn(
@@ -184,6 +245,7 @@ tasks {
             project(":ios").tasks.named("checkObjCFormat"),
             project(":ios").tasks.named("checkSwiftFormat"),
             "checkKtsFormat",
+            "checkBashScriptFormat",
             "checkEditorConfig",
         )
     }
@@ -197,6 +259,7 @@ tasks {
             project(":ios").tasks.named("formatObjCSource"),
             project(":ios").tasks.named("formatSwiftSource"),
             "formatKtsSource",
+            "applyBashScriptFormat",
         )
     }
 }
