@@ -159,17 +159,6 @@ function display_error()
 }
 
 
-function remove_godot_directory()
-{
-	if [[ -d "$GODOT_DIR" ]]
-	then
-		display_status "Removing '$GODOT_DIR' directory..."
-		rm -rf "$GODOT_DIR"
-	else
-		display_warning "'$GODOT_DIR' directory not found!"
-	fi
-}
-
 
 function resolve_spm_dependencies()
 {
@@ -181,77 +170,6 @@ function resolve_spm_dependencies()
 		SWIFT_VERSION="$SWIFT_VERSION" || true
 }
 
-
-function download_godot()
-{
-	if [[ -d "$GODOT_DIR" ]]; then
-		if [[ -f "$GODOT_DIR/GODOT_VERSION" ]]; then
-			local existing_version
-			existing_version=$(tr -d '[:space:]' < "$GODOT_DIR/GODOT_VERSION")
-			if [[ "$existing_version" == "$GODOT_VERSION" ]]; then
-				display_progress "Godot $GODOT_VERSION already present in $GODOT_DIR. Skipping download."
-				return 0
-			else
-				display_error "$GODOT_DIR exists with version '$existing_version', expected '$GODOT_VERSION'. \
-Remove it first or run with -g."
-				exit 1
-			fi
-		else
-			display_error "$GODOT_DIR directory already exists but contains no GODOT_VERSION file. \
-Remove it first or run with -g."
-			exit 1
-		fi
-	fi
-
-	local filename="godot-${GODOT_VERSION}-${GODOT_RELEASE_TYPE}.tar.xz"
-	local release_url="https://github.com/godotengine/godot-builds/releases/download/\
-${GODOT_VERSION}-${GODOT_RELEASE_TYPE}/${filename}"
-	local archive_path="${GODOT_DIR}.tar.xz"
-	local temp_extract_dir
-	temp_extract_dir=$(mktemp -d)
-
-	display_status "Downloading Godot ${GODOT_VERSION}-${GODOT_RELEASE_TYPE} (official pre-built binary)..."
-	echo_blue "URL: $release_url"
-
-	# Check required tools
-	if ! command -v curl >/dev/null 2>&1; then
-		display_error "curl is required to download the archive."
-		exit 1
-	fi
-	if ! command -v tar >/dev/null 2>&1; then
-		display_error "tar is required to extract the archive."
-		exit 1
-	fi
-
-	# Download the .tar.xz archive
-	if ! curl -L --fail --progress-bar -o "$archive_path" "$release_url"; then
-		rm -f "$archive_path"
-		display_error "Failed to download Godot binary from:\n$release_url\nPlease verify that GODOT_VERSION \
-(${GODOT_VERSION}) and GODOT_RELEASE_TYPE (${GODOT_RELEASE_TYPE}) are correct."
-		exit 1
-	fi
-
-	display_status "Extracting $filename ..."
-	if ! tar -xaf "$archive_path" -C "$temp_extract_dir" --strip-components=1; then
-		rm -f "$archive_path"
-		rm -rf "$temp_extract_dir"
-		display_error "Failed to extract the .tar.xz archive."
-		exit 1
-	fi
-
-	# Move extracted contents to final destination
-	mkdir -p "$GODOT_DIR"
-	mv "$temp_extract_dir"/* "$GODOT_DIR"/
-
-	# Cleanup
-	rm -f "$archive_path"
-	rm -rf "$temp_extract_dir"
-
-	# Write version marker for the rest of the build system
-	echo "$GODOT_VERSION" > "$GODOT_DIR/GODOT_VERSION"
-
-	display_progress "Godot ${GODOT_VERSION}-${GODOT_RELEASE_TYPE} successfully downloaded and extracted to $GODOT_DIR"
-}
 
 
 function generate_godot_headers()
@@ -580,20 +498,12 @@ fi
 
 if [[ "$do_remove_godot" == true ]]
 then
-	if [[ "${INVOKED_BY_GRADLE:-}" == "true" ]]; then
-		remove_godot_directory
-	else
-		"$SCRIPT_DIR"/run_gradle_task.sh "removeGodotDirectory"
-	fi
+	"$SCRIPT_DIR"/run_gradle_task.sh "removeGodotDirectory"
 fi
 
 if [[ "$do_download_godot" == true ]]
 then
-	if [[ "${INVOKED_BY_GRADLE:-}" == "true" ]]; then
-		download_godot
-	else
-		"$SCRIPT_DIR"/run_gradle_task.sh "downloadGodot"
-	fi
+	"$SCRIPT_DIR"/run_gradle_task.sh "downloadGodot"
 fi
 
 if [[ "$do_generate_headers" == true ]]
