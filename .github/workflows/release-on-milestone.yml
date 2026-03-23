@@ -78,16 +78,26 @@ jobs:
       # ── Read plugin config ───────────────────────────────────────────────────
       - name: Read plugin config
         id: plugin_config
-        run: |
-          PLUGIN_NODE_NAME=$(grep '^pluginNodeName=' common/config/plugin.properties \
-            | cut -d'=' -f2 | tr -d '[:space:]')
-          echo "plugin_node_name=${PLUGIN_NODE_NAME}" >> "$GITHUB_OUTPUT"
-          echo "Plugin node name: ${PLUGIN_NODE_NAME}"
+        uses: ActionCommons/read-properties-action@v1
+        with:
+          files: |
+            common/config/plugin.properties
+            common/config/godot.properties
+          properties: |
+            pluginNodeName
+            pluginVersion
+            godotVersion
 
-          GODOT_VERSION=$(grep '^godotVersion=' common/config/godot.properties \
-            | cut -d'=' -f2 | tr -d '[:space:]')
-          echo "godot_version=${GODOT_VERSION}" >> "$GITHUB_OUTPUT"
-          echo "Godot version: ${GODOT_VERSION}"
+      # ── Validate plugin version ──────────────────────────────────────────────
+      - name: Validate plugin version matches milestone
+        run: |
+          PLUGIN_VERSION="${{ steps.plugin_config.outputs['plugin.pluginVersion'] }}"
+          MILESTONE="${{ github.event.milestone.title }}"
+          if [ "${PLUGIN_VERSION}" != "${MILESTONE}" ]; then
+            echo "::error::pluginVersion '${PLUGIN_VERSION}' in plugin.properties does not match milestone '${MILESTONE}'"
+            exit 1
+          fi
+          echo "Version check passed: pluginVersion '${PLUGIN_VERSION}' matches milestone '${MILESTONE}'"
 
       # ── Draft release ────────────────────────────────────────────────────────
       - name: Create draft release
@@ -102,7 +112,7 @@ jobs:
 
           gh release create "$TAG_NAME" \
             --draft \
-            --title "${{ steps.plugin_config.outputs.plugin_node_name }} Plugin $TAG_NAME" \
+            --title "${{ steps.plugin_config.outputs['plugin.pluginNodeName'] }} Plugin $TAG_NAME" \
             --notes "## New in this release:
 
           ${ISSUE_LINES}
@@ -111,7 +121,7 @@ jobs:
 
           _This version..._
 
-          -  _has been tested against and supports Godot version ${{ steps.plugin_config.outputs.godot_version }}._" \
+          -  _has been tested against and supports Godot version ${{ steps.plugin_config.outputs['godot.godotVersion'] }}._" \
             "${{ steps.archives.outputs.android_zip }}" \
             "${{ steps.archives.outputs.ios_zip }}" \
             "${{ steps.archives.outputs.multi_zip }}"
