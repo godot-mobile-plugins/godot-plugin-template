@@ -249,8 +249,11 @@ tasks {
 
             project.exec {
                 commandLine(
-                    "tar", "-xaf", archiveFile.absolutePath,
-                    "-C", tempExtractDir.absolutePath,
+                    "tar",
+                    "-xaf",
+                    archiveFile.absolutePath,
+                    "-C",
+                    tempExtractDir.absolutePath,
                     "--strip-components=1",
                 )
             }

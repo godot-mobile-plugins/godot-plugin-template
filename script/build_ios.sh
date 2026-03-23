@@ -33,7 +33,6 @@ PLUGIN_NODE_NAME=$("$SCRIPT_DIR"/get_config_property.sh -f "$PLUGIN_CONFIG_FILE"
 PLUGIN_NAME="${PLUGIN_NODE_NAME}Plugin"
 PLUGIN_MODULE_NAME=$("$SCRIPT_DIR"/get_config_property.sh -f "$PLUGIN_CONFIG_FILE" pluginModuleName)
 GODOT_VERSION=$("$SCRIPT_DIR"/get_config_property.sh -f "$GODOT_CONFIG_FILE" godotVersion)
-GODOT_RELEASE_TYPE=$("$SCRIPT_DIR"/get_config_property.sh -f "$GODOT_CONFIG_FILE" godotReleaseType)
 
 SWIFT_VERSION=$("$SCRIPT_DIR"/get_config_property.sh -f "$IOS_CONFIG_FILE" swift_version)
 
