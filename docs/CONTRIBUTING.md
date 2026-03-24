@@ -1,13 +1,13 @@
-![Android Build](../../../actions/workflows/android-build.yml/badge.svg)
-![iOS Build](../../../actions/workflows/ios-build.yml/badge.svg)
+![Android Build](https://github.com/godot-mobile-plugins/godot-plugin-template/actions/workflows/android-build.yml/badge.svg)
+![iOS Build](https://github.com/godot-mobile-plugins/godot-plugin-template/actions/workflows/ios-build.yml/badge.svg)
 
-# <img src="https://raw.githubusercontent.com/godot-mobile-plugins/godot-plugin-template/main/addon/src/icon.png" width="28"> Contributing
+# <img src="https://raw.githubusercontent.com/godot-mobile-plugins/godot-plugin-template/main/addon/src/main/icon.png" width="28"> Contributing
 
 Thank you for your interest in contributing to the Godot PluginTemplate Plugin! This guide will help you understand the project structure, build processes, and development workflows.
 
 ---
 
-## <img src="https://raw.githubusercontent.com/godot-mobile-plugins/godot-plugin-template/main/addon/src/icon.png" width="24"> Table of Contents
+## <img src="https://raw.githubusercontent.com/godot-mobile-plugins/godot-plugin-template/main/addon/src/main/icon.png" width="24"> Table of Contents
 
 - [Project Structure](#-project-structure)
 - [Prerequisites](#-prerequisites)
@@ -22,7 +22,7 @@ Thank you for your interest in contributing to the Godot PluginTemplate Plugin! 
 
 ---
 
-## <img src="https://raw.githubusercontent.com/godot-mobile-plugins/godot-plugin-template/main/addon/src/icon.png" width="24"> Project structure
+## <img src="https://raw.githubusercontent.com/godot-mobile-plugins/godot-plugin-template/main/addon/src/main/icon.png" width="24"> Project structure
 
 ```text
 .
@@ -116,7 +116,7 @@ Thank you for your interest in contributing to the Godot PluginTemplate Plugin! 
 
 ---
 
-## <img src="https://raw.githubusercontent.com/godot-mobile-plugins/godot-plugin-template/main/addon/src/icon.png" width="24"> Prerequisites
+## <img src="https://raw.githubusercontent.com/godot-mobile-plugins/godot-plugin-template/main/addon/src/main/icon.png" width="24"> Prerequisites
 
 ### General Requirements
 - **Git** - For version control
@@ -179,7 +179,7 @@ scons --version
 
 ---
 
-## <img src="https://raw.githubusercontent.com/godot-mobile-plugins/godot-plugin-template/main/addon/src/icon.png" width="24"> Configuration
+## <img src="https://raw.githubusercontent.com/godot-mobile-plugins/godot-plugin-template/main/addon/src/main/icon.png" width="24"> Configuration
 
 The build files are static and shared across all GMP plugins. Any plugin-specific build customization is handled through the following configuration files:
 
@@ -214,7 +214,7 @@ The build files are static and shared across all GMP plugins. Any plugin-specifi
         └── spm_dependencies.json          # SPM dependency configuration
 ```
 
-### <img src="https://raw.githubusercontent.com/godot-mobile-plugins/godot-plugin-template/main/addon/src/icon.png" width="20"> Common Configuration
+### <img src="https://raw.githubusercontent.com/godot-mobile-plugins/godot-plugin-template/main/addon/src/main/icon.png" width="20"> Common Configuration
 
 The `common/config/plugin.properties` file contains core plugin settings:
 
@@ -251,7 +251,7 @@ gradle.another=another.gradle.kts
 - `godotVersion` - Must match your target Godot version
 - `godotReleaseType` - Determines which Godot binary to download
 
-### <img src="https://raw.githubusercontent.com/godot-mobile-plugins/godot-plugin-template/main/addon/src/icon.png" width="20"> Build Customization
+### <img src="https://raw.githubusercontent.com/godot-mobile-plugins/godot-plugin-template/main/addon/src/main/icon.png" width="20"> Build Customization
 
 Plugin-specific build customizations can be configured in the following files:
 
@@ -295,7 +295,7 @@ Plugin-specific build customizations can be configured in the following files:
 #gradle.extraGradle=extra.gradle.kts
 ```
 
-### <img src="https://raw.githubusercontent.com/godot-mobile-plugins/godot-plugin-template/main/addon/src/icon.png" width="20"> Local Configuration
+### <img src="https://raw.githubusercontent.com/godot-mobile-plugins/godot-plugin-template/main/addon/src/main/icon.png" width="20"> Local Configuration
 
 Create `common/local.properties` to configure machine-specific paths. This file is gitignored and must be created locally.
 
@@ -336,7 +336,7 @@ When `lib.dir` is not set, the build uses the `android/libs/` directory. The pat
 
 **Note:** The specified directory must contain a valid `GODOT_VERSION` file matching the `godotVersion` property in `common/config/godot.properties`. If you use the `-G` option to download Godot, it will be downloaded to whichever directory is configured and the `GODOT_VERSION` file will be created automatically.
 
-### <img src="https://raw.githubusercontent.com/godot-mobile-plugins/godot-plugin-template/main/addon/src/icon.png" width="20"> iOS Configuration
+### <img src="https://raw.githubusercontent.com/godot-mobile-plugins/godot-plugin-template/main/addon/src/main/icon.png" width="20"> iOS Configuration
 
 The `ios/config/ios.properties` file contains iOS-specific settings:
 
@@ -386,7 +386,7 @@ If the plugin has no SPM dependencies:
 
 ---
 
-## <img src="https://raw.githubusercontent.com/godot-mobile-plugins/godot-plugin-template/main/addon/src/icon.png" width="24"> Development Workflow
+## <img src="https://raw.githubusercontent.com/godot-mobile-plugins/godot-plugin-template/main/addon/src/main/icon.png" width="24"> Development Workflow
 
 ### Initial Setup
 
@@ -438,7 +438,7 @@ If the plugin has no SPM dependencies:
 
 ---
 
-## <img src="https://raw.githubusercontent.com/godot-mobile-plugins/godot-plugin-template/main/addon/src/icon.png" width="24"> Building
+## <img src="https://raw.githubusercontent.com/godot-mobile-plugins/godot-plugin-template/main/addon/src/main/icon.png" width="24"> Building
 
 There are three main build scripts located in the `script` directory.
 
@@ -446,7 +446,7 @@ There are three main build scripts located in the `script` directory.
 - `build_android.sh` - build script for Android platform
 - `build_ios.sh` - build script for iOS platform
 
-### <img src="https://raw.githubusercontent.com/godot-mobile-plugins/godot-plugin-template/main/addon/src/icon.png" width="20"> Cross-Platform Builds
+### <img src="https://raw.githubusercontent.com/godot-mobile-plugins/godot-plugin-template/main/addon/src/main/icon.png" width="20"> Cross-Platform Builds
 
 Cross-platform builds with the `build.sh` script.
 
@@ -475,7 +475,7 @@ Cross-platform builds with the `build.sh` script.
 
 ---
 
-### <img src="https://raw.githubusercontent.com/godot-mobile-plugins/godot-plugin-template/main/addon/src/icon.png" width="20"> Android Builds
+### <img src="https://raw.githubusercontent.com/godot-mobile-plugins/godot-plugin-template/main/addon/src/main/icon.png" width="20"> Android Builds
 
 #### Quick Reference
 
@@ -516,7 +516,7 @@ If using Android Studio, make sure to open the root Gradle project from the `com
 
 ---
 
-### <img src="https://raw.githubusercontent.com/godot-mobile-plugins/godot-plugin-template/main/addon/src/icon.png" width="20"> iOS Builds
+### <img src="https://raw.githubusercontent.com/godot-mobile-plugins/godot-plugin-template/main/addon/src/main/icon.png" width="20"> iOS Builds
 
 #### Quick Reference
 
@@ -592,7 +592,7 @@ The iOS build process involves several steps:
 
 ---
 
-## <img src="https://raw.githubusercontent.com/godot-mobile-plugins/godot-plugin-template/main/addon/src/icon.png" width="24"> Testing
+## <img src="https://raw.githubusercontent.com/godot-mobile-plugins/godot-plugin-template/main/addon/src/main/icon.png" width="24"> Testing
 
 ### Testing in Demo App
 
@@ -645,7 +645,7 @@ Consider adding:
 
 ---
 
-## <img src="https://raw.githubusercontent.com/godot-mobile-plugins/godot-plugin-template/main/addon/src/icon.png" width="24"> Creating Releases
+## <img src="https://raw.githubusercontent.com/godot-mobile-plugins/godot-plugin-template/main/addon/src/main/icon.png" width="24"> Creating Releases
 
 ### Full Multi-Platform Release
 
@@ -690,9 +690,9 @@ This creates:
 
 ---
 
-## <img src="https://raw.githubusercontent.com/godot-mobile-plugins/godot-plugin-template/main/addon/src/icon.png" width="24"> Installation
+## <img src="https://raw.githubusercontent.com/godot-mobile-plugins/godot-plugin-template/main/addon/src/main/icon.png" width="24"> Installation
 
-### <img src="https://raw.githubusercontent.com/godot-mobile-plugins/godot-plugin-template/main/addon/src/icon.png" width="20"> Installing to Demo App
+### <img src="https://raw.githubusercontent.com/godot-mobile-plugins/godot-plugin-template/main/addon/src/main/icon.png" width="20"> Installing to Demo App
 
 ```bash
 # Install both platforms
@@ -702,7 +702,7 @@ This creates:
 ./script/build.sh -d
 ```
 
-### <img src="https://raw.githubusercontent.com/godot-mobile-plugins/godot-plugin-template/main/addon/src/icon.png" width="20"> Installing to Your Project
+### <img src="https://raw.githubusercontent.com/godot-mobile-plugins/godot-plugin-template/main/addon/src/main/icon.png" width="20"> Installing to Your Project
 
 ```bash
 # Using install script
@@ -714,7 +714,7 @@ This creates:
 
 ---
 
-## <img src="https://raw.githubusercontent.com/godot-mobile-plugins/godot-plugin-template/main/addon/src/icon.png" width="24"> Troubleshooting
+## <img src="https://raw.githubusercontent.com/godot-mobile-plugins/godot-plugin-template/main/addon/src/main/icon.png" width="24"> Troubleshooting
 
 ### Common Build Issues
 
@@ -786,7 +786,7 @@ rm -rf ios/build/DerivedData
 
 ---
 
-## <img src="https://raw.githubusercontent.com/godot-mobile-plugins/godot-plugin-template/main/addon/src/icon.png" width="24"> Contributing Guidelines
+## <img src="https://raw.githubusercontent.com/godot-mobile-plugins/godot-plugin-template/main/addon/src/main/icon.png" width="24"> Contributing Guidelines
 
 ### Code Style
 
@@ -844,7 +844,7 @@ Include:
 
 ---
 
-## <img src="https://raw.githubusercontent.com/godot-mobile-plugins/godot-plugin-template/main/addon/src/icon.png" width="24"> Additional Resources
+## <img src="https://raw.githubusercontent.com/godot-mobile-plugins/godot-plugin-template/main/addon/src/main/icon.png" width="24"> Additional Resources
 
 - [Godot Engine Documentation](https://docs.godotengine.org/)
 - [Android Developer Documentation](https://developer.android.com/)
