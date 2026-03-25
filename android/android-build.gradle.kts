@@ -131,7 +131,8 @@ fun TaskContainerScope.registerAndroidBuildVariant(variant: String) {
         inputs.files(project(":addon").tasks.named("generateGDScript").map { it.outputs.files })
         inputs.files(project(":addon").tasks.named("copyAssets").map { it.outputs.files })
         inputs.files(
-            project(":android").tasks
+            project(":android")
+                .tasks
                 .named("assemble${variant.replaceFirstChar { it.uppercase() }}")
                 .map { it.outputs.files },
         )
