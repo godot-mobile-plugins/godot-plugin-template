@@ -119,11 +119,21 @@ fun TaskContainerScope.registerAndroidBuildVariant(variant: String) {
 
     register<Copy>(taskName) {
         description = "Copies the generated GDScript and $variant AAR binary to the plugin directory"
+        group = "build"
 
         dependsOn(
             project(":addon").tasks.named("generateGDScript"),
             project(":addon").tasks.named("copyAssets"),
             project(":android").tasks.named("assemble${variant.replaceFirstChar { it.uppercase() }}"),
+        )
+
+        // Explicit input wiring allows Gradle to skip this task when upstream outputs are unchanged
+        inputs.files(project(":addon").tasks.named("generateGDScript").map { it.outputs.files })
+        inputs.files(project(":addon").tasks.named("copyAssets").map { it.outputs.files })
+        inputs.files(
+            project(":android").tasks
+                .named("assemble${variant.replaceFirstChar { it.uppercase() }}")
+                .map { it.outputs.files },
         )
 
         into("$pluginDir/android")
@@ -157,12 +167,14 @@ tasks {
 
     register("buildAndroid") {
         description = "Builds both debug and release"
+        group = "build"
         dependsOn("buildAndroidDebug", "buildAndroidRelease")
     }
 
     register<Zip>("createAndroidArchive") {
         dependsOn("buildAndroidDebug", "buildAndroidRelease")
 
+        group = "archive"
         archiveFileName.set(project.extra["pluginArchiveAndroid"] as String)
         destinationDirectory.set(layout.projectDirectory.dir(archiveDir))
 
@@ -175,12 +187,16 @@ tasks {
 
     register<Copy>("installToDemoAndroid") {
         description = "Copies the assembled Android plugin to demo application's addons directory"
+        group = "install"
 
         dependsOn(
             project(":addon").tasks.named("generateGDScript"),
             project(":addon").tasks.named("copyAssets"),
             "buildAndroidDebug",
         )
+
+        // Wire upstream output so Gradle can skip this copy when nothing has changed
+        inputs.files(project.tasks.named("buildAndroidDebug").map { it.outputs.files })
 
         destinationDir = file(demoDir)
         duplicatesStrategy = DuplicatesStrategy.WARN
@@ -190,8 +206,11 @@ tasks {
         outputs.dir(destinationDir)
     }
 
+    // Note: uninstallAndroid is deliberately NOT wired into the root :clean task.
+    // A developer clean should not silently wipe the demo application's plugin files.
     register<Delete>("uninstallAndroid") {
         description = "Removes plugin files from demo app (preserves .uid and .import files)"
+        group = "uninstall"
         delete(
             fileTree("$demoDir/addons/${project.extra["pluginName"]}") {
                 include("**/*")
@@ -202,6 +221,7 @@ tasks {
     }
 
     register<NpmTask>("installPrettier") {
+        group = "setup"
         args.set(listOf("install", "--save-dev", "prettier", "@prettier/plugin-xml"))
     }
 
@@ -236,6 +256,7 @@ tasks {
     }
 
     register<de.undercouch.gradle.tasks.download.Download>("downloadCheckstyleJar") {
+        group = "setup"
         val checkstyleVersion = libs.versions.checkstyle.get()
         val destFile = file("${gradle.extra["libDir"]}/checkstyle-$checkstyleVersion-all.jar")
 
@@ -252,6 +273,7 @@ tasks {
 
     register<JavaExec>("checkJavaFormat") {
         description = "Runs Checkstyle on all Java sources under \$projectDir/src"
+        group = "verification"
 
         dependsOn("downloadCheckstyleJar")
 
@@ -266,9 +288,14 @@ tasks {
                 rootProject.file("../.github/config/checkstyle.xml").absolutePath,
                 file("$projectDir/src").absolutePath,
             )
+
+        inputs.dir("$projectDir/src")
+        inputs.file(rootProject.file("../.github/config/checkstyle.xml"))
+        outputs.upToDateWhen { false }
     }
 
     register<de.undercouch.gradle.tasks.download.Download>("downloadGodotAar") {
+        group = "setup"
         val destFile = file("${gradle.extra["libDir"]}/${project.extra["godotAarFile"]}")
 
         inputs.property("godotAarUrl", project.extra["godotAarUrl"] as String)

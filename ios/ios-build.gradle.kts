@@ -42,6 +42,7 @@ fun TaskContainerScope.registerIosBuildTask(
 
     register<Exec>(name) {
         this.description = description
+        group = "build"
 
         dependsOn(
             "validateSwiftVersion",
@@ -88,7 +89,11 @@ fun TaskContainerScope.registerObjCFormatTask(
 
     register<Exec>(name) {
         this.description = description
-        group = "formatting"
+        if (dryRun) {
+            this.group = "verification"
+        } else {
+            this.group = "formatting"
+        }
 
         workingDir = iosSrcDir
 
@@ -136,7 +141,11 @@ fun TaskContainerScope.registerSwiftFormatTask(
 
     register<Exec>(name) {
         this.description = description
-        group = "formatting"
+        if (fix) {
+            this.group = "formatting"
+        } else {
+            this.group = "verification"
+        }
 
         workingDir = iosSrcDir
 
@@ -174,8 +183,13 @@ tasks {
 
     val godotDir: String by gradle.extra
 
+    // Note: removeGodotDirectory is deliberately isolated from :clean. The Godot source
+    // download is expensive (large archive, slow extraction), and wiping it on every clean
+    // would force an unnecessary re-download on the next build. Run this task explicitly
+    // only when you need to switch Godot versions or recover from a corrupt download.
     register<Delete>("removeGodotDirectory") {
         description = "Removes the directory where Godot sources were downloaded"
+        group = "setup"
 
         val godotDirectory = file(godotDir)
 
@@ -192,6 +206,7 @@ tasks {
 
     register<de.undercouch.gradle.tasks.download.Download>("downloadGodot") {
         description = "Downloads Godot sources into the configured directory"
+        group = "setup"
 
         val godotVersion: String by project.extra
         val godotReleaseType: String by project.extra
@@ -277,6 +292,7 @@ tasks {
 
     register<Exec>("generateGodotHeaders") {
         description = "Runs Godot build and terminates after header files have been generated"
+        group = "setup"
 
         dependsOn("downloadGodot")
 
@@ -302,6 +318,11 @@ tasks {
 
     register("resetSPMDependencies") {
         description = "Removes SPM dependencies from the Xcode project and cleans up all SPM artifacts"
+        group = "setup"
+        // No outputs are declared intentionally: this is a destructive cleanup operation
+        // that modifies the Xcode project and removes SPM cache directories. Declaring
+        // outputs would cause Gradle to treat it as an incremental task, which is
+        // inappropriate for a reset — it should always execute when invoked explicitly.
 
         inputs.files(fileTree("$projectDir/config"))
 
@@ -367,9 +388,11 @@ tasks {
 
     register("updateSPMDependencies") {
         description = "Adds SPM dependencies from $projectDir/config/spm_dependencies.json into the Xcode project"
+        group = "setup"
 
         inputs.files(fileTree("$projectDir/config"))
-        outputs.dir("$projectDir/plugin.xcodeproj")
+        // The single file that spm_manager.rb actually modifies
+        outputs.file("$projectDir/plugin.xcodeproj/project.pbxproj")
 
         finalizedBy("resolveSPMDependencies")
 
@@ -437,6 +460,7 @@ tasks {
 
     register<Exec>("resolveSPMDependencies") {
         description = "Resolves SPM package dependencies via xcodebuild (invoked by build_ios.sh -r)"
+        group = "setup"
 
         mustRunAfter("updateSPMDependencies")
 
@@ -456,6 +480,10 @@ tasks {
 
     register("validateSwiftVersion") {
         description = "Fails the build with a clear error if swift_version is missing from ios.properties"
+        group = "verification"
+        // Always re-run: this is a fast guard step whose job is to catch misconfiguration
+        // before a slow Xcode build starts. Up-to-date skipping would defeat its purpose.
+        outputs.upToDateWhen { false }
 
         val iosConfigFile = file("$projectDir/config/ios.properties")
         inputs.file(iosConfigFile)
@@ -480,11 +508,13 @@ tasks {
 
     register("buildiOS") {
         description = "Builds both debug and release"
+        group = "build"
         dependsOn("buildiOSDebug", "buildiOSRelease")
     }
 
     register<Sync>("copyiOSBuildArtifacts") {
         description = "Copies iOS build artifacts (xcframeworks and addon files) to the plugin directory"
+        group = "build"
 
         dependsOn(
             project(":addon").tasks.named("copyAssets"),
@@ -593,8 +623,12 @@ tasks {
 
     register<Copy>("installToDemoiOS") {
         description = "Copies the assembled iOS plugin to demo application's addons directory"
+        group = "install"
 
         dependsOn("buildiOSDebug", "copyiOSBuildArtifacts")
+
+        // Wire upstream output so Gradle can skip this copy when nothing has changed
+        inputs.files(project.tasks.named("copyiOSBuildArtifacts").map { it.outputs.files })
 
         destinationDir = file(demoDir)
         duplicatesStrategy = DuplicatesStrategy.WARN
@@ -612,8 +646,11 @@ tasks {
         outputs.dir(destinationDir)
     }
 
+    // Note: uninstalliOS is deliberately NOT wired into the root :clean task.
+    // A developer clean should not silently wipe the demo application's plugin files.
     register<Delete>("uninstalliOS") {
         description = "Removes plugin files from demo app (preserves .uid and .import files)"
+        group = "uninstall"
 
         delete(
             fileTree("$demoDir/addons/${project.extra["pluginName"]}") {
@@ -636,23 +673,23 @@ tasks {
         description = "Cleans iOS build outputs"
 
         val iosBuildDir = provider { project.file("$projectDir/build") }
-        delete(iosBuildDir)
 
-        doLast {
+        doFirst {
             val dir = iosBuildDir.get()
-            logger.lifecycle(
-                if (dir.exists()) {
-                    "Removed iOS build directory: ${dir.absolutePath}"
-                } else {
-                    "iOS build directory did not exist (already clean): ${dir.absolutePath}"
-                },
-            )
+            if (dir.exists()) {
+                logger.lifecycle("Removing iOS build directory: ${dir.absolutePath}")
+            } else {
+                logger.lifecycle("iOS build directory did not exist (already clean): ${dir.absolutePath}")
+            }
         }
+
+        delete(iosBuildDir)
     }
 
     register<Zip>("createiOSArchive") {
         dependsOn("buildiOS", "copyiOSBuildArtifacts")
 
+        group = "archive"
         archiveFileName.set(project.extra["pluginArchiveiOS"] as String)
         destinationDirectory.set(layout.projectDirectory.dir(project.extra["archiveDir"] as String))
         duplicatesStrategy = DuplicatesStrategy.EXCLUDE
