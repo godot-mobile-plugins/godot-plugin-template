@@ -45,7 +45,11 @@ fun TaskContainerScope.registerGdscriptFormatTask(
 
     register<Exec>(name) {
         this.description = description
-        group = "formatting"
+        if (check) {
+            this.group = "verification"
+        } else {
+            this.group = "formatting"
+        }
 
         workingDir = addonSrcDir
 
@@ -111,22 +115,32 @@ tasks {
     val sharedSrcDir = file(project.extra["sharedTemplateDir"] as String)
 
     register<Delete>("cleanOutput") {
+        group = "clean"
         delete(
             fileTree(project.extra["outputDir"] as String) {
                 include("**/*.gd", "**/*.cfg", "**/*.png", "**/*.gdip")
+            },
+        )
+        // Also clean the ios/plugins output directory where .gdip files are written
+        delete(
+            fileTree("${project.extra["outputDir"]}/ios/plugins") {
+                include("**/*")
             },
         )
     }
 
     register<Copy>("copyAssets") {
         description = "Copies plugin assets such as PNG images to the output directory"
+        group = "generate"
         from(addonSrcDir)
         into("${project.extra["outputDir"]}/addons/${project.extra["pluginName"]}")
         include("**/*.png")
+        inputs.files(fileTree(addonSrcDir) { include("**/*.png") })
     }
 
     register<Copy>("generateSharedGDScript") {
         description = "Copies shared GDScript templates to the GMPShared output directory and replaces tokens"
+        group = "generate"
         onlyIf("shared source directory contains GDScript or config files") {
             sharedSrcDir.exists() &&
                 fileTree(sharedSrcDir) { include("**/*.gd", "**/*.cfg") }.files.isNotEmpty()
@@ -184,6 +198,7 @@ tasks {
 
     register<Copy>("generateGDScript") {
         description = "Copies the GDScript templates and plugin config to the output directory and replaces tokens"
+        group = "generate"
         dependsOn("generateSharedGDScript")
         finalizedBy("copyAssets")
 
@@ -236,6 +251,7 @@ tasks {
 
     register<Copy>("generateiOSConfig") {
         description = "Copies the iOS plugin config to the output directory and replaces tokens"
+        group = "generate"
 
         // Must run after generateGDScript so addon files are already in place
         mustRunAfter("generateGDScript")

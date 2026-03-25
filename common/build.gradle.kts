@@ -38,6 +38,7 @@ tasks {
 
     register("build") {
         description = "Builds both Android and iOS"
+        group = "build"
         dependsOn(
             project(":android").tasks.named("buildAndroid"),
             project(":ios").tasks.named("buildiOS"),
@@ -46,6 +47,7 @@ tasks {
 
     register("installToDemo") {
         description = "Installs both the Android and iOS plugins to demo app"
+        group = "install"
         dependsOn(
             project(":android").tasks.named("installToDemoAndroid"),
             project(":ios").tasks.named("installToDemoiOS"),
@@ -54,6 +56,7 @@ tasks {
 
     register("uninstall") {
         description = "Uninstalls all plugins from demo app"
+        group = "uninstall"
         dependsOn(
             project(":android").tasks.named("uninstallAndroid"),
             project(":ios").tasks.named("uninstalliOS"),
@@ -62,11 +65,13 @@ tasks {
 
     register("clean") {
         description = "Cleans all build outputs"
+        group = "clean"
         dependsOn(
             project(":addon").tasks.named("cleanOutput"),
             project(":android").tasks.named("clean"),
             project(":ios").tasks.named("cleaniOSBuild"),
         )
+        delete(layout.projectDirectory.dir(archiveDir))
     }
 
     register<Zip>("createMultiArchive") {
@@ -77,6 +82,7 @@ tasks {
             project(":ios").tasks.named("copyiOSBuildArtifacts"),
         )
 
+        group = "archive"
         archiveFileName.set(project.extra["pluginArchiveMulti"] as String)
         destinationDirectory.set(layout.projectDirectory.dir(archiveDir))
         duplicatesStrategy = DuplicatesStrategy.EXCLUDE
@@ -91,6 +97,7 @@ tasks {
 
     register("createArchives") {
         description = "Creates both the Android and iOS zip archives"
+        group = "archive"
         dependsOn(
             project(":android").tasks.named("createAndroidArchive"),
             project(":ios").tasks.named("createiOSArchive"),
@@ -100,7 +107,7 @@ tasks {
 
     register<Exec>("checkEditorConfig") {
         description = "Checks editorconfig compliance of all source files"
-        group = "formatting"
+        group = "verification"
 
         workingDir = file(repositoryRootDir)
 
@@ -143,7 +150,7 @@ tasks {
 
     register<Exec>("checkKtsFormat") {
         description = "Checks ktlint compliance of Gradle Kotlin DSL files (dry-run)"
-        group = "formatting"
+        group = "verification"
 
         workingDir = file(repositoryRootDir)
 
@@ -177,7 +184,7 @@ tasks {
 
     register<Exec>("checkBashScriptFormat") {
         description = "Checks ShellCheck compliance of all shell scripts under script/"
-        group = "formatting"
+        group = "verification"
 
         workingDir = file(repositoryRootDir)
 
@@ -238,6 +245,7 @@ tasks {
 
     register("checkFormat") {
         description = "Validates format in all source code"
+        group = "verification"
         dependsOn(
             project(":addon").tasks.named("checkGdscriptFormat"),
             project(":android").tasks.named("checkJavaFormat"),
@@ -252,6 +260,7 @@ tasks {
 
     register("applyFormat") {
         description = "Formats all source code"
+        group = "formatting"
         dependsOn(
             project(":addon").tasks.named("formatGdscriptSource"),
             project(":android").tasks.named("rewriteRun"),
