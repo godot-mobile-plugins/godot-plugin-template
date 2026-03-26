@@ -26,19 +26,34 @@ val readSpmDependencies =
 fun buildTimestamp(): String = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))
 
 /**
- * Registers one of the four iOS build variants.
+ * Registers one of the four iOS build variants. Runs xcodebuild archive directly
+ * without delegating back to build_ios.sh.
  *
- * @param name        task name, e.g. "buildiOSDebug"
- * @param description human-readable description
- * @param scriptFlag  flag forwarded to build_ios.sh, e.g. "-b", "-B", "-bs", "-Bs"
+ * @param name             task name, e.g. "buildiOSDebug"
+ * @param description      human-readable description
+ * @param sdk              xcodebuild -sdk value: "iphoneos" or "iphonesimulator"
+ * @param archiveName      base name of the xcarchive, e.g. "ios_debug"
+ * @param derivedDataName  subdirectory under DerivedData, e.g. "ios_debug"
+ * @param isDebug          true → adds GCC_PREPROCESSOR_DEFINITIONS with DEBUG_ENABLED=1
  */
 fun TaskContainerScope.registerIosBuildTask(
     name: String,
     description: String,
-    scriptFlag: String,
+    sdk: String,
+    archiveName: String,
+    derivedDataName: String,
+    isDebug: Boolean,
 ) {
-    val repositoryRootDir: String by project.extra
-    val buildScript = file("$repositoryRootDir/script/build_ios.sh")
+    val godotDir: String by project.gradle.extra
+    val pluginModuleName = project.extra["pluginModuleName"] as String
+    val pluginName = project.extra["pluginName"] as String
+    val iosConfigFile = file("$projectDir/config/ios.properties")
+
+    val scheme = "${pluginModuleName}_plugin"
+    val workspace = file("$projectDir/plugin.xcodeproj/project.xcworkspace")
+    val libDir = file("$projectDir/build/lib")
+    val derivedDataDir = file("$projectDir/build/DerivedData")
+    val frameworkDir = file("$projectDir/build/framework")
 
     register<Exec>(name) {
         this.description = description
@@ -46,6 +61,8 @@ fun TaskContainerScope.registerIosBuildTask(
 
         dependsOn(
             "validateSwiftVersion",
+            "syncSwiftVersionToPbxproj",
+            "validateGodotVersion",
             project(":addon").tasks.named("generateGDScript"),
             project(":addon").tasks.named("generateiOSConfig"),
             project(":addon").tasks.named("copyAssets"),
@@ -60,16 +77,55 @@ fun TaskContainerScope.registerIosBuildTask(
         inputs.dir("$projectDir/src")
         inputs.files(fileTree("$rootDir/config"))
         inputs.files(fileTree("$projectDir/config"))
-        inputs.file(buildScript)
 
-        outputs.dir("$projectDir/build/framework")
+        outputs.dir(libDir.resolve("$archiveName.xcarchive"))
 
         finalizedBy("copyiOSBuildArtifacts")
 
-        commandLine("bash", buildScript.absolutePath, scriptFlag)
-        environment("INVOKED_BY_GRADLE", "true")
+        doFirst {
+            frameworkDir.mkdirs()
+            libDir.mkdirs()
 
-        doLast { println("iOS build completed at: ${buildTimestamp()}") }
+            val props = java.util.Properties()
+            iosConfigFile.inputStream().use { props.load(it) }
+            val swiftVersion =
+                props.getProperty("swift_version")?.trim()
+                    ?: throw GradleException("swift_version not set in ${iosConfigFile.absolutePath}")
+
+            commandLine(
+                buildList {
+                    add("xcodebuild")
+                    add("archive")
+                    addAll(listOf("-workspace", workspace.absolutePath))
+                    addAll(listOf("-scheme", scheme))
+                    addAll(listOf("-archivePath", libDir.resolve("$archiveName.xcarchive").absolutePath))
+                    addAll(listOf("-derivedDataPath", derivedDataDir.resolve(derivedDataName).absolutePath))
+                    addAll(listOf("-sdk", sdk))
+                    add("SKIP_INSTALL=NO")
+                    if (isDebug) {
+                        add("GCC_PREPROCESSOR_DEFINITIONS=\$(inherited) DEBUG_ENABLED=1")
+                    }
+                    add("GODOT_DIR=$godotDir")
+                    add("SWIFT_VERSION=$swiftVersion")
+                },
+            )
+        }
+
+        doLast {
+            val archiveLib = libDir.resolve("$archiveName.xcarchive/Products/usr/local/lib")
+            val builtLib = archiveLib.resolve("lib$scheme.a")
+            val renamedLib = archiveLib.resolve("$pluginName.a")
+
+            if (!builtLib.exists()) {
+                throw GradleException("Expected build artifact not found: ${builtLib.absolutePath}")
+            }
+            if (!builtLib.renameTo(renamedLib)) {
+                throw GradleException(
+                    "Failed to rename ${builtLib.absolutePath} to ${renamedLib.absolutePath}",
+                )
+            }
+            println("iOS build completed at: ${buildTimestamp()}")
+        }
     }
 }
 
@@ -459,23 +515,31 @@ tasks {
     }
 
     register<Exec>("resolveSPMDependencies") {
-        description = "Resolves SPM package dependencies via xcodebuild (invoked by build_ios.sh -r)"
+        description = "Resolves SPM package dependencies via xcodebuild"
         group = "setup"
 
         mustRunAfter("updateSPMDependencies")
 
-        val buildScript = file("$repositoryRootDir/script/build_ios.sh")
+        val pluginModuleName = project.extra["pluginModuleName"] as String
         val xcodeproj = "$projectDir/plugin.xcodeproj"
+        val derivedDataDir = file("$projectDir/build/DerivedData")
 
         inputs.file("$projectDir/config/spm_dependencies.json")
         inputs.files(fileTree(xcodeproj) { include("**/*.pbxproj", "**/project.pbxproj") })
-        inputs.file(buildScript)
 
         outputs.file("$xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved")
-        outputs.dir("$projectDir/build/DerivedData/SourcePackages")
+        outputs.dir(derivedDataDir.resolve("SourcePackages"))
 
-        commandLine("bash", buildScript.absolutePath, "-r")
-        environment("INVOKED_BY_GRADLE", "true")
+        isIgnoreExitValue = true
+
+        commandLine(
+            "xcodebuild",
+            "-resolvePackageDependencies",
+            "-project", xcodeproj,
+            "-scheme", "${pluginModuleName}_plugin",
+            "-derivedDataPath", derivedDataDir.absolutePath,
+            "GODOT_DIR=$godotDir",
+        )
     }
 
     register("validateSwiftVersion") {
@@ -500,11 +564,116 @@ tasks {
         }
     }
 
-    // Four build variants, differing only in the script flag passed to build_ios.sh
-    registerIosBuildTask("buildiOSDebug", "Builds the iOS plugin (device, debug)", "-b")
-    registerIosBuildTask("buildiOSRelease", "Builds the iOS plugin (device, release)", "-B")
-    registerIosBuildTask("buildiOSDebugSimulator", "Builds the iOS plugin (simulator, debug)", "-bs")
-    registerIosBuildTask("buildiOSReleaseSimulator", "Builds the iOS plugin (simulator, release)", "-Bs")
+    register("syncSwiftVersionToPbxproj") {
+        description = "Syncs SWIFT_VERSION from ios.properties into plugin.xcodeproj/project.pbxproj"
+        group = "setup"
+
+        dependsOn("validateSwiftVersion")
+
+        val iosConfigFile = file("$projectDir/config/ios.properties")
+        val pbxprojFile = file("$projectDir/plugin.xcodeproj/project.pbxproj")
+
+        inputs.file(iosConfigFile)
+
+        // Skip this task when the version already written in pbxproj matches ios.properties
+        outputs.upToDateWhen {
+            val props = java.util.Properties()
+            iosConfigFile.inputStream().use { props.load(it) }
+            val swiftVersion = props.getProperty("swift_version")?.trim() ?: return@upToDateWhen false
+            pbxprojFile.exists() && pbxprojFile.readText().contains("SWIFT_VERSION = $swiftVersion;")
+        }
+
+        doLast {
+            val props = java.util.Properties()
+            iosConfigFile.inputStream().use { props.load(it) }
+            val swiftVersion =
+                props.getProperty("swift_version")?.trim()
+                    ?: throw GradleException("swift_version not set in ${iosConfigFile.absolutePath}")
+
+            val original = pbxprojFile.readText()
+            val updated = original.replace(Regex("SWIFT_VERSION = [0-9.]+;"), "SWIFT_VERSION = $swiftVersion;")
+            pbxprojFile.writeText(updated)
+
+            logger.lifecycle("Synced SWIFT_VERSION = {} into {}", swiftVersion, pbxprojFile.absolutePath)
+        }
+    }
+
+    register("validateGodotVersion") {
+        description = "Validates that the Godot version in godotDir matches the configured godotVersion"
+        group = "verification"
+
+        // Must run after both downloadGodot (which writes GODOT_VERSION) and
+        // generateGodotHeaders (which also writes into godotDir). Without the second
+        // mustRunAfter, Gradle detects that this task reads a file inside godotDir while
+        // generateGodotHeaders writes files there, and raises an implicit-dependency error.
+        mustRunAfter("downloadGodot", "generateGodotHeaders")
+
+        val godotVersion: String by project.extra
+        val godotDirectory = file(godotDir)
+        val versionFile = godotDirectory.resolve("GODOT_VERSION")
+
+        inputs.file(versionFile)
+        inputs.property("godotVersion", godotVersion)
+
+        outputs.upToDateWhen {
+            versionFile.exists() && versionFile.readText().trim() == godotVersion
+        }
+
+        doLast {
+            if (!versionFile.exists()) {
+                throw GradleException(
+                    "GODOT_VERSION file not found in ${godotDirectory.absolutePath}. " +
+                        "Run the 'downloadGodot' task first.",
+                )
+            }
+
+            val downloadedVersion = versionFile.readText().trim()
+            if (downloadedVersion != godotVersion) {
+                throw GradleException(
+                    "Godot version mismatch!\n" +
+                        "  Expected (config/godot.properties): $godotVersion\n" +
+                        "  Found    (${versionFile.absolutePath}): $downloadedVersion\n" +
+                        "Ensure they match, or run 'removeGodotDirectory' then 'downloadGodot'.",
+                )
+            }
+
+            logger.lifecycle("Godot version validation passed: {}", godotVersion)
+        }
+    }
+
+    // Four build variants — xcodebuild is invoked directly in each task
+    registerIosBuildTask(
+        name = "buildiOSDebug",
+        description = "Builds the iOS plugin (device, debug)",
+        sdk = "iphoneos",
+        archiveName = "ios_debug",
+        derivedDataName = "ios_debug",
+        isDebug = true,
+    )
+    registerIosBuildTask(
+        name = "buildiOSRelease",
+        description = "Builds the iOS plugin (device, release)",
+        sdk = "iphoneos",
+        archiveName = "ios_release",
+        derivedDataName = "ios_release",
+        isDebug = false,
+    )
+    registerIosBuildTask(
+        name = "buildiOSDebugSimulator",
+        description = "Builds the iOS plugin (simulator, debug)",
+        sdk = "iphonesimulator",
+        archiveName = "sim_debug",
+        derivedDataName = "ios_simulator_debug",
+        isDebug = true,
+    )
+    registerIosBuildTask(
+        name = "buildiOSReleaseSimulator",
+        description = "Builds the iOS plugin (simulator, release)",
+        sdk = "iphonesimulator",
+        archiveName = "sim_release",
+        derivedDataName = "ios_simulator_release",
+        isDebug = false,
+    )
 
     register("buildiOS") {
         description = "Builds both debug and release"
