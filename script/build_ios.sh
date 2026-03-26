@@ -9,14 +9,7 @@ SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 ROOT_DIR=$(realpath "$SCRIPT_DIR"/..)
 IOS_DIR=$ROOT_DIR/ios
 COMMON_DIR=$ROOT_DIR/common
-BUILD_DIR=$IOS_DIR/build
-DERIVED_DATA_DIR="$BUILD_DIR/DerivedData"
-FRAMEWORK_DIR="$BUILD_DIR/framework"
-LIB_DIR="$BUILD_DIR/lib"
 
-PLUGIN_CONFIG_FILE="$COMMON_DIR/config/plugin.properties"
-GODOT_CONFIG_FILE="$COMMON_DIR/config/godot.properties"
-IOS_CONFIG_FILE="$IOS_DIR/config/ios.properties"
 LOCAL_PROPERTIES_FILE="$COMMON_DIR/local.properties"
 
 # Resolve GODOT_DIR: use godot.dir from local.properties if set, otherwise default to $IOS_DIR/godot
@@ -28,18 +21,6 @@ if [[ -f "$LOCAL_PROPERTIES_FILE" ]]; then
 	fi
 	unset _godot_dir_prop
 fi
-
-PLUGIN_NODE_NAME=$("$SCRIPT_DIR"/get_config_property.sh -f "$PLUGIN_CONFIG_FILE" pluginNodeName)
-PLUGIN_NAME="${PLUGIN_NODE_NAME}Plugin"
-PLUGIN_MODULE_NAME=$("$SCRIPT_DIR"/get_config_property.sh -f "$PLUGIN_CONFIG_FILE" pluginModuleName)
-GODOT_VERSION=$("$SCRIPT_DIR"/get_config_property.sh -f "$GODOT_CONFIG_FILE" godotVersion)
-
-SWIFT_VERSION=$("$SCRIPT_DIR"/get_config_property.sh -f "$IOS_CONFIG_FILE" swift_version)
-
-SCHEME="${PLUGIN_MODULE_NAME}_plugin"
-PROJECT="plugin.xcodeproj"
-WORKSPACE="${PROJECT}/project.xcworkspace"
-SPM_DIR=$IOS_DIR/$WORKSPACE/xcshareddata/swiftpm
 
 # increase this value using -t option if device is not able to generate all headers before godot build is killed
 BUILD_TIMEOUT=40
@@ -158,19 +139,6 @@ function display_error()
 }
 
 
-
-function resolve_spm_dependencies()
-{
-	xcodebuild -resolvePackageDependencies \
-		-project "$IOS_DIR/$PROJECT" \
-		-scheme "$SCHEME" \
-		-derivedDataPath "$DERIVED_DATA_DIR" \
-		GODOT_DIR="$GODOT_DIR" \
-		SWIFT_VERSION="$SWIFT_VERSION" || true
-}
-
-
-
 function generate_godot_headers()
 {
 	if [[ ! -d "$GODOT_DIR" ]]
@@ -185,219 +153,6 @@ function generate_godot_headers()
 		-d "$GODOT_DIR" || true
 
 	display_status "Terminated Godot build after $BUILD_TIMEOUT seconds..."
-}
-
-
-function validate_godot_version()
-{
-	if [[ ! -f "$GODOT_DIR/GODOT_VERSION" ]]; then
-		display_error "GODOT_VERSION file not found in $GODOT_DIR"
-		exit 1
-	fi
-
-	local downloaded_version
-	downloaded_version=$(tr -d '[:space:]' < "$GODOT_DIR/GODOT_VERSION")
-	local expected_version="$GODOT_VERSION"
-
-	display_status "Validating Godot version in $GODOT_DIR..."
-	echo_blue "Expected version (from config): $expected_version"
-	echo_blue "Downloaded version (from GODOT_VERSION file): $downloaded_version"
-
-	if [[ "$downloaded_version" != "$expected_version" ]]; then
-		display_error "Godot version mismatch!"
-		"$SCRIPT_DIR"/echocolor.sh -r "	Expected:	$expected_version"
-		"$SCRIPT_DIR"/echocolor.sh -r "	Found:		$downloaded_version"
-		echo
-		"$SCRIPT_DIR"/echocolor.sh -r "The Godot version in $GODOT_DIR/GODOT_VERSION does not match"
-		"$SCRIPT_DIR"/echocolor.sh -r "the godotVersion property in $GODOT_CONFIG_FILE. Please ensure they match to "
-		"$SCRIPT_DIR"/echocolor.sh -r "avoid build issues."
-		echo
-		exit 1
-	fi
-
-	display_progress "Godot version validation passed: $expected_version"
-}
-
-
-function sync_swift_version_to_pbxproj()
-{
-	if [[ -z "$SWIFT_VERSION" ]]; then
-		display_error "'swift_version' is not configured in $IOS_CONFIG_FILE."
-		"$SCRIPT_DIR"/echocolor.sh -r "Please add it before building, e.g.:"
-		"$SCRIPT_DIR"/echocolor.sh -r "    swift_version=5.9"
-		echo
-		exit 1
-	fi
-
-	local pbxproj="$IOS_DIR/$PROJECT/project.pbxproj"
-	display_status "Syncing SWIFT_VERSION ($SWIFT_VERSION) into $pbxproj..."
-
-	local tmpfile
-	tmpfile=$(mktemp)
-	sed "s/SWIFT_VERSION = [0-9.]*;/SWIFT_VERSION = $SWIFT_VERSION;/g" "$pbxproj" > "$tmpfile"
-	mv "$tmpfile" "$pbxproj"
-}
-
-
-function build_debug()
-{
-	if [[ ! -d "$GODOT_DIR" ]]; then
-		display_error "$GODOT_DIR directory does not exist. Can't build plugin."
-		exit 1
-	fi
-
-	if [[ ! -f "$GODOT_DIR/GODOT_VERSION" ]]
-	then
-		display_error "godot wasn't downloaded properly. Can't build plugin."
-		exit 1
-	fi
-
-	# Validate that the Godot version matches the configured version
-	validate_godot_version
-
-	if [[ ! -d "$SPM_DIR" ]]; then
-		display_warning "Swift Package Manager directory does not exist. Run with '-P' option if project has \
-dependencies."
-	fi
-
-	mkdir -p "$FRAMEWORK_DIR"
-	mkdir -p "$LIB_DIR"
-
-	display_status "Building iOS debug"
-	xcodebuild archive \
-		-workspace "$IOS_DIR/$WORKSPACE" \
-		-scheme "$SCHEME" \
-		-archivePath "$LIB_DIR/ios_debug.xcarchive" \
-		-derivedDataPath "$DERIVED_DATA_DIR/ios_debug" \
-		-sdk iphoneos \
-		SKIP_INSTALL=NO \
-		GCC_PREPROCESSOR_DEFINITIONS="\$(inherited) DEBUG_ENABLED=1" \
-		GODOT_DIR="$GODOT_DIR" \
-		SWIFT_VERSION="$SWIFT_VERSION"
-
-	mv "$LIB_DIR/ios_debug.xcarchive/Products/usr/local/lib/lib${SCHEME}.a" \
-		"$LIB_DIR/ios_debug.xcarchive/Products/usr/local/lib/${PLUGIN_NAME}.a"
-}
-
-
-function build_debug_simulator()
-{
-	if [[ ! -d "$GODOT_DIR" ]]; then
-		display_error "$GODOT_DIR directory does not exist. Can't build plugin."
-		exit 1
-	fi
-
-	if [[ ! -f "$GODOT_DIR/GODOT_VERSION" ]]
-	then
-		display_error "godot wasn't downloaded properly. Can't build plugin."
-		exit 1
-	fi
-
-	# Validate that the Godot version matches the configured version
-	validate_godot_version
-
-	if [[ ! -d "$SPM_DIR" ]]; then
-		display_warning "Swift Package Manager directory does not exist. Run with '-P' option if project has \
-dependencies."
-	fi
-
-	mkdir -p "$FRAMEWORK_DIR"
-	mkdir -p "$LIB_DIR"
-
-	display_status "Building iOS simulator debug"
-	xcodebuild archive \
-		-workspace "$IOS_DIR/$WORKSPACE" \
-		-scheme "$SCHEME" \
-		-archivePath "$LIB_DIR/sim_debug.xcarchive" \
-		-derivedDataPath "$DERIVED_DATA_DIR/ios_simulator_debug" \
-		-sdk iphonesimulator \
-		SKIP_INSTALL=NO \
-		GCC_PREPROCESSOR_DEFINITIONS="\$(inherited) DEBUG_ENABLED=1" \
-		GODOT_DIR="$GODOT_DIR" \
-		SWIFT_VERSION="$SWIFT_VERSION"
-
-	mv "$LIB_DIR/sim_debug.xcarchive/Products/usr/local/lib/lib${SCHEME}.a" \
-		"$LIB_DIR/sim_debug.xcarchive/Products/usr/local/lib/${PLUGIN_NAME}.a"
-}
-
-
-function build_release()
-{
-	if [[ ! -d "$GODOT_DIR" ]]; then
-		display_error "$GODOT_DIR directory does not exist. Can't build plugin."
-		exit 1
-	fi
-
-	if [[ ! -f "$GODOT_DIR/GODOT_VERSION" ]]
-	then
-		display_error "godot wasn't downloaded properly. Can't build plugin."
-		exit 1
-	fi
-
-	# Validate that the Godot version matches the configured version
-	validate_godot_version
-
-	if [[ ! -d "$SPM_DIR" ]]; then
-		display_warning "Swift Package Manager directory does not exist. Run with '-P' option if project has \
-dependencies."
-	fi
-
-	mkdir -p "$FRAMEWORK_DIR"
-	mkdir -p "$LIB_DIR"
-
-	display_status "Building iOS release"
-	xcodebuild archive \
-		-workspace "$IOS_DIR/$WORKSPACE" \
-		-scheme "$SCHEME" \
-		-archivePath "$LIB_DIR/ios_release.xcarchive" \
-		-derivedDataPath "$DERIVED_DATA_DIR/ios_release" \
-		-sdk iphoneos \
-		SKIP_INSTALL=NO \
-		GODOT_DIR="$GODOT_DIR" \
-		SWIFT_VERSION="$SWIFT_VERSION"
-
-	mv "$LIB_DIR/ios_release.xcarchive/Products/usr/local/lib/lib${SCHEME}.a" \
-		"$LIB_DIR/ios_release.xcarchive/Products/usr/local/lib/${PLUGIN_NAME}.a"
-}
-
-
-function build_release_simulator()
-{
-	if [[ ! -d "$GODOT_DIR" ]]; then
-		display_error "$GODOT_DIR directory does not exist. Can't build plugin."
-		exit 1
-	fi
-
-	if [[ ! -f "$GODOT_DIR/GODOT_VERSION" ]]
-	then
-		display_error "godot wasn't downloaded properly. Can't build plugin."
-		exit 1
-	fi
-
-	# Validate that the Godot version matches the configured version
-	validate_godot_version
-
-	if [[ ! -d "$SPM_DIR" ]]; then
-		display_warning "Swift Package Manager directory does not exist. Run with '-P' option if project has \
-dependencies."
-	fi
-
-	mkdir -p "$FRAMEWORK_DIR"
-	mkdir -p "$LIB_DIR"
-
-	display_status "Building iOS simulator release"
-	xcodebuild archive \
-		-workspace "$IOS_DIR/$WORKSPACE" \
-		-scheme "$SCHEME" \
-		-archivePath "$LIB_DIR/sim_release.xcarchive" \
-		-derivedDataPath "$DERIVED_DATA_DIR/ios_simulator_release" \
-		-sdk iphonesimulator \
-		SKIP_INSTALL=NO \
-		GODOT_DIR="$GODOT_DIR" \
-		SWIFT_VERSION="$SWIFT_VERSION"
-
-	mv "$LIB_DIR/sim_release.xcarchive/Products/usr/local/lib/lib${SCHEME}.a" \
-		"$LIB_DIR/sim_release.xcarchive/Products/usr/local/lib/${PLUGIN_NAME}.a"
 }
 
 
@@ -521,44 +276,24 @@ fi
 
 if [[ "$do_resolve_spm_dependencies" == true ]]
 then
-	resolve_spm_dependencies
-fi
-
-if [[ "$do_debug_build" == true ]] || [[ "$do_release_build" == true ]]; then
-	sync_swift_version_to_pbxproj
+	"$SCRIPT_DIR"/run_gradle_task.sh "resolveSPMDependencies"
 fi
 
 if [[ "$do_debug_build" == true ]]
 then
 	if [[ "$do_simulator_build" == true ]]; then
-		if [[ "${INVOKED_BY_GRADLE:-}" == "true" ]]; then
-			build_debug_simulator
-		else
-			"$SCRIPT_DIR"/run_gradle_task.sh "buildiOSDebugSimulator"
-		fi
+		"$SCRIPT_DIR"/run_gradle_task.sh "buildiOSDebugSimulator"
 	else
-		if [[ "${INVOKED_BY_GRADLE:-}" == "true" ]]; then
-			build_debug
-		else
-			"$SCRIPT_DIR"/run_gradle_task.sh "buildiOSDebug"
-		fi
+		"$SCRIPT_DIR"/run_gradle_task.sh "buildiOSDebug"
 	fi
 fi
 
 if [[ "$do_release_build" == true ]]
 then
 	if [[ "$do_simulator_build" == true ]]; then
-		if [[ "${INVOKED_BY_GRADLE:-}" == "true" ]]; then
-			build_release_simulator
-		else
-			"$SCRIPT_DIR"/run_gradle_task.sh "buildiOSReleaseSimulator"
-		fi
+		"$SCRIPT_DIR"/run_gradle_task.sh "buildiOSReleaseSimulator"
 	else
-		if [[ "${INVOKED_BY_GRADLE:-}" == "true" ]]; then
-			build_release
-		else
-			"$SCRIPT_DIR"/run_gradle_task.sh "buildiOSRelease"
-		fi
+		"$SCRIPT_DIR"/run_gradle_task.sh "buildiOSRelease"
 	fi
 fi
 
