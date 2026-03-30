@@ -68,7 +68,7 @@ fun TaskContainerScope.registerIosBuildTask(
             project(":addon").tasks.named("copyAssets"),
             "updateSPMDependencies",
             "resolveSPMDependencies",
-            "generateGodotHeaders",
+            "downloadGodotHeaders",
         )
 
         inputs.files(project(":addon").tasks.named("generateGDScript").map { it.outputs.files })
@@ -244,7 +244,7 @@ tasks {
     // would force an unnecessary re-download on the next build. Run this task explicitly
     // only when you need to switch Godot versions or recover from a corrupt download.
     register<Delete>("removeGodotDirectory") {
-        description = "Removes the directory where Godot sources were downloaded"
+        description = "Removes the directory where Godot headers were downloaded"
         group = "setup"
 
         val godotDirectory = file(godotDir)
@@ -260,19 +260,19 @@ tasks {
         delete(godotDirectory)
     }
 
-    register<de.undercouch.gradle.tasks.download.Download>("downloadGodot") {
-        description = "Downloads Godot sources into the configured directory"
+    register<de.undercouch.gradle.tasks.download.Download>("downloadGodotHeaders") {
+        description = "Downloads pre-built Godot headers into the configured directory"
         group = "setup"
 
         val godotVersion: String by project.extra
         val godotReleaseType: String by project.extra
         val godotDirectory = file(godotDir)
         val versionFile = godotDirectory.resolve("GODOT_VERSION")
-        val filename = "godot-$godotVersion-$godotReleaseType.tar.xz"
+        val filename = "godot-headers-$godotVersion-$godotReleaseType.zip"
         val releaseUrl =
-            "https://github.com/godotengine/godot-builds/releases/download/" +
+            "https://github.com/godot-mobile-plugins/godot-headers/releases/download/" +
                 "$godotVersion-$godotReleaseType/$filename"
-        val archiveFile = file("$godotDir.tar.xz")
+        val archiveFile = file("$godotDir.zip")
 
         inputs.property("godotVersion", godotVersion)
         inputs.property("godotReleaseType", godotReleaseType)
@@ -314,62 +314,23 @@ tasks {
         overwrite(false)
 
         doLast {
-            val tempExtractDir = temporaryDir.resolve("godot_extract")
-            tempExtractDir.deleteRecursively()
-            tempExtractDir.mkdirs()
-
-            project.exec {
-                commandLine(
-                    "tar",
-                    "-xaf",
-                    archiveFile.absolutePath,
-                    "-C",
-                    tempExtractDir.absolutePath,
-                    "--strip-components=1",
-                )
-            }
-
             godotDirectory.mkdirs()
-            tempExtractDir.listFiles()?.forEach { entry ->
-                entry.renameTo(godotDirectory.resolve(entry.name))
+
+            project.copy {
+                from(project.zipTree(archiveFile))
+                includeEmptyDirs = false
+                into(godotDirectory)
             }
 
             archiveFile.delete()
-            tempExtractDir.deleteRecursively()
 
             versionFile.writeText(godotVersion)
 
             println(
-                "Godot $godotVersion-$godotReleaseType successfully downloaded " +
+                "Godot headers $godotVersion-$godotReleaseType successfully downloaded " +
                     "and extracted to ${godotDirectory.absolutePath}",
             )
         }
-    }
-
-    register<Exec>("generateGodotHeaders") {
-        description = "Runs Godot build and terminates after header files have been generated"
-        group = "setup"
-
-        dependsOn("downloadGodot")
-
-        val buildScript = file("$repositoryRootDir/script/build_ios.sh")
-        val godotDirectory = file(godotDir)
-
-        val generatedFiles =
-            project.fileTree(godotDirectory).matching {
-                include("**/*.gen.h", "**/*.gen.cpp")
-            }
-        val internalBuildFiles =
-            project.fileTree(godotDirectory).matching {
-                include(".scons*")
-            }
-
-        inputs.file(buildScript)
-        inputs.files(project.fileTree(godotDirectory).minus(generatedFiles).minus(internalBuildFiles))
-        outputs.files(generatedFiles)
-
-        commandLine("bash", buildScript.absolutePath, "-H")
-        environment("INVOKED_BY_GRADLE", "true")
     }
 
     register("resetSPMDependencies") {
@@ -535,9 +496,12 @@ tasks {
         commandLine(
             "xcodebuild",
             "-resolvePackageDependencies",
-            "-project", xcodeproj,
-            "-scheme", "${pluginModuleName}_plugin",
-            "-derivedDataPath", derivedDataDir.absolutePath,
+            "-project",
+            xcodeproj,
+            "-scheme",
+            "${pluginModuleName}_plugin",
+            "-derivedDataPath",
+            derivedDataDir.absolutePath,
             "GODOT_DIR=$godotDir",
         )
     }
@@ -602,28 +566,26 @@ tasks {
         description = "Validates that the Godot version in godotDir matches the configured godotVersion"
         group = "verification"
 
-        // Must run after both downloadGodot (which writes GODOT_VERSION) and
-        // generateGodotHeaders (which also writes into godotDir). Without the second
-        // mustRunAfter, Gradle detects that this task reads a file inside godotDir while
-        // generateGodotHeaders writes files there, and raises an implicit-dependency error.
-        mustRunAfter("downloadGodot", "generateGodotHeaders")
+        dependsOn("downloadGodotHeaders")
 
         val godotVersion: String by project.extra
-        val godotDirectory = file(godotDir)
-        val versionFile = godotDirectory.resolve("GODOT_VERSION")
+        val godotDirPath: String = godotDir
 
-        inputs.file(versionFile)
         inputs.property("godotVersion", godotVersion)
+        inputs.property("godotDirPath", godotDirPath)
 
         outputs.upToDateWhen {
-            versionFile.exists() && versionFile.readText().trim() == godotVersion
+            val vf = java.io.File("$godotDirPath/GODOT_VERSION")
+            vf.exists() && vf.readText().trim() == godotVersion
         }
 
         doLast {
+            val godotDirectory = java.io.File(godotDirPath)
+            val versionFile = godotDirectory.resolve("GODOT_VERSION")
             if (!versionFile.exists()) {
                 throw GradleException(
                     "GODOT_VERSION file not found in ${godotDirectory.absolutePath}. " +
-                        "Run the 'downloadGodot' task first.",
+                        "Run the 'downloadGodotHeaders' task first.",
                 )
             }
 
@@ -633,7 +595,7 @@ tasks {
                     "Godot version mismatch!\n" +
                         "  Expected (config/godot.properties): $godotVersion\n" +
                         "  Found    (${versionFile.absolutePath}): $downloadedVersion\n" +
-                        "Ensure they match, or run 'removeGodotDirectory' then 'downloadGodot'.",
+                        "Ensure they match, or run 'removeGodotDirectory' then 'downloadGodotHeaders'.",
                 )
             }
 
