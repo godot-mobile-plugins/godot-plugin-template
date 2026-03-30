@@ -496,9 +496,12 @@ tasks {
         commandLine(
             "xcodebuild",
             "-resolvePackageDependencies",
-            "-project", xcodeproj,
-            "-scheme", "${pluginModuleName}_plugin",
-            "-derivedDataPath", derivedDataDir.absolutePath,
+            "-project",
+            xcodeproj,
+            "-scheme",
+            "${pluginModuleName}_plugin",
+            "-derivedDataPath",
+            derivedDataDir.absolutePath,
             "GODOT_DIR=$godotDir",
         )
     }

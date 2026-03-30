@@ -6,21 +6,6 @@
 set -euo pipefail
 
 SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
-ROOT_DIR=$(realpath "$SCRIPT_DIR"/..)
-IOS_DIR=$ROOT_DIR/ios
-COMMON_DIR=$ROOT_DIR/common
-
-LOCAL_PROPERTIES_FILE="$COMMON_DIR/local.properties"
-
-# Resolve GODOT_DIR: use godot.dir from local.properties if set, otherwise default to $IOS_DIR/godot
-GODOT_DIR=$IOS_DIR/godot
-if [[ -f "$LOCAL_PROPERTIES_FILE" ]]; then
-	_godot_dir_prop=$("$SCRIPT_DIR"/get_config_property.sh -f "$LOCAL_PROPERTIES_FILE" godot.dir)
-	if [[ -n "$_godot_dir_prop" ]]; then
-		GODOT_DIR=$(eval echo "$_godot_dir_prop")
-	fi
-	unset _godot_dir_prop
-fi
 
 do_clean=false
 do_reset_spm=false
