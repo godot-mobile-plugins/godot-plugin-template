@@ -22,14 +22,10 @@ if [[ -f "$LOCAL_PROPERTIES_FILE" ]]; then
 	unset _godot_dir_prop
 fi
 
-# increase this value using -t option if device is not able to generate all headers before godot build is killed
-BUILD_TIMEOUT=40
-
 do_clean=false
 do_reset_spm=false
 do_remove_godot=false
 do_download_godot=false
-do_generate_headers=false
 do_update_spm=false
 do_resolve_spm_dependencies=false
 do_debug_build=false
@@ -49,32 +45,30 @@ function display_help()
 	echo_yellow "If plugin version is not set with the -z option, then Godot version will be used."
 	echo
 	"$SCRIPT_DIR"/echocolor.sh -Y "Syntax:"
-	echo_yellow "	$0 [-a|A|b|B|c|d|D|g|G|h|H|p|P|r|R|s|t <timeout>]"
+	echo_yellow "	$0 [-a|A|b|B|c|d|D|g|G|h|p|P|r|R|s]"
 	echo
 	"$SCRIPT_DIR"/echocolor.sh -Y "Options:"
-	echo_yellow "	a	generate godot headers and build plugin"
-	echo_yellow "	A	download configured godot version, generate godot headers, and"
+	echo_yellow "	a	update SPM and build both variants of plugin"
+	echo_yellow "	A	download godot headers for the configured version, update SPM, and build both variants of"
 	echo_yellow "	 	build plugin"
 	echo_yellow "	b	build debug variant of plugin (device); combine with -s for simulator"
 	echo_yellow "	B	build release variant of plugin (device); combine with -s for simulator"
 	echo_yellow "	c	remove any existing plugin build"
 	echo_yellow "	d	uninstall iOS plugin from demo app"
 	echo_yellow "	D	install iOS plugin to demo app"
-	echo_yellow "	g	remove godot directory"
-	echo_yellow "	G	download the configured godot version into godot directory"
+	echo_yellow "	g	remove directory with godot header files"
+	echo_yellow "	G	download the configured godot headers version into godot directory"
 	echo_yellow "	h	display usage information"
-	echo_yellow "	H	generate godot headers"
 	echo_yellow "	p	remove SPM packages and build artifacts"
 	echo_yellow "	P	add SPM packages from configuration"
 	echo_yellow "	r	resolve SPM dependencies"
 	echo_yellow "	R	create iOS release archive"
 	echo_yellow "	s	simulator build; use with -b for simulator debug, -B for simulator release"
-	echo_yellow "	t	change timeout value for godot build"
 	echo
 	"$SCRIPT_DIR"/echocolor.sh -Y "Examples:"
 	echo_yellow "	* clean existing build, remove godot, and rebuild all"
 	echo_yellow "		$> $0 -cgA"
-	echo_yellow "		$> $0 -cgpGHPb"
+	echo_yellow "		$> $0 -cgpGPb"
 	echo
 	echo_yellow "	* clean existing build, remove SPM packages, and rerun debug build"
 	echo_yellow "		$> $0 -cpPb"
@@ -84,9 +78,6 @@ function display_help()
 	echo
 	echo_yellow "	* clean existing build and rebuild plugin and create release archive"
 	echo_yellow "		$> $0 -R"
-	echo
-	echo_yellow "	* clean existing build and rebuild plugin with custom build-header timeout"
-	echo_yellow "		$> $0 -cHbt 15"
 	echo
 }
 
@@ -139,37 +130,18 @@ function display_error()
 }
 
 
-function generate_godot_headers()
-{
-	if [[ ! -d "$GODOT_DIR" ]]
-	then
-		display_error "$GODOT_DIR directory does not exist. Can't generate headers."
-		exit 1
-	fi
-
-	display_status "Starting Godot build to generate Godot headers..."
-
-	"$SCRIPT_DIR"/run_with_timeout.sh -t "$BUILD_TIMEOUT" -c "scons platform=ios target=template_release" \
-		-d "$GODOT_DIR" || true
-
-	display_status "Terminated Godot build after $BUILD_TIMEOUT seconds..."
-}
-
-
-while getopts "aAbBcdDgGhHpPrRst:" option; do
+while getopts "aAbBcdDgGhpPrRs" option; do
 	case $option in
 		h)
 			display_help
 			exit;;
 		a)
-			do_generate_headers=true
 			do_update_spm=true
 			do_debug_build=true
 			do_release_build=true
 			;;
 		A)
 			do_download_godot=true
-			do_generate_headers=true
 			do_update_spm=true
 			do_debug_build=true
 			do_release_build=true
@@ -195,9 +167,6 @@ while getopts "aAbBcdDgGhHpPrRst:" option; do
 		G)
 			do_download_godot=true
 			;;
-		H)
-			do_generate_headers=true
-			;;
 		p)
 			do_reset_spm=true
 			;;
@@ -212,18 +181,6 @@ while getopts "aAbBcdDgGhHpPrRst:" option; do
 			;;
 		s)
 			do_simulator_build=true
-			;;
-		t)
-			regex='^[0-9]+$'
-			if ! [[ $OPTARG =~ $regex ]]
-			then
-				display_error "The argument for the -t option should be an integer. Found $OPTARG."
-				echo
-				display_help
-				exit 1
-			else
-				BUILD_TIMEOUT=$OPTARG
-			fi
 			;;
 		\?)
 			display_error "invalid option"
@@ -257,16 +214,7 @@ fi
 
 if [[ "$do_download_godot" == true ]]
 then
-	"$SCRIPT_DIR"/run_gradle_task.sh "downloadGodot"
-fi
-
-if [[ "$do_generate_headers" == true ]]
-then
-	if [[ "${INVOKED_BY_GRADLE:-}" == "true" ]]; then
-		generate_godot_headers
-	else
-		"$SCRIPT_DIR"/run_gradle_task.sh "generateGodotHeaders"
-	fi
+	"$SCRIPT_DIR"/run_gradle_task.sh "downloadGodotHeaders"
 fi
 
 if [[ "$do_update_spm" == true ]]
