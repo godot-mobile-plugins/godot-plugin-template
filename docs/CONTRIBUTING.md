@@ -14,6 +14,7 @@ Thank you for your interest in contributing to the Godot PluginTemplate Plugin! 
 - [Configuration](#-configuration)
 - [Development Workflow](#-development-workflow)
 - [Building](#-building)
+- [Code Formatting](#-code-formatting)
 - [Testing](#-testing)
 - [Creating Releases](#-creating-releases)
 - [Installation](#-installation)
@@ -107,7 +108,8 @@ Thank you for your interest in contributing to the Godot PluginTemplate Plugin! 
 │   ├── build_ios.sh                       # iOS build script
 │   ├── install.sh                         # Plugin installation script
 │   ├── run_gradle_task.sh                 # Gradle task runner
-│   └── get_config_property.sh             # Configuration reader
+│   ├── get_config_property.sh             # Configuration reader
+│   └── spm_manager.rb                     # Ruby script for managing SPM dependencies in Xcode project
 │
 ├── docs/                                # Documentation
 │
@@ -163,8 +165,19 @@ godot.dir=/path/to/your/shared/godot
 ### iOS Development (macOS only)
 - **Xcode** - Latest stable version recommended
 - **Xcode Command Line Tools** - Install via: `xcode-select --install`
-- **SCons** - Install via: `pip3 install scons` or `brew install scons`
-- **Python 3** - Required for SCons
+- **Ruby** - Required for SPM dependency management via `spm_manager.rb` (macOS system Ruby is sufficient)
+- **xcodeproj gem** - Installed automatically by the build system if missing, or manually via: `gem install xcodeproj --user-install`
+
+### Developer Tools (Optional — required for format checking)
+
+These tools are needed when running `checkFormat` or `applyFormat` tasks:
+
+- **ktlint** - Kotlin/KTS formatter: `brew install ktlint`
+- **shellcheck** - Shell script linter: `brew install shellcheck`
+- **editorconfig-checker** - EditorConfig compliance: `brew install editorconfig-checker`
+- **clang-format** - ObjC/C++ formatter: `brew install clang-format` (iOS only)
+- **swiftlint** - Swift linter/formatter: `brew install swiftlint` (iOS only)
+- **gdformat** - GDScript formatter: install via the Godot toolchain
 
 ### Verifying Prerequisites
 
@@ -174,7 +187,8 @@ java -version
 
 # macOS/iOS only
 xcodebuild -version
-scons --version
+ruby --version
+gem list xcodeproj
 ```
 
 ---
@@ -334,7 +348,7 @@ lib.dir=/path/to/your/shared/aar
 
 When `lib.dir` is not set, the build uses the `android/libs/` directory. The path supports `~` and environment variable expansion.
 
-**Note:** The specified directory must contain a valid `GODOT_VERSION` file matching the `godotVersion` property in `common/config/godot.properties`. If you use the `-G` option to download Godot, it will be downloaded to whichever directory is configured and the `GODOT_VERSION` file will be created automatically.
+**Note:** The Godot headers directory must contain a `GODOT_VERSION` file whose content matches the `godotVersion` property in `common/config/godot.properties`. The `downloadGodotHeaders` Gradle task creates this file automatically when it downloads the headers. If the directory already exists but contains a different version, the build will fail with a clear error message — run `./script/build_ios.sh -gG` to remove the old directory and re-download the correct version.
 
 ### <img src="https://raw.githubusercontent.com/godot-mobile-plugins/godot-plugin-template/main/addon/src/main/icon.png" width="20"> iOS Configuration
 
@@ -343,6 +357,9 @@ The `ios/config/ios.properties` file contains iOS-specific settings:
 ```properties
 # iOS deployment target
 platform_version=14.3
+
+# Swift language version (required — must match your Xcode project)
+swift_version=5.9
 
 # iOS system framework dependencies
 frameworks=Foundation.framework,...
@@ -460,10 +477,12 @@ Cross-platform builds with the `build.sh` script.
 | `-C` | Remove existing builds and archives |
 | `-d` | Uninstall plugin from demo app |
 | `-D` | Install plugin to demo app |
-| `-A` | Create Android relese archive |
-| `-I` | Create iOS relese archive |
-| `-M` | Create multi-platform relese archive |
-| `-R` | Create all relese archives |
+| `-f` | Fix source code format issues |
+| `-A` | Create Android release archive |
+| `-I` | Create iOS release archive |
+| `-M` | Create multi-platform release archive |
+| `-R` | Create all release archives |
+| `-v` | Verify source code format compliance |
 
 #### Output Locations
 
@@ -508,7 +527,7 @@ Cross-platform builds with the `build.sh` script.
 | `-D` | Install Android plugin to demo app |
 | `-h` | Display script usage information |
 | `-r` | Build Android plugin with release build variant |
-| `-R` | Create Android relese archive |
+| `-R` | Create Android release archive |
 
 #### Android Studio
 
@@ -526,69 +545,131 @@ If using Android Studio, make sure to open the root Gradle project from the `com
 
 **Note:** Options after `--` are passed to `build_ios.sh`
 
-# Full build (first time - downloads Godot)
+# Full build (first time - downloads Godot headers automatically)
 ./script/build_ios.sh -A
 
-# Clean and rebuild (reuses Godot)
+# Clean and rebuild (reuses existing Godot headers)
 ./script/build_ios.sh -ca
 
-# Full clean rebuild (removes Godot)
+# Full clean rebuild (removes Godot headers directory first)
 ./script/build_ios.sh -cgA
 
 # Clean, build and create archive
-./script/build_ios.sh -cbBR
+./script/build_ios.sh -cR
 
-# Custom timeout for header generation (seconds)
-./script/build_ios.sh -H -t 60
+# Debug build for simulator
+./script/build_ios.sh -bs
+
+# Release build for simulator
+./script/build_ios.sh -Bs
+
+# Install iOS plugin to demo app
+./script/build_ios.sh -D
+
+# Uninstall iOS plugin from demo app
+./script/build_ios.sh -d
+
+# Resolve SPM dependencies only
+./script/build_ios.sh -r
 ```
 
 #### Build Options
 
 | Option | Description |
 |--------|-------------|
-| `-a` | Generate headers, add packages, and build |
-| `-A` | Download Godot + full build |
-| `-b` | Run debug build |
-| `-B` | Run release build |
+| `-a` | Update SPM packages and build both debug and release variants |
+| `-A` | Download Godot headers, update SPM packages, and build both debug and release variants |
+| `-b` | Run debug build (device); combine with `-s` for simulator |
+| `-B` | Run release build (device); combine with `-s` for simulator |
 | `-c` | Clean existing build |
-| `-g` | Remove Godot directory |
-| `-G` | Download Godot |
+| `-d` | Uninstall iOS plugin from demo app |
+| `-D` | Install iOS plugin to demo app |
+| `-g` | Remove Godot headers directory |
+| `-G` | Download Godot headers |
 | `-h` | Display help |
-| `-H` | Generate Godot headers |
-| `-p` | Remove SPM packages |
-| `-P` | Add SPM packages |
+| `-p` | Remove SPM packages and build artifacts |
+| `-P` | Add SPM packages from configuration |
+| `-r` | Resolve SPM dependencies |
 | `-R` | Create release archive |
-| `-t <seconds>` | Set header generation timeout |
+| `-s` | Simulator build; use with `-b` for simulator debug, `-B` for simulator release |
 
 #### Build Process Explained
 
-The iOS build process involves several steps:
+The iOS build process involves several steps that are orchestrated automatically:
 
-1. **Download Godot** (if needed):
-   - Downloads the official Godot binary from GitHub
-   - Version specified in `godot.properties`
+1. **Download Godot Headers** (if needed):
+   - Downloads a pre-built Godot headers archive from `github.com/godot-mobile-plugins/godot-headers`
+   - Version is determined by `godotVersion` and `godotReleaseType` in `godot.properties`
    - Extracted to `ios/godot/` by default, or to the path set by `godot.dir` in `common/local.properties`
+   - The download is skipped if the correct version is already present (checked via a `GODOT_VERSION` file)
+   - If the directory exists but contains a different version, the build fails with a clear error — run `./script/build_ios.sh -gG` to switch versions
 
-2. **Generate Headers**:
-   - Starts a Godot build to generate C++ headers
-   - Timeout prevents full Godot build (we only need headers)
-   - Default timeout: 40 seconds (increase if needed)
+2. **Validate Swift Version**:
+   - Reads `swift_version` from `ios/config/ios.properties`
+   - Fails early with a clear error if the property is missing or blank
+   - Syncs the version into `plugin.xcodeproj/project.pbxproj` automatically
 
-3. **Add Swift Packages**:
-   - Resolves package dependencies for Xcode
+3. **Validate Godot Version**:
+   - Confirms the `GODOT_VERSION` file in the Godot headers directory matches `godotVersion` in `godot.properties`
 
-4. **Build XCFrameworks**:
-   - Builds for iOS device (arm64)
-   - Builds for iOS simulator (arm64, x86_64)
-   - Creates universal XCFrameworks for debug and release
+4. **Update & Resolve SPM Packages**:
+   - Reads dependency definitions from `ios/config/spm_dependencies.json`
+   - Injects package references into the Xcode project via `script/spm_manager.rb` (requires Ruby and the `xcodeproj` gem)
+   - Resolves the packages with `xcodebuild -resolvePackageDependencies`
+
+5. **Build XCFrameworks**:
+   - Builds up to four variants via `xcodebuild archive`:
+     - `buildiOSDebug` — device (arm64), debug
+     - `buildiOSRelease` — device (arm64), release
+     - `buildiOSDebugSimulator` — simulator (arm64/x86_64), debug
+     - `buildiOSReleaseSimulator` — simulator (arm64/x86_64), release
+   - The `-s` flag selects simulator variants; without it, device variants are built
+   - Archives are created as `.xcarchive` bundles under `ios/build/lib/`
+   - XCFrameworks combining device and simulator slices are assembled in `ios/build/framework/`
 
 #### Output Locations
 
-- **Godot source:** `ios/godot/` (default) or path set by `godot.dir` in `common/local.properties`
+- **Godot headers:** `ios/godot/` (default) or path set by `godot.dir` in `common/local.properties`
 - **Build artifacts:** `ios/build/`
-- **Frameworks:** `ios/build/framework/`
-- **Archives:** `ios/build/lib/*.xcarchive`
+- **xcarchives:** `ios/build/lib/ios_debug.xcarchive`, `ios_release.xcarchive`, `sim_debug.xcarchive`, `sim_release.xcarchive`
+- **XCFrameworks:** `ios/build/framework/PluginTemplatePlugin.debug.xcframework`, `PluginTemplatePlugin.release.xcframework`
 - **Release archive:** `release/PluginTemplatePlugin-iOS-v*.zip`
+
+---
+
+## <img src="https://raw.githubusercontent.com/godot-mobile-plugins/godot-plugin-template/main/addon/src/main/icon.png" width="24"> Code Formatting
+
+The project enforces consistent formatting across all source languages. Two aggregate tasks are available via the main build script:
+
+```bash
+# Verify all source code format compliance
+./script/build.sh -v
+
+# Fix all source code format issues
+./script/build.sh -f
+```
+
+These delegate to the following per-language Gradle sub-tasks:
+
+| Check task | Fix task | Language | Tool | Module |
+|------------|----------|----------|------|--------|
+| `checkGdscriptFormat` | `formatGdscriptSource` | GDScript | gdformat | addon |
+| `checkJavaFormat` | `rewriteRun` | Java | Checkstyle / OpenRewrite | android |
+| `checkXmlFormat` | `formatXml` | XML | Prettier | android |
+| `checkObjCFormat` | `formatObjCSource` | ObjC / C++ | clang-format | ios |
+| `checkSwiftFormat` | `formatSwiftSource` | Swift | swiftlint | ios |
+| `checkKtsFormat` | `formatKtsSource` | Gradle KTS | ktlint | common |
+| `checkBashScriptFormat` | `applyBashScriptFormat` | Bash | shellcheck | common |
+| `checkEditorConfig` | _(n/a)_ | All files | editorconfig-checker | common |
+
+Sub-tasks can also be run individually. For example, to check only GDScript formatting:
+
+```bash
+cd common
+./gradlew :addon:checkGdscriptFormat
+```
+
+Sub-tasks that require external tools (`ktlint`, `shellcheck`, `editorconfig-checker`, `clang-format`, `swiftlint`, `gdformat`) will fail with a clear error if the tool is not found on `PATH`. See [Prerequisites](#-prerequisites) for installation instructions.
 
 ---
 
@@ -743,33 +824,34 @@ rm -rf ~/.gradle/caches/
 ./script/build_ios.sh -pP
 ```
 
-**Problem:** Header generation timeout
-```bash
-# Solution: Increase timeout
-./script/build_ios.sh -H -t 120
-```
-
 **Problem:** Xcode build fails
 ```bash
-# Solution: Clean derived data
+# Solution: Clean derived data and rebuild
 rm -rf ios/build/DerivedData
 ./script/build_ios.sh -cb
 ```
 
-**Problem:** Godot version mismatch when using a custom `godot.dir`
-```
-# The GODOT_VERSION file in the configured directory must match
+**Problem:** Godot version mismatch (headers directory contains the wrong version)
+```bash
+# The GODOT_VERSION file in the headers directory must match
 # the godotVersion property in common/config/godot.properties.
-# Solution: remove and re-download Godot into the configured directory
+# Solution: remove the existing headers directory and re-download
 ./script/build_ios.sh -gG
 ```
 
-**Problem:** Build cannot find Godot headers after setting `godot.dir`
+**Problem:** Build cannot find Godot headers after setting a custom `godot.dir`
 ```bash
 # Verify the path is set correctly in common/local.properties:
 #   godot.dir=/your/custom/path
-# Then re-generate headers:
-./script/build_ios.sh -H
+# Then download the headers into that directory:
+./script/build_ios.sh -G
+```
+
+**Problem:** Build fails with "swift_version not configured"
+```bash
+# Solution: add swift_version to ios/config/ios.properties, e.g.:
+#   swift_version=5.9
+# Then retry the build.
 ```
 
 **Problem:** "No such module" errors
@@ -778,10 +860,17 @@ rm -rf ios/build/DerivedData
 ./script/build_ios.sh -pP
 ```
 
+**Problem:** `xcodeproj` gem missing (Ruby gem required for SPM management)
+```bash
+# Solution: install the gem manually
+gem install xcodeproj --user-install
+# The build system will also install it automatically if Ruby is available.
+```
+
 ### Getting Help
 
 - Check existing [GitHub Issues](https://github.com/godot-mobile-plugins/godot-plugin-template/issues)
-- Check exısting [GitHub Discussions](https://github.com/godot-mobile-plugins/godot-plugin-template/discussions)
+- Check existing [GitHub Discussions](https://github.com/godot-mobile-plugins/godot-plugin-template/discussions)
 - Review [Godot documentation](https://docs.godotengine.org/)
 
 ---
@@ -795,6 +884,8 @@ rm -rf ios/build/DerivedData
 - **Kotlin:** Follow [Android Kotlin style guide](https://developer.android.com/kotlin/style-guide)
 - **Objective-C:** Follow [Google Objective-C style guide](https://google.github.io/styleguide/objcguide.html)
 - **Swift:** Follow [Swift style guide](https://www.swift.org/documentation/api-design-guidelines/)
+- **Ruby:** Follow [Ruby style guide](https://rubystyle.guide/) (used in `script/spm_manager.rb`)
+- **Shell:** Follow [Google Shell style guide](https://google.github.io/styleguide/shellguide.html); all scripts are checked with `shellcheck`
 
 ### Commit Messages
 
