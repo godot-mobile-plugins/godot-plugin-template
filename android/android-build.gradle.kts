@@ -17,7 +17,17 @@ plugins {
     alias(libs.plugins.node)
 }
 
-apply(from = "$projectDir/config/android.gradle.kts")
+// ── Load config data classes ──────────────────────────────────────────────────
+//
+// pluginDir, repositoryRootDir, archiveDir, demoDir, pluginArchiveAndroid and all
+// other shared extras are already set on project.extra by base-conventions.
+// The typed data classes are loaded here for clean, cast-free member access in
+// the android {} block, dependencies {}, and task registration bodies.
+
+val pluginConfig = loadPluginConfig()
+val godotConfig = loadGodotConfig()
+
+// ── OpenRewrite ───────────────────────────────────────────────────────────────
 
 configure<org.openrewrite.gradle.RewriteExtension> {
     activeRecipe(
@@ -32,8 +42,10 @@ configure<org.openrewrite.gradle.RewriteExtension> {
     configFile = projectDir.resolve("config/rewrite.yml")
 }
 
+// ── Android configuration ─────────────────────────────────────────────────────
+
 android {
-    namespace = project.extra["pluginPackageName"] as String
+    namespace = pluginConfig.pluginPackageName
     compileSdk =
         libs.versions.compileSdk
             .get()
@@ -49,9 +61,9 @@ android {
             libs.versions.minSdk
                 .get()
                 .toInt()
-        manifestPlaceholders["godotPluginName"] = project.extra["pluginName"] as String
-        manifestPlaceholders["godotPluginPackageName"] = project.extra["pluginPackageName"] as String
-        buildConfigField("String", "GODOT_PLUGIN_NAME", "\"${project.extra["pluginName"]}\"")
+        manifestPlaceholders["godotPluginName"] = pluginConfig.pluginName
+        manifestPlaceholders["godotPluginPackageName"] = pluginConfig.pluginPackageName
+        buildConfigField("String", "GODOT_PLUGIN_NAME", "\"${pluginConfig.pluginName}\"")
     }
 
     compileOptions {
@@ -65,11 +77,10 @@ android {
         }
     }
 
-    // Force AAR filenames to match original case and format
     libraryVariants.all {
         outputs.all {
             (this as LibraryVariantOutputImpl).outputFileName =
-                "${project.extra["pluginName"]}-$name.aar"
+                "${pluginConfig.pluginName}-$name.aar"
         }
     }
 }
@@ -90,7 +101,8 @@ node {
             .get()
 }
 
-// Collect all catalog library aliases except the rewrite recipe dependency
+// ── Dependencies ──────────────────────────────────────────────────────────────
+
 val androidDependencies =
     extensions
         .getByType<VersionCatalogsExtension>()
@@ -103,11 +115,11 @@ val androidDependencies =
 
 dependencies {
     "rewrite"(libs.rewrite.static.analysis)
-    implementation("godot:godot-lib:${project.extra["godotVersion"]}.${project.extra["godotReleaseType"]}@aar")
+    implementation("godot:godot-lib:${godotConfig.godotVersion}.${godotConfig.godotReleaseType}@aar")
     androidDependencies.forEach { implementation(it) }
 }
 
-// ── Helpers ──────────────────────────────────────────────────────────────────
+// ── Helpers ───────────────────────────────────────────────────────────────────
 
 fun buildTimestamp(): String = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))
 
@@ -127,7 +139,6 @@ fun TaskContainerScope.registerAndroidBuildVariant(variant: String) {
             project(":android").tasks.named("assemble${variant.replaceFirstChar { it.uppercase() }}"),
         )
 
-        // Explicit input wiring allows Gradle to skip this task when upstream outputs are unchanged
         inputs.files(project(":addon").tasks.named("generateGDScript").map { it.outputs.files })
         inputs.files(project(":addon").tasks.named("copyAssets").map { it.outputs.files })
         inputs.files(
@@ -140,13 +151,13 @@ fun TaskContainerScope.registerAndroidBuildVariant(variant: String) {
         into("$pluginDir/android")
 
         from("$repositoryRootDir/addon/build/output") {
-            include("addons/${project.extra["pluginName"]}/**")
+            include("addons/${pluginConfig.pluginName}/**")
             include("addons/GMPShared/**")
         }
 
         from("$projectDir/build/outputs/aar") {
-            include("${project.extra["pluginName"]}-$variant.aar")
-            into("addons/${project.extra["pluginName"]}/bin/$variant")
+            include("${pluginConfig.pluginName}-$variant.aar")
+            into("addons/${pluginConfig.pluginName}/bin/$variant")
         }
 
         doLast { println("Android $variant build completed at: ${buildTimestamp()}") }
@@ -176,7 +187,7 @@ tasks {
         dependsOn("buildAndroidDebug", "buildAndroidRelease")
 
         group = "archive"
-        archiveFileName.set(project.extra["pluginArchiveAndroid"] as String)
+        archiveFileName.set("${pluginConfig.pluginName}-Android-v${pluginConfig.pluginVersion}.zip")
         destinationDirectory.set(layout.projectDirectory.dir(archiveDir))
 
         into("res") {
@@ -196,7 +207,6 @@ tasks {
             "buildAndroidDebug",
         )
 
-        // Wire upstream output so Gradle can skip this copy when nothing has changed
         inputs.files(project.tasks.named("buildAndroidDebug").map { it.outputs.files })
 
         destinationDir = file(demoDir)
@@ -207,13 +217,11 @@ tasks {
         outputs.dir(destinationDir)
     }
 
-    // Note: uninstallAndroid is deliberately NOT wired into the root :clean task.
-    // A developer clean should not silently wipe the demo application's plugin files.
     register<Delete>("uninstallAndroid") {
         description = "Removes plugin files from demo app (preserves .uid and .import files)"
         group = "uninstall"
         delete(
-            fileTree("$demoDir/addons/${project.extra["pluginName"]}") {
+            fileTree("$demoDir/addons/${pluginConfig.pluginName}") {
                 include("**/*")
                 exclude("**/*.uid")
                 exclude("**/*.import")
@@ -297,12 +305,12 @@ tasks {
 
     register<de.undercouch.gradle.tasks.download.Download>("downloadGodotAar") {
         group = "setup"
-        val destFile = file("${gradle.extra["libDir"]}/${project.extra["godotAarFile"]}")
+        val destFile = file("${gradle.extra["libDir"]}/${godotConfig.godotAarFile}")
 
-        inputs.property("godotAarUrl", project.extra["godotAarUrl"] as String)
+        inputs.property("godotAarUrl", godotConfig.godotAarUrl)
         outputs.file(destFile)
 
-        src(project.extra["godotAarUrl"] as String)
+        src(godotConfig.godotAarUrl)
         dest(destFile)
         overwrite(false)
     }

@@ -12,6 +12,14 @@ plugins {
     alias(libs.plugins.kotlin.serialization) apply false
 }
 
+// ── Load config data class ────────────────────────────────────────────────────
+//
+// pluginDir, repositoryRootDir, archiveDir, and all other shared extras are
+// already set on project.extra by base-conventions.  pluginConfig is loaded
+// here for typed member access in createMultiArchive and ktsSourceFiles().
+
+val pluginConfig = loadPluginConfig()
+
 allprojects {
     tasks.withType<JavaCompile> {
         options.compilerArgs.add("-Xlint:unchecked")
@@ -19,7 +27,7 @@ allprojects {
     }
 }
 
-apply(from = "$rootDir/config/common.gradle.kts")
+// ── Helpers ───────────────────────────────────────────────────────────────────
 
 /** Returns all *.gradle.kts files under addon/, android/, common/, and ios/. */
 fun ktsSourceFiles(): List<String> {
@@ -30,6 +38,8 @@ fun ktsSourceFiles(): List<String> {
         }.map { it.relativeTo(file(repositoryRootDir)).path }
         .sorted()
 }
+
+// ── Tasks ─────────────────────────────────────────────────────────────────────
 
 tasks {
     val pluginDir: String by project.extra
@@ -83,7 +93,7 @@ tasks {
         )
 
         group = "archive"
-        archiveFileName.set(project.extra["pluginArchiveMulti"] as String)
+        archiveFileName.set("${pluginConfig.pluginName}-Multi-v${pluginConfig.pluginVersion}.zip")
         destinationDirectory.set(layout.projectDirectory.dir(archiveDir))
         duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 
