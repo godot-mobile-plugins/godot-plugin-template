@@ -10,6 +10,7 @@ Thank you for your interest in contributing to the Godot PluginTemplate Plugin! 
 ## <img src="https://raw.githubusercontent.com/godot-mobile-plugins/godot-plugin-template/main/addon/src/main/icon.png" width="24"> Table of Contents
 
 - [Project Structure](#-project-structure)
+- [Build System Architecture](#-build-system-architecture)
 - [Prerequisites](#-prerequisites)
 - [Configuration](#-configuration)
 - [Development Workflow](#-development-workflow)
@@ -35,8 +36,7 @@ Thank you for your interest in contributing to the Godot PluginTemplate Plugin! 
 │   │   └── output/                        # Generated GDScript code
 │   │
 │   ├── config/
-│   │   ├── addon-build.properties         # Gradle build customization for addon module
-│   │   └── addon.gradle.kts               # Gradle configuration for addon module
+│   │   └── addon-build.properties         # Gradle build customization for addon module
 │   │
 │   └── src/
 │       ├── main                           # Main GDScript templates
@@ -51,13 +51,12 @@ Thank you for your interest in contributing to the Godot PluginTemplate Plugin! 
 │   │   └── outputs/                       # Generated Android AAR files
 │   │
 │   ├── config/
-│   │   ├── android-build.properties       # Gradle build customization for android module
-│   │   └── android.gradle.kts             # Gradle configuration for android module
+│   │   └── android-build.properties       # Gradle build customization for android module
 │   │
 │   ├── libs/                              # Godot library for Android (default location; configurable via local.properties)
 │   └── src/main/                          # Android source code
 │
-├── common/                              # Shared build configuration
+├── common/                              # Gradle root - shared build configuration
 │   ├── build.gradle.kts                   # Root build configuration
 │   ├── ?.gradle.kts                       # Any extra Gradle configuration (configured in
 │   │                                      # common/config/build.properties) for the plugin goes here
@@ -70,9 +69,20 @@ Thank you for your interest in contributing to the Godot PluginTemplate Plugin! 
 │   │   ├── plugin/                        # Built plugin files
 │   │   └── reports/                       # Build reports
 │   │
+│   ├── build-logic/                       # Convention plugin (precompiled script plugins)
+│   │   ├── build.gradle.kts
+│   │   ├── settings.gradle.kts
+│   │   └── src/main/kotlin/
+│   │       ├── base-conventions.gradle.kts  # Core convention plugin - applied by every module
+│   │       ├── BuildConfig.kt               # Reads build.properties + per-module *-build.properties
+│   │       ├── GodotConfig.kt               # Reads godot.properties
+│   │       ├── IosConfig.kt                 # Reads ios/config/ios.properties
+│   │       ├── PluginConfig.kt              # Reads plugin.properties
+│   │       ├── ProjectExtensions.kt         # loadPluginConfig(), loadGodotConfig(), loadIosConfig(), loadBuildConfig()
+│   │       └── SpmDependency.kt             # Data class for spm_dependencies.json entries
+│   │
 │   ├── config/
 │   │   ├── build.properties               # Build-related property configuration & customization
-│   │   ├── common.gradle.kts              # Common Gradle configuration
 │   │   ├── godot.properties               # Godot version configuration
 │   │   └── plugin.properties              # Plugin configuration
 │   │
@@ -87,7 +97,7 @@ Thank you for your interest in contributing to the Godot PluginTemplate Plugin! 
 ├── ios/                                 # iOS platform module
 │   ├── ios-build.gradle.kts               # iOS build configuration
 │   ├── ?.gradle.kts                       # Any extra iOS-specific Gradle configuration (configured in
-│   │                                      # ios/config/build.properties) for the plugin goes here
+│   │                                      # ios/config/ios-build.properties) for the plugin goes here
 │   │
 │   ├── src/                               # iOS platform code
 │   ├── plugin.xcodeproj/                  # Xcode project
@@ -96,7 +106,6 @@ Thank you for your interest in contributing to the Godot PluginTemplate Plugin! 
 │   ├── config/
 │   │   ├── ios.properties                 # iOS configuration
 │   │   ├── ios-build.properties           # Gradle build customization for ios module
-│   │   ├── ios.gradle.kts                 # iOS Gradle configuration
 │   │   ├── spm_dependencies.json          # SPM dependency configuration
 │   │   └── *.gdip                         # Godot iOS plugin config
 │   │
@@ -114,6 +123,57 @@ Thank you for your interest in contributing to the Godot PluginTemplate Plugin! 
 ├── docs/                                # Documentation
 │
 └── release/                             # Final release archives
+```
+
+---
+
+## <img src="https://raw.githubusercontent.com/godot-mobile-plugins/godot-plugin-template/main/addon/src/main/icon.png" width="24"> Build System Architecture
+
+The build system is centred on a **convention plugin** living in `common/build-logic/`. This is an [included build](https://docs.gradle.org/current/userguide/composite_builds.html) whose compiled output is available on the classpath of every module build script that declares `plugins { id("base-conventions") }`.
+
+### Config Data Classes
+
+All plugin, Godot, iOS, and build settings are loaded once into typed immutable data classes. Project build scripts access them through `Project` extension functions - the same call pattern used throughout the Kotlin ecosystem:
+
+| Extension function   | Data class    | Source file                                    |
+|----------------------|---------------|------------------------------------------------|
+| `loadPluginConfig()` | `PluginConfig` | `common/config/plugin.properties`             |
+| `loadGodotConfig()`  | `GodotConfig`  | `common/config/godot.properties`              |
+| `loadIosConfig()`    | `IosConfig`    | `ios/config/ios.properties`                   |
+| `loadBuildConfig()`  | `BuildConfig`  | `common/config/build.properties` + all four `*-build.properties` |
+
+Usage in any module build script:
+
+```kotlin
+plugins { id("base-conventions") }
+
+val pluginConfig = loadPluginConfig()
+val godotConfig  = loadGodotConfig()
+val iosConfig    = loadIosConfig()
+
+println(pluginConfig.pluginName)        // "PluginTemplatePlugin"
+println(godotConfig.godotAarUrl)        // full GitHub download URL
+println(iosConfig.frameworks)           // List<String> - already parsed
+```
+
+### `base-conventions` Convention Plugin
+
+Applying `id("base-conventions")` in a module build script:
+
+1. Loads all four config data classes.
+2. Bridges every scalar config value onto `project.extra` (for compatibility with `apply(from = …)` scripts that cannot reference build-logic types directly).
+3. Sets shared directory-layout extras (`pluginDir`, `repositoryRootDir`, `archiveDir`, `demoDir`).
+4. Applies the per-module user-defined extra properties and extra Gradle scripts from `BuildConfig`, scoped by `project.path` - so `:android` only receives `BuildConfig.androidExtraProperties` / `androidExtraGradle`, `:ios` only receives the iOS equivalents, and so on.
+
+### `IosConfig` List Fields
+
+The `frameworks`, `embeddedFrameworks`, and `linkerFlags` fields on `IosConfig` are `List<String>`. The comma-separated values in `ios/config/ios.properties` are split and trimmed at load time, so consumers never need to parse delimiters:
+
+```kotlin
+val iosConfig = loadIosConfig()
+iosConfig.frameworks         // ["Foundation.framework", "Network.framework"]
+iosConfig.embeddedFrameworks // [] when empty
+iosConfig.linkerFlags        // ["-ObjC"]
 ```
 
 ---
@@ -168,7 +228,7 @@ godot.dir=/path/to/your/shared/godot
 - **Ruby** - Required for SPM dependency management via `spm_manager.rb` (macOS system Ruby is sufficient)
 - **xcodeproj gem** - Installed automatically by the build system if missing, or manually via: `gem install xcodeproj --user-install`
 
-### Developer Tools (Optional — required for format checking)
+### Developer Tools (Optional - required for format checking)
 
 These tools are needed when running `checkFormat` or `applyFormat` tasks:
 
@@ -234,8 +294,9 @@ The `common/config/plugin.properties` file contains core plugin settings:
 
 ```properties
 # Plugin identification
-pluginNodeName=...                # Name of the plugin node in Godot
-pluginModuleName=...              # Module name for native code
+pluginNodeName=...                # Name of the plugin node in Godot (e.g. MyPlugin)
+pluginModuleName=...              # Snake-case module name for native symbols (e.g. my_plugin)
+pluginPackage=...                 # Fully-qualified Java/Kotlin package (e.g. org.godotengine.plugin.myplugin)
 pluginVersion=1.0                 # Plugin version
 ```
 
@@ -247,17 +308,19 @@ godotVersion=4.6                  # Target Godot version
 godotReleaseType=stable           # Release type: stable, dev6, beta3, rc1, etc.
 ```
 
-The `common/config/build.properties` file contains core Gradle build-related property settings:
+The `common/config/build.properties` file contains Gradle build-related property settings. The `gradleProjectName` key is required. Extra properties and Gradle scripts that apply only to the **root project** use a `root.` prefix:
 
 ```properties
 gradleProjectName=godot-*-plugin
 
-# Extra properties configured in the following format
-extra.anotherProperty=property value
+# Extra properties set on the root project only
+root.extra.anotherProperty=property value
 
-# Extra gradle configuration files in the following format
-gradle.another=another.gradle.kts
+# Extra Gradle scripts applied to the root project only
+root.gradle.another=another.gradle.kts
 ```
+
+Per-module extra properties and scripts are configured in each module's own `*-build.properties` file (see [Build Customization](#-build-customization) below).
 
 **Key Properties:**
 - `pluginNodeName` - The name of the main plugin node used in Godot
@@ -267,16 +330,16 @@ gradle.another=another.gradle.kts
 
 ### <img src="https://raw.githubusercontent.com/godot-mobile-plugins/godot-plugin-template/main/addon/src/main/icon.png" width="20"> Build Customization
 
-Plugin-specific build customizations can be configured in the following files:
+Plugin-specific build customizations can be configured in the following files.
 
-`common/config/build.properties` for general customizations:
+`common/config/build.properties` for root-project customizations. The `root.` prefix scopes each entry to the root project only:
 
 ```properties
-# Set plugin-specific extra properties common for all modules
-#extra.myProperty=value
+# Set plugin-specific extra properties on the root project
+#root.extra.myProperty=value
 
-# Configure plugin-specific Gradle scripts common for all modules
-#gradle.extraGradle=extra.gradle.kts
+# Configure plugin-specific Gradle scripts for the root project
+#root.gradle.extraGradle=extra.gradle.kts
 ```
 
 `addon/config/addon-build.properties` for addon-module build customizations:
@@ -309,6 +372,8 @@ Plugin-specific build customizations can be configured in the following files:
 #gradle.extraGradle=extra.gradle.kts
 ```
 
+Each `extra.*` key sets a Gradle extra property on the corresponding module's project. Each `gradle.*` key applies the named Gradle script file to that module via `project.apply(from = …)`. Extra scripts are resolved relative to the repository root.
+
 ### <img src="https://raw.githubusercontent.com/godot-mobile-plugins/godot-plugin-template/main/addon/src/main/icon.png" width="20"> Local Configuration
 
 Create `common/local.properties` to configure machine-specific paths. This file is gitignored and must be created locally.
@@ -326,7 +391,7 @@ sdk.dir=/Users/YourUsername/Library/Android/sdk
 sdk.dir=/usr/lib/android-sdk
 ```
 
-#### Godot Directory (iOS — optional)
+#### Godot Directory (iOS - optional)
 
 By default, the iOS build scripts download and use the Godot source from `ios/godot/` inside the project. If you want to use a Godot source tree located elsewhere on your machine (e.g. to share it across multiple plugin projects), set `godot.dir` in `local.properties`:
 
@@ -337,7 +402,7 @@ godot.dir=/path/to/your/shared/godot
 
 When `godot.dir` is not set, the build uses the `ios/godot/` directory. The path supports `~` and environment variable expansion.
 
-#### Godot Android Library (AAR — optional)
+#### Godot Android Library (AAR - optional)
 
 By default, the Godot Android AAR libary file is expected to be placed inside `android/libs/` directory inside the project. If you want to use a location elsewhere on your machine (e.g. to share it across multiple plugin projects), set `lib.dir` in `local.properties`:
 
@@ -348,7 +413,7 @@ lib.dir=/path/to/your/shared/aar
 
 When `lib.dir` is not set, the build uses the `android/libs/` directory. The path supports `~` and environment variable expansion.
 
-**Note:** The Godot headers directory must contain a `GODOT_VERSION` file whose content matches the `godotVersion` property in `common/config/godot.properties`. The `downloadGodotHeaders` Gradle task creates this file automatically when it downloads the headers. If the directory already exists but contains a different version, the build will fail with a clear error message — run `./script/build_ios.sh -gG` to remove the old directory and re-download the correct version.
+**Note:** The Godot headers directory must contain a `GODOT_VERSION` file whose content matches the `godotVersion` property in `common/config/godot.properties`. The `downloadGodotHeaders` Gradle task creates this file automatically when it downloads the headers. If the directory already exists but contains a different version, the build will fail with a clear error message - run `./script/build_ios.sh -gG` to remove the old directory and re-download the correct version.
 
 ### <img src="https://raw.githubusercontent.com/godot-mobile-plugins/godot-plugin-template/main/addon/src/main/icon.png" width="20"> iOS Configuration
 
@@ -358,18 +423,20 @@ The `ios/config/ios.properties` file contains iOS-specific settings:
 # iOS deployment target
 platform_version=14.3
 
-# Swift language version (required — must match your Xcode project)
+# Swift language version (required - must match your Xcode project)
 swift_version=5.9
 
-# iOS system framework dependencies
+# iOS system framework dependencies (comma-separated)
 frameworks=Foundation.framework,...
 
-# Embedded iOS external framework dependencies
+# Embedded iOS external framework dependencies (comma-separated; may be empty)
 embedded_frameworks=res://ios/framework/*.xcframework,...
 
-# Linker flags
+# Linker flags (comma-separated; may be empty)
 flags=-ObjC,-Wl,...
 ```
+
+The `frameworks`, `embedded_frameworks`, and `flags` values are comma-separated lists. The build system parses them into typed lists at configuration time (`IosConfig.kt`) - blank entries are ignored. Values are used as-is for token replacement in GDScript templates and passed directly to `xcodebuild`.
 
 SPM dependencies are configured in the `ios/config/spm_dependencies.json` file in the following format:
 
@@ -602,7 +669,7 @@ The iOS build process involves several steps that are orchestrated automatically
    - Version is determined by `godotVersion` and `godotReleaseType` in `godot.properties`
    - Extracted to `ios/godot/` by default, or to the path set by `godot.dir` in `common/local.properties`
    - The download is skipped if the correct version is already present (checked via a `GODOT_VERSION` file)
-   - If the directory exists but contains a different version, the build fails with a clear error — run `./script/build_ios.sh -gG` to switch versions
+   - If the directory exists but contains a different version, the build fails with a clear error - run `./script/build_ios.sh -gG` to switch versions
 
 2. **Validate Swift Version**:
    - Reads `swift_version` from `ios/config/ios.properties`
@@ -619,10 +686,10 @@ The iOS build process involves several steps that are orchestrated automatically
 
 5. **Build XCFrameworks**:
    - Builds up to four variants via `xcodebuild archive`:
-     - `buildiOSDebug` — device (arm64), debug
-     - `buildiOSRelease` — device (arm64), release
-     - `buildiOSDebugSimulator` — simulator (arm64/x86_64), debug
-     - `buildiOSReleaseSimulator` — simulator (arm64/x86_64), release
+     - `buildiOSDebug` - device (arm64), debug
+     - `buildiOSRelease` - device (arm64), release
+     - `buildiOSDebugSimulator` - simulator (arm64/x86_64), debug
+     - `buildiOSReleaseSimulator` - simulator (arm64/x86_64), release
    - The `-s` flag selects simulator variants; without it, device variants are built
    - Archives are created as `.xcarchive` bundles under `ios/build/lib/`
    - XCFrameworks combining device and simulator slices are assembled in `ios/build/framework/`
@@ -758,7 +825,7 @@ This creates:
 
 ### Release Checklist
 
-- [ ] Update version in `common/config/plugin.properties`
+- [ ] Update version in `common/config/plugin.properties` (`pluginVersion`)
 - [ ] Update versions in issue templates (`.github/ISSUE_TEMPLATE`)
 - [ ] Test on both platforms
 - [ ] Build release archives
