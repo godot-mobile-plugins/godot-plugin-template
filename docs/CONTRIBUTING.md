@@ -139,7 +139,7 @@ All plugin, Godot, iOS, and build settings are loaded once into typed immutable 
 |----------------------|---------------|------------------------------------------------|
 | `loadPluginConfig()` | `PluginConfig` | `common/config/plugin.properties`             |
 | `loadGodotConfig()`  | `GodotConfig`  | `common/config/godot.properties`              |
-| `loadIosConfig()`    | `IosConfig`    | `ios/config/ios.properties`                   |
+| `loadIosConfig()`    | `IosConfig`    | `ios/config/ios.properties` + `ios/config/spm_dependencies.json` |
 | `loadBuildConfig()`  | `BuildConfig`  | `common/config/build.properties` + all four `*-build.properties` |
 
 Usage in any module build script:
@@ -174,6 +174,33 @@ val iosConfig = loadIosConfig()
 iosConfig.frameworks         // ["Foundation.framework", "Network.framework"]
 iosConfig.embeddedFrameworks // [] when empty
 iosConfig.linkerFlags        // ["-ObjC"]
+```
+
+### `IosConfig` SPM Dependencies
+
+`IosConfig` also exposes a `spmDependencies: List<SpmDependency>` field, decoded at load time from `ios/config/spm_dependencies.json`. Each `SpmDependency` entry carries three fields:
+
+| Field      | Type           | Description                                      |
+|------------|----------------|--------------------------------------------------|
+| `url`      | `String`       | Git repository URL of the Swift package          |
+| `version`  | `String`       | Minimum version requirement                      |
+| `products` | `List<String>` | SPM product names to link against                |
+
+```kotlin
+val iosConfig = loadIosConfig()
+iosConfig.spmDependencies   // [SpmDependency(url="https://...", version="1.2.3", products=["ProductA"])]
+```
+
+`base-conventions` bridges this list onto `project.extra["iosSpmDependencies"]` so it is accessible from any task lambda that cannot reference `IosConfig` by type directly.
+
+The `addon-build.gradle.kts` `generateGDScript` and `generateSharedGDScript` tasks expose the list via the `@spmDependencies@` token. Each dependency is rendered as a GDScript dictionary literal using [StringName](https://docs.godotengine.org/en/stable/classes/class_stringname.html) key syntax (`&"key"`), and multiple entries are joined with `, ` — without outer brackets, because they are supplied by the surrounding GDScript constant:
+
+```gdscript
+# Template source:
+const SPM_DEPENDENCIES: Array = [ @spmDependencies@ ]
+
+# After token replacement (two dependencies):
+const SPM_DEPENDENCIES: Array = [ {&"url": "https://github.com/owner/repo", &"version": "1.2.3", &"products": ["ProductA", "ProductB"]}, {&"url": "https://github.com/other/pkg", &"version": "2.0.0", &"products": ["ProductC"]} ]
 ```
 
 ---
@@ -430,6 +457,8 @@ swift_version=5.9
 frameworks=Foundation.framework,...
 
 # Embedded iOS external framework dependencies (comma-separated; may be empty)
+# Use this for vendored or prebuilt xcframeworks that are NOT managed by SPM.
+# SPM packages should be declared in spm_dependencies.json instead.
 embedded_frameworks=res://ios/framework/*.xcframework,...
 
 # Linker flags (comma-separated; may be empty)
@@ -437,6 +466,17 @@ flags=-ObjC,-Wl,...
 ```
 
 The `frameworks`, `embedded_frameworks`, and `flags` values are comma-separated lists. The build system parses them into typed lists at configuration time (`IosConfig.kt`) - blank entries are ignored. Values are used as-is for token replacement in GDScript templates and passed directly to `xcodebuild`.
+
+GDScript templates may reference the following tokens for iOS values set in `ios.properties` and `spm_dependencies.json`:
+
+| Token                    | Source                        | GDScript type  |
+|--------------------------|-------------------------------|----------------|
+| `@iosFrameworks@`        | `frameworks` (ios.properties) | quoted strings |
+| `@iosEmbeddedFrameworks@`| `embedded_frameworks`         | quoted strings |
+| `@iosLinkerFlags@`       | `flags`                       | quoted strings |
+| `@spmDependencies@`      | `spm_dependencies.json`       | GDScript dicts |
+
+The `@spmDependencies@` token produces GDScript dictionary literals with StringName keys and no outer brackets (see [`IosConfig` SPM Dependencies](#iosconfig-spm-dependencies) for the exact format).
 
 SPM dependencies are configured in the `ios/config/spm_dependencies.json` file in the following format:
 
@@ -693,14 +733,18 @@ The iOS build process involves several steps that are orchestrated automatically
    - The `-s` flag selects simulator variants; without it, device variants are built
    - Archives are created as `.xcarchive` bundles under `ios/build/lib/`
    - XCFrameworks combining device and simulator slices are assembled in `ios/build/framework/`
+   - **Only the plugin's own xcframeworks** (`PluginName.debug.xcframework`, `PluginName.release.xcframework`) are copied into the plugin directory and included in release archives
+   - SPM dependency xcframeworks produced in `ios/build/DerivedData/` are **not** bundled in the archive; they are resolved by Xcode at Godot iOS export time using the `Package.resolved` file that is committed alongside the Xcode project
 
 #### Output Locations
 
 - **Godot headers:** `ios/godot/` (default) or path set by `godot.dir` in `common/local.properties`
 - **Build artifacts:** `ios/build/`
 - **xcarchives:** `ios/build/lib/ios_debug.xcarchive`, `ios_release.xcarchive`, `sim_debug.xcarchive`, `sim_release.xcarchive`
-- **XCFrameworks:** `ios/build/framework/PluginTemplatePlugin.debug.xcframework`, `PluginTemplatePlugin.release.xcframework`
+- **Plugin XCFrameworks:** `ios/build/framework/PluginTemplatePlugin.debug.xcframework`, `PluginTemplatePlugin.release.xcframework`
 - **Release archive:** `release/PluginTemplatePlugin-iOS-v*.zip`
+
+> **Note:** Release archives (iOS and Multi) contain only the plugin's own xcframeworks. SPM dependency xcframeworks are intentionally excluded — they are fetched and linked by Xcode at Godot iOS export time using the `Package.resolved` committed with the Xcode project.
 
 ---
 

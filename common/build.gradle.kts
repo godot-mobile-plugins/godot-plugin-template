@@ -99,7 +99,12 @@ tasks {
 
         into("res") {
             from(layout.projectDirectory.dir("$pluginDir/android")) { includeEmptyDirs = false }
-            from(layout.projectDirectory.dir("$pluginDir/ios")) { includeEmptyDirs = false }
+            from(layout.projectDirectory.dir("$pluginDir/ios")) {
+                includeEmptyDirs = false
+                // SPM dependency xcframeworks are resolved by Xcode at export time
+                // and must not be included in the distributed plugin archive.
+                exclude("ios/framework/**")
+            }
         }
 
         doLast { println("Multi zip archive created at: ${archiveFile.get().asFile.path}") }

@@ -4,9 +4,12 @@
 
 import java.io.File
 import java.util.Properties
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.decodeFromString
 
 /**
- * Immutable value object holding every setting from `ios/config/ios.properties`.
+ * Immutable value object holding every setting from `ios/config/ios.properties`
+ * and `ios/config/spm_dependencies.json`.
  *
  * Obtain an instance via [Project.loadIosConfig] (defined in `ProjectExtensions.kt`),
  * which is available in any project build script that applies `id("base-conventions")`:
@@ -15,16 +18,19 @@ import java.util.Properties
  * plugins { id("base-conventions") }
  *
  * val iosConfig = loadIosConfig()
- * println(iosConfig.platformVersion)   // "14.3"
- * println(iosConfig.swiftVersion)      // "5.9"
- * println(iosConfig.frameworks)        // "Foundation.framework,Network.framework"
+ * println(iosConfig.platformVersion)    // "14.3"
+ * println(iosConfig.swiftVersion)       // "5.9"
+ * println(iosConfig.frameworks)         // ["Foundation.framework", "Network.framework"]
+ * println(iosConfig.spmDependencies)    // [SpmDependency(url=..., version=..., products=[...])]
  * ```
  *
- * ## Source file
+ * ## Source files
  *
- * `ios/config/ios.properties` at the repository root (one level above `gradle/`).
+ * - `ios/config/ios.properties` at the repository root (one level above `gradle/`).
+ * - `ios/config/spm_dependencies.json` at the repository root (optional; defaults to an
+ *   empty list when absent).
  *
- * ## Properties reference
+ * ## Properties reference (`ios.properties`)
  *
  * | Property key          | Kotlin field            | Description                                             |
  * |-----------------------|-------------------------|---------------------------------------------------------|
@@ -35,8 +41,23 @@ import java.util.Properties
  * | `flags`               | [linkerFlags]           | Extra linker flags, e.g. `["-ObjC"]`                   |
  *
  * Comma-separated properties (`frameworks`, `embedded_frameworks`, `flags`) are
- * split into [List]s at load time - blank entries are dropped - so consumers never
+ * split into [List]s at load time — blank entries are dropped — so consumers never
  * need to parse delimiters themselves.
+ *
+ * ## SPM dependencies reference (`spm_dependencies.json`)
+ *
+ * JSON array of objects; each object maps to a [SpmDependency]:
+ * ```json
+ * [
+ *   { "url": "https://github.com/owner/repo", "version": "1.2.3", "products": ["ProductA"] }
+ * ]
+ * ```
+ *
+ * | JSON key    | [SpmDependency] field | Description                                   |
+ * |-------------|------------------------|-----------------------------------------------|
+ * | `url`       | [SpmDependency.url]    | Git repository URL of the Swift package       |
+ * | `version`   | [SpmDependency.version]| Minimum package version requirement           |
+ * | `products`  | [SpmDependency.products]| SPM product names to link against            |
  */
 data class IosConfig(
     /** Minimum iOS deployment target, e.g. `14.3`. */
@@ -70,25 +91,51 @@ data class IosConfig(
      * Empty when no extra flags are required.
      */
     val linkerFlags: List<String>,
+    /**
+     * Swift Package Manager dependencies decoded from `ios/config/spm_dependencies.json`.
+     *
+     * Each entry carries a package [SpmDependency.url], a minimum [SpmDependency.version],
+     * and a list of [SpmDependency.products] to link against.
+     * Empty when the JSON file is absent or contains an empty array.
+     */
+    val spmDependencies: List<SpmDependency>,
 ) {
     companion object {
+        /** Lenient [Json] instance — tolerates unknown keys added to the JSON in future. */
+        private val json = Json { ignoreUnknownKeys = true }
+
         /**
-         * Loads an [IosConfig] from `ios/config/ios.properties`.
+         * Loads an [IosConfig] from `ios/config/ios.properties` and
+         * (optionally) `ios/config/spm_dependencies.json`.
          *
-         * @param gradleRootDir `rootProject.rootDir` - the `gradle/` directory.
+         * @param gradleRootDir `rootProject.rootDir` — the `gradle/` directory.
          *   The repository root is resolved as `gradleRootDir.parentFile`, and the
-         *   properties file is expected at `<repoRoot>/ios/config/ios.properties`.
+         *   config files are expected under `<repoRoot>/ios/config/`.
          */
         fun load(gradleRootDir: File): IosConfig {
-            val file = gradleRootDir.parentFile.resolve("ios/config/ios.properties")
-            check(file.exists()) { "iOS properties file not found: ${file.absolutePath}" }
-            val props = Properties().also { it.load(file.inputStream()) }
+            val iosConfigDir = gradleRootDir.parentFile.resolve("ios/config")
+
+            // ── ios.properties ────────────────────────────────────────────────
+            val propsFile = iosConfigDir.resolve("ios.properties")
+            check(propsFile.exists()) { "iOS properties file not found: ${propsFile.absolutePath}" }
+            val props = Properties().also { it.load(propsFile.inputStream()) }
+
+            // ── spm_dependencies.json ─────────────────────────────────────────
+            val spmFile = iosConfigDir.resolve("spm_dependencies.json")
+            val spmDependencies: List<SpmDependency> =
+                if (spmFile.exists()) {
+                    json.decodeFromString(spmFile.readText())
+                } else {
+                    emptyList()
+                }
+
             return IosConfig(
                 platformVersion    = props.require("platform_version"),
                 swiftVersion       = props.getProperty("swift_version")?.trim() ?: "",
                 frameworks         = props.splitList("frameworks"),
                 embeddedFrameworks = props.splitList("embedded_frameworks"),
                 linkerFlags        = props.splitList("flags"),
+                spmDependencies    = spmDependencies,
             )
         }
     }

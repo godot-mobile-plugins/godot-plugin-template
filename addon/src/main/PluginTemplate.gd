@@ -28,7 +28,7 @@ func _update_plugin() -> void:
 			_plugin_singleton = Engine.get_singleton(PLUGIN_SINGLETON_NAME)
 			_connect_signals()
 		elif not Engine.is_editor_hint():
-			PluginTemplate.log_error("%s singleton not found on this platform!" % PLUGIN_SINGLETON_NAME)
+			GmpLogger.log_error("%s singleton not found on this platform!" % PLUGIN_SINGLETON_NAME)
 
 
 func _connect_signals() -> void:
@@ -41,22 +41,10 @@ func get_plugin_template() -> Array:
 	if _plugin_singleton:
 		__result = _plugin_singleton.get_plugin_template()
 	else:
-		PluginTemplate.log_error("%s plugin not initialized" % PLUGIN_SINGLETON_NAME)
+		GmpLogger.log_error("%s plugin not initialized" % PLUGIN_SINGLETON_NAME)
 
 	return __result
 
 
 func _on_template_ready(a_dict: Dictionary) -> void:
 	template_ready.emit(a_dict)
-
-
-static func log_error(a_description: String) -> void:
-	push_error("%s: %s" % [PLUGIN_SINGLETON_NAME, a_description])
-
-
-static func log_warn(a_description: String) -> void:
-	push_warning("%s: %s" % [PLUGIN_SINGLETON_NAME, a_description])
-
-
-static func log_info(a_description: String) -> void:
-	print_rich("[color=lime]%s: INFO: %s[/color]" % [PLUGIN_SINGLETON_NAME, a_description])

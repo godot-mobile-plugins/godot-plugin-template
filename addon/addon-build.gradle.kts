@@ -29,6 +29,27 @@ val androidDependencies =
 fun List<String>.toQuotedString(): String = joinToString(", ") { "\"$it\"" }
 
 /**
+ * Formats a list of [SpmDependency] items into the GDScript dictionary literal
+ * format used as the body of a `const SPM_DEPENDENCIES: Array = [ @spmDependencies@ ]`
+ * token substitution.
+ *
+ * Each dependency becomes a GDScript dictionary with [StringName] keys (the `&"key"`
+ * syntax), e.g.:
+ * ```
+ * {&"url": "https://github.com/owner/repo", &"version": "1.2.3", &"products": ["ProductA", "ProductB"]}
+ * ```
+ *
+ * Multiple entries are joined with `, `. The surrounding square brackets are
+ * intentionally omitted because they are already present in the GDScript constant
+ * declaration that hosts the `@spmDependencies@` token.
+ */
+fun List<SpmDependency>.toGdscriptFormat(): String =
+    joinToString(", ") { dep ->
+        val products = dep.products.joinToString(", ") { "\"$it\"" }
+        """{&"url": "${dep.url}", &"version": "${dep.version}", &"products": [$products]}"""
+    }
+
+/**
  * Registers a GDScript format task (check or in-place fix).
  *
  * Both [checkGdscriptFormat] and [formatGdscriptSource] share identical source-file
@@ -131,6 +152,9 @@ tasks {
     @Suppress("UNCHECKED_CAST")
     val iosLinkerFlags = extra["iosLinkerFlags"] as List<String>
 
+    @Suppress("UNCHECKED_CAST")
+    val iosSpmDependencies = extra["iosSpmDependencies"] as List<SpmDependency>
+
     register<Delete>("cleanOutput") {
         group = "clean"
         delete(
@@ -175,6 +199,7 @@ tasks {
                 put("iosFrameworks", iosFrameworks.toQuotedString())
                 put("iosEmbeddedFrameworks", iosEmbeddedFrameworks.toQuotedString())
                 put("iosLinkerFlags", iosLinkerFlags.toQuotedString())
+                put("spmDependencies", iosSpmDependencies.toGdscriptFormat())
             }
 
         filter { line: String ->
@@ -193,6 +218,7 @@ tasks {
         inputs.files(
             rootProject.file("config/plugin.properties"),
             rootProject.file("../ios/config/ios.properties"),
+            rootProject.file("../ios/config/spm_dependencies.json"),
         )
         inputs.property("pluginName", pluginConfig.pluginName)
         inputs.property("pluginNodeName", pluginConfig.pluginNodeName)
@@ -203,6 +229,7 @@ tasks {
         inputs.property("iosFrameworks", iosFrameworks.joinToString())
         inputs.property("iosEmbeddedFrameworks", iosEmbeddedFrameworks.joinToString())
         inputs.property("iosLinkerFlags", iosLinkerFlags.joinToString())
+        inputs.property("iosSpmDependencies", iosSpmDependencies.joinToString())
 
         outputs.dir("$outputDir/addons/GMPShared")
     }
@@ -226,6 +253,7 @@ tasks {
                 put("iosFrameworks", iosFrameworks.toQuotedString())
                 put("iosEmbeddedFrameworks", iosEmbeddedFrameworks.toQuotedString())
                 put("iosLinkerFlags", iosLinkerFlags.toQuotedString())
+                put("spmDependencies", iosSpmDependencies.toGdscriptFormat())
             }
 
         filter { line: String ->
@@ -244,6 +272,7 @@ tasks {
         inputs.files(
             rootProject.file("config/plugin.properties"),
             rootProject.file("../ios/config/ios.properties"),
+            rootProject.file("../ios/config/spm_dependencies.json"),
         )
         inputs.property("pluginName", pluginConfig.pluginName)
         inputs.property("pluginNodeName", pluginConfig.pluginNodeName)
@@ -254,6 +283,7 @@ tasks {
         inputs.property("iosFrameworks", iosFrameworks.joinToString())
         inputs.property("iosEmbeddedFrameworks", iosEmbeddedFrameworks.joinToString())
         inputs.property("iosLinkerFlags", iosLinkerFlags.joinToString())
+        inputs.property("iosSpmDependencies", iosSpmDependencies.joinToString())
 
         outputs.dir("$outputDir/addons/${pluginConfig.pluginName}")
     }
