@@ -337,8 +337,8 @@ tasks {
         val execOps = objects.newInstance<Injected>().execOps
 
         doLast {
-            val iosConfigFile = file("$projectDir/config/spm_dependencies.json")
-            val deps = readSpmDependencies(iosConfigFile)
+            val spmConfigFile = file("$projectDir/config/spm_dependencies.json")
+            val deps = readSpmDependencies(spmConfigFile)
             val xcodeproj = "$projectDir/plugin.xcodeproj"
             val scriptDir = file("$repositoryRootDir/script")
 
@@ -405,8 +405,8 @@ tasks {
         val execOps = objects.newInstance<Injected>().execOps
 
         doLast {
-            val iosConfigFile = file("$projectDir/config/spm_dependencies.json")
-            val deps = readSpmDependencies(iosConfigFile)
+            val spmConfigFile = file("$projectDir/config/spm_dependencies.json")
+            val deps = readSpmDependencies(spmConfigFile)
 
             if (deps.isEmpty()) {
                 println("Warning: No dependencies found for plugin. Skipping SPM update.")
@@ -625,7 +625,7 @@ tasks {
     }
 
     register<Sync>("copyiOSBuildArtifacts") {
-        description = "Copies iOS build artifacts (xcframeworks and addon files) to the plugin directory"
+        description = "Copies iOS build artifacts (plugin xcframeworks and addon files) to the plugin directory"
         group = "build"
 
         dependsOn(
@@ -692,23 +692,10 @@ tasks {
 
         duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 
-        val derivedDataDir = buildDir.resolve("DerivedData")
-        inputs.dir(derivedDataDir).optional(true)
+        // SPM dependencies are resolved by Xcode at Godot export time via the
+        // project's Package.resolved. Only the plugin's own xcframeworks are copied here.
         inputs.dir(frameworkDir).optional(true)
         outputs.dir(destDir)
-
-        from(fileTree(derivedDataDir) { include("**/artifacts/**/*.xcframework/**") }) {
-            includeEmptyDirs = false
-            eachFile {
-                val segs = relativePath.segments
-                val xcfwIdx = segs.indexOfFirst { it.endsWith(".xcframework", ignoreCase = true) }
-                if (xcfwIdx >= 0) {
-                    relativePath = RelativePath(true, "ios", "framework", *segs.drop(xcfwIdx).toTypedArray())
-                } else {
-                    exclude()
-                }
-            }
-        }
 
         into("ios/plugins") {
             from(frameworkDir) {
@@ -794,7 +781,12 @@ tasks {
         duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 
         into("res") {
-            from(layout.projectDirectory.dir("$pluginDir/ios")) { includeEmptyDirs = false }
+            from(layout.projectDirectory.dir("$pluginDir/ios")) {
+                includeEmptyDirs = false
+                // SPM dependency xcframeworks are resolved by Xcode at export time
+                // and must not be included in the distributed plugin archive.
+                exclude("ios/framework/**")
+            }
         }
 
         doLast { println("iOS zip archive created at: ${archiveFile.get().asFile.path}") }

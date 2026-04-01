@@ -255,4 +255,5 @@ If this plugin has helped you, consider supporting its development! Every bit of
 |❤️| **Buy a Coffee** | Support the maintainers on GitHub Sponsors or other platforms. |
 
 ## ⭐ Star History
-[![Star History Chart](https://api.star-history.com/svg?repos=godot-mobile-plugins/godot-plugin-template&type=Date)](https://star-history.com/#godot-mobile-plugins/godot-plugin-template&Date)
+
+[![Star History Chart](https://api.star-history.com/image?repos=godot-mobile-plugins/godot-plugin-template&type=date&legend=top-left)](https://www.star-history.com/?repos=godot-mobile-plugins%2Fgodot-plugin-template&type=date&legend=top-left)

@@ -55,14 +55,15 @@ project.extra["godotAarFile"]     = godotConfig.godotAarFile
 // ── IosConfig → project.extra ─────────────────────────────────────────────────
 //
 // Bridged here so task lambdas that cannot reference IosConfig by type can still
-// reach the values via project.extra.  frameworks, embeddedFrameworks, and
-// linkerFlags are stored as List<String> - already parsed by IosConfig.load().
+// reach the values via project.extra.  frameworks, embeddedFrameworks, linkerFlags,
+// and spmDependencies are stored as List<*> - already parsed by IosConfig.load().
 
 project.extra["iosPlatformVersion"]    = iosConfig.platformVersion
 project.extra["iosSwiftVersion"]       = iosConfig.swiftVersion
 project.extra["iosFrameworks"]         = iosConfig.frameworks         // List<String>
 project.extra["iosEmbeddedFrameworks"] = iosConfig.embeddedFrameworks // List<String>
 project.extra["iosLinkerFlags"]        = iosConfig.linkerFlags        // List<String>
+project.extra["iosSpmDependencies"]    = iosConfig.spmDependencies    // List<SpmDependency>
 
 // ── Shared directory layout (replaces common.gradle.kts) ─────────────────────
 //
