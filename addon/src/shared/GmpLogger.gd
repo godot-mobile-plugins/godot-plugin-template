@@ -4,7 +4,6 @@
 
 class_name GmpLogger extends Object
 
-
 const PLUGIN_SINGLETON_NAME: String = "@pluginName@"
 
 
