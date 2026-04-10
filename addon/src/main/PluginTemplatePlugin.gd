@@ -112,7 +112,7 @@ class IosExportPlugin extends EditorExportPlugin:
 					% __project_file_path)
 			return
 
-		var __script_name = "add_dependencies.rb"
+		var __script_name = "add_dependency.rb"
 		var __add_dependency_script_path = a_base_dir.path_join(__script_name)
 		var __result = _generate_add_dependency_script(__add_dependency_script_path)
 		if __result != Error.OK:

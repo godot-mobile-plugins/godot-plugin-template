@@ -28,46 +28,48 @@ Thank you for your interest in contributing to the Godot PluginTemplate Plugin! 
 
 ```text
 .
-├── addon/                               # GDScript interface module
-│   ├── addon-build.gradle.kts             # Gradle build configuration for addon module
-│   ├── ?.gradle.kts                       # Any extra addon-specific Gradle configuration (configured in
-│   │                                      # addon/config/addon-build.properties) for the plugin goes here
+├── addon/                                 # GDScript interface module
+│   ├── addon-build.gradle.kts               # Gradle build configuration for addon module
+│   ├── ?.gradle.kts                         # Any extra addon-specific Gradle configuration (configured in
+│   │                                        # addon/config/addon-build.properties) for the plugin goes here
 │   ├── build/
-│   │   └── output/                        # Generated GDScript code
+│   │   └── output/                          # Generated GDScript code
 │   │
 │   ├── config/
-│   │   └── addon-build.properties         # Gradle build customization for addon module
+│   │   └── addon-build.properties           # Gradle build customization for addon module
 │   │
 │   └── src/
-│       ├── main                           # Main GDScript templates
-│       └── shared                         # GDScript templates in common with other plugins, if any
+│       ├── main                             # Main GDScript templates
+│       └── shared                           # GDScript templates in common with other plugins, if any
 │
-├── android/                             # Android platform module
-│   ├── android-build.gradle.kts           # Android build configuration
-│   ├── ?.gradle.kts                       # Any extra Android-specific Gradle configuration (configured in
-│   │                                      # android/config/android-build.properties) for the plugin goes here
+├── android/                               # Android platform module
+│   ├── android-build.gradle.kts             # Android build configuration
+│   ├── ?.gradle.kts                         # Any extra Android-specific Gradle configuration (configured in
+│   │                                        # android/config/android-build.properties) for the plugin goes here
 │   │
 │   ├── build/
-│   │   └── outputs/                       # Generated Android AAR files
+│   │   └── outputs/                         # Generated Android AAR files
 │   │
 │   ├── config/
-│   │   └── android-build.properties       # Gradle build customization for android module
+│   │   └── android-build.properties         # Gradle build customization for android module
 │   │
-│   ├── libs/                              # Godot library for Android (default location; configurable via local.properties)
-│   └── src/main/                          # Android source code
+│   ├── libs/                                # Godot library for Android (default location; configurable via local.properties)
+│   └── src/
+│       ├── main                             # Android source code
+│       └── test                             # Android test code
 │
-├── common/                              # Gradle root - shared build configuration
-│   ├── build.gradle.kts                   # Root build configuration
-│   ├── ?.gradle.kts                       # Any extra Gradle configuration (configured in
-│   │                                      # common/config/build.properties) for the plugin goes here
+├── common/                                # Gradle root - shared build configuration
+│   ├── build.gradle.kts                     # Root build configuration
+│   ├── ?.gradle.kts                         # Any extra Gradle configuration (configured in
+│   │                                        # common/config/build.properties) for the plugin goes here
 │   │
-│   ├── gradle.properties                  # Gradle properties
-│   ├── local.properties                   # Local machine config (gitignored)
-│   ├── settings.gradle.kts                # Gradle settings
+│   ├── gradle.properties                    # Gradle properties
+│   ├── local.properties                     # Local machine config (gitignored)
+│   ├── settings.gradle.kts                  # Gradle settings
 │   ├── build/
-│   │   ├── archive/                       # Generated archives
-│   │   ├── plugin/                        # Built plugin files
-│   │   └── reports/                       # Build reports
+│   │   ├── archive/                         # Generated archives
+│   │   ├── plugin/                          # Built plugin files
+│   │   └── reports/                         # Build reports
 │   │
 │   ├── build-logic/                       # Convention plugin (precompiled script plugins)
 │   │   ├── build.gradle.kts
@@ -82,47 +84,48 @@ Thank you for your interest in contributing to the Godot PluginTemplate Plugin! 
 │   │       └── SpmDependency.kt             # Data class for spm_dependencies.json entries
 │   │
 │   ├── config/
-│   │   ├── build.properties               # Build-related property configuration & customization
-│   │   ├── godot.properties               # Godot version configuration
-│   │   └── plugin.properties              # Plugin configuration
+│   │   ├── build.properties                 # Build-related property configuration & customization
+│   │   ├── godot.properties                 # Godot version configuration
+│   │   └── plugin.properties                # Plugin configuration
 │   │
-│   └── gradle/                            # Gradle wrapper and version catalogs
-│       └── libs.versions.toml             # Dependencies and versions
+│   └── gradle/                              # Gradle wrapper and version catalogs
+│       └── libs.versions.toml               # Dependencies and versions
 │
-├── demo/                                # Demo application
-│   ├── addons/                            # Installed plugin files
-│   ├── ios/                               # iOS-specific demo files
-│   └── *.gd                               # Demo app scripts
+├── demo/                                  # Demo application
+│   ├── addons/                              # Installed plugin files
+│   ├── ios/                                 # iOS-specific demo files
+│   └── *.gd                                 # Demo app scripts
 │
-├── ios/                                 # iOS platform module
-│   ├── ios-build.gradle.kts               # iOS build configuration
-│   ├── ?.gradle.kts                       # Any extra iOS-specific Gradle configuration (configured in
-│   │                                      # ios/config/ios-build.properties) for the plugin goes here
+├── ios/                                   # iOS platform module
+│   ├── ios-build.gradle.kts                 # iOS build configuration
+│   ├── ?.gradle.kts                         # Any extra iOS-specific Gradle configuration (configured in
+│   │                                        # ios/config/ios-build.properties) for the plugin goes here
 │   │
-│   ├── src/                               # iOS platform code
-│   ├── plugin.xcodeproj/                  # Xcode project
-│   ├── build/                             # iOS build outputs
+│   ├── src/                                 # iOS platform code
+│   ├── test/                                # iOS test code
+│   ├── plugin.xcodeproj/                    # Xcode project
+│   ├── build/                               # iOS build outputs
 │   │
 │   ├── config/
-│   │   ├── ios.properties                 # iOS configuration
-│   │   ├── ios-build.properties           # Gradle build customization for ios module
-│   │   ├── spm_dependencies.json          # SPM dependency configuration
-│   │   └── *.gdip                         # Godot iOS plugin config
+│   │   ├── ios.properties                   # iOS configuration
+│   │   ├── ios-build.properties             # Gradle build customization for ios module
+│   │   ├── spm_dependencies.json            # SPM dependency configuration
+│   │   └── *.gdip                           # Godot iOS plugin config
 │   │
-│   └── godot/                             # Downloaded Godot source (default location; configurable via local.properties)
+│   └── godot/                               # Downloaded Godot source (default location; configurable via local.properties)
 │
-├── script/                              # Build and utility scripts
-│   ├── build.sh                           # Main build script
-│   ├── build_android.sh                   # Android build script
-│   ├── build_ios.sh                       # iOS build script
-│   ├── install.sh                         # Plugin installation script
-│   ├── run_gradle_task.sh                 # Gradle task runner
-│   ├── get_config_property.sh             # Configuration reader
-│   └── spm_manager.rb                     # Ruby script for managing SPM dependencies in Xcode project
+├── script/                                # Build and utility scripts
+│   ├── build.sh                             # Main build script
+│   ├── build_android.sh                     # Android build script
+│   ├── build_ios.sh                         # iOS build script
+│   ├── install.sh                           # Plugin installation script
+│   ├── run_gradle_task.sh                   # Gradle task runner
+│   ├── get_config_property.sh               # Configuration reader
+│   └── spm_manager.rb                       # Ruby script for managing SPM dependencies in Xcode project
 │
-├── docs/                                # Documentation
+├── docs/                                  # Documentation
 │
-└── release/                             # Final release archives
+└── release/                               # Final release archives
 ```
 
 ---
@@ -546,6 +549,9 @@ If the plugin has no SPM dependencies:
    # Quick Android build
    ./script/build.sh -a -- -b
 
+   # Run unit tests (Android + iOS)
+   ./script/build.sh -t
+
    # Install to demo app
    ./script/build.sh -D
 
@@ -635,6 +641,7 @@ Cross-platform builds with the `build.sh` script.
 | `-h` | Display script usage information |
 | `-r` | Build Android plugin with release build variant |
 | `-R` | Create Android release archive |
+| `-t` | Run Android unit tests (prints per-suite pass/fail table and code coverage) |
 
 #### Android Studio
 
@@ -699,6 +706,7 @@ If using Android Studio, make sure to open the root Gradle project from the `com
 | `-r` | Resolve SPM dependencies |
 | `-R` | Create release archive |
 | `-s` | Simulator build; use with `-b` for simulator debug, `-B` for simulator release |
+| `-t` | Run iOS unit tests (requires macOS and Xcode; Godot headers must be present) |
 
 #### Build Process Explained
 
@@ -786,7 +794,142 @@ Sub-tasks that require external tools (`ktlint`, `shellcheck`, `editorconfig-che
 
 ## <img src="https://raw.githubusercontent.com/godot-mobile-plugins/godot-plugin-template/main/addon/src/main/icon.png" width="24"> Testing
 
-### Testing in Demo App
+### Running All Tests
+
+Run unit tests for both platforms with a single command from the repository root:
+
+```bash
+./script/build.sh -t
+```
+
+This delegates to `:android:printTestSummary` and `:ios:testiOS` in sequence. The command exits non-zero if any test on either platform fails.
+
+In order to clean test results and rerun tests, use the following options:
+
+```bash
+./script/build.sh -ct
+```
+
+---
+
+### Android Unit Tests
+
+Android tests are written with **JUnit 5** and **Mockito** and live under `android/src/test/`.
+
+#### Running Android tests
+
+```bash
+# Run all Android tests, print per-suite summary, and show coverage
+./script/build_android.sh -t
+
+# Or via Gradle directly
+cd common
+./gradlew :android:printTestSummary
+```
+
+#### What the pipeline does
+
+The `printTestSummary` Gradle task orchestrates three steps automatically:
+
+| Step | Gradle Task | Description |
+|------|-------------|-------------|
+| 1 | `testDebugUnitTest` | Runs all JUnit 5 tests. `ignoreFailures=true` is set so coverage always runs even if tests fail. |
+| 2 | `createDebugUnitTestCoverageReport` | Generates the JaCoCo XML and HTML coverage report. |
+| 3 | `printTestSummary` | Prints a per-suite pass/fail table and overall coverage summary to the console, then exits non-zero if any tests failed. |
+
+#### Test dependencies
+
+Test library versions are managed in `common/gradle/libs.versions.toml`. The version catalog uses a naming convention to assign dependencies to the correct configurations automatically:
+
+| Alias prefix | Gradle configuration |
+|---|---|
+| `test-` | `testImplementation` |
+| `test-runtime-` | `testRuntimeOnly` |
+
+Current test dependencies:
+
+| Library | Version | Purpose |
+|---------|---------|---------|
+| `org.junit.jupiter:junit-jupiter` | 6.0.3 | JUnit 6 test runner |
+| `org.mockito:mockito-core` | 5.23.0 | Mocking framework |
+| `org.mockito:mockito-junit-jupiter` | 5.23.0 | JUnit Mockito integration |
+| `org.junit.platform:junit-platform-launcher` | 6.0.3 | Required test runtime launcher |
+
+#### Output
+
+- **HTML coverage report:** `android/build/reports/coverage/test/debug/index.html`
+- **XML coverage report:** `android/build/reports/coverage/test/debug/report.xml`
+- **Test results XML:** `android/build/test-results/testDebugUnitTest/`
+
+#### Writing new Android tests
+
+Place new test files under `android/src/test/java/` (or `kotlin/`) mirroring your main source package. JUnit 5 and Mockito are available without any additional configuration.
+
+---
+
+### iOS Unit Tests
+
+iOS tests are written with **XCTest** and live under `ios/test/unit/`. There are two test files:
+
+| File | Language | Coverage |
+|------|----------|---------|
+| `PluginTemplateTests.swift` | Swift | `PluginTemplate` class — init, `isActiveKey`, `onThisHappened` callback, ObjC bridging, concurrency |
+| `PluginTemplateLoggerTests.mm` | Objective-C++ | `plugin_template_log` global — initialization, all log levels, format string handling |
+
+The tests are compiled into the `plugin_template_plugin_tests` Xcode test bundle target, which declares a dependency on the main `plugin_template_plugin` static library target. The Xcode scheme used by the build system is `plugin_template_plugin_tests`.
+
+#### Running iOS tests
+
+```bash
+# Run all iOS tests and print a pass/fail summary
+./script/build_ios.sh -t
+
+# Or via Gradle directly
+cd common
+./gradlew :ios:testiOS
+```
+
+> **Note:** iOS tests require macOS and Xcode. The Godot headers must already be present in `ios/godot/` (or the path configured by `godot.dir`). If they are missing, run `./script/build_ios.sh -G` first.
+
+#### What the pipeline does
+
+The `testiOS` Gradle task runs:
+
+```
+xcodebuild test
+  -project ios/plugin.xcodeproj
+  -scheme plugin_template_plugin_tests
+  -destination 'platform=iOS Simulator,...'
+```
+
+The task exits non-zero if any test fails and prints `xcodebuild`'s test output to the console.
+
+#### Xcode project wiring
+
+The test target is wired into the Xcode project as follows:
+
+| Concern | Detail |
+|---------|--------|
+| Target name | `plugin_template_plugin_tests` |
+| Product type | `com.apple.product-type.bundle.unit-test` |
+| Scheme file | `ios/plugin.xcodeproj/xcshareddata/xcschemes/plugin_template_plugin_tests.xcscheme` |
+| Linked library | `libplugin_template_plugin.a` (the main plugin target) |
+| Target dependency | `plugin_template_plugin` (built before tests run) |
+| Header search paths | `$(SRCROOT)/src`, `$(CONFIGURATION_TEMP_DIR)/plugin_template_plugin.build/DerivedSources` |
+
+#### Writing new iOS tests
+
+Swift tests: add a new `XCTestCase` subclass to `ios/test/unit/` and register the file in the `plugin_template_plugin_tests` target's Sources build phase in `project.pbxproj`.
+
+Objective-C++ tests: add a `.mm` file to `ios/test/unit/`. Import `plugin_template_logger.h` for logger access or `plugin_template_plugin.h` for the plugin class. Add the file to the Sources build phase the same way.
+
+> **Note on Godot engine classes:** `PluginTemplatePlugin` (the `Object` subclass), `plugin_template_plugin_init()`, and `plugin_template_plugin_deinit()` all depend on `memnew`/`memdelete` and `Engine::get_singleton()`, which are Godot engine internals unavailable in a plain XCTest host. Test those paths using GDScript integration tests via the Godot editor or the [GUT](https://github.com/bitwes/Gut) framework instead.
+
+---
+
+### Testing in the Demo App
+
+Manual end-to-end testing via the demo Godot project:
 
 1. **Install plugin to demo:**
    ```bash
@@ -799,41 +942,23 @@ Sub-tasks that require external tools (`ktlint`, `shellcheck`, `editorconfig-che
    godot project.godot
    ```
 
-3. **Run and test features:**
+3. **Android — install and inspect logs:**
 
-### Android Testing
+Run the demo project on an Android device or simulator directly from Godot editor or export to .apk and...
 
-```bash
-# Build and install
-./script/build.sh -caD
+   ```bash
+   # Export Android build from Godot editor, then:
+   adb install demo/export/android/demo.apk
+   adb logcat | grep -i PluginTemplate
+   ```
 
-# Export Android build from Godot
-# Install on device/emulator
-adb install demo/export/android/demo.apk
+4. **iOS — run from Xcode:**
 
-# View logs
-adb logcat | grep -i PluginTemplate
-```
+Run the demo project on an iOS device or simulator directly from Godot editor or...
 
-### iOS Testing (macOS only)
-
-```bash
-# Build and install
-./script/build.sh -I -D
-
-# Open in Xcode
-cd demo
-open ios/demo.xcodeproj
-
-# Build and run on simulator/device from Xcode
-```
-
-### Automated Testing
-
-Consider adding:
-- Unit tests for native code
-- UI tests for demo app
-- CI/CD pipeline (GitHub Actions)
+- export Xcode project
+- open exported project with Xcode
+- run on selected device or simulator
 
 ---
 
@@ -871,7 +996,8 @@ This creates:
 
 - [ ] Update version in `common/config/plugin.properties` (`pluginVersion`)
 - [ ] Update versions in issue templates (`.github/ISSUE_TEMPLATE`)
-- [ ] Test on both platforms
+- [ ] Run unit tests on both platforms (`./script/build.sh -t`)
+- [ ] Test on both platforms (manual demo app verification)
 - [ ] Build release archives
 - [ ] Create GitHub release
 - [ ] Upload archives to release & publish
@@ -879,6 +1005,306 @@ This creates:
 - [ ] Post GitHub announcement
 - [ ] Update Asset Library listing
 - [ ] Update Asset Store listing
+
+---
+
+## <img src="https://raw.githubusercontent.com/godot-mobile-plugins/godot-plugin-template/main/addon/src/main/icon.png" width="24"> GitHub Actions Workflows
+
+This document describes each GitHub Actions workflow in `.github/workflows/`, covering what it does, when it runs, and which tools it relies on.
+
+---
+
+### Android Build (`android-build.yml`)
+
+**Trigger:** Pull requests targeting `main` that touch any of the following paths:
+
+- `common/config/**`
+- `common/*.gradle.kts`
+- `android/src/**`
+- `android/*.gradle.kts`
+
+**Runner:** `ubuntu-22.04`
+
+**Purpose:**
+
+Check that the Android plugin build completes successfully after each PR submission.
+
+**What it does:**
+
+Builds a debug Android AAR by invoking the `buildAndroidDebug` Gradle task from the `common` project directory. Before running the build, the workflow sets up the full toolchain: Node.js 22 (via `actions/setup-node`, or a manual tarball download when run locally with [act](https://github.com/nektos/act)), JDK 17 (Temurin distribution), and the Android SDK.
+
+**Steps summary:**
+
+| Step | Description |
+|------|-------------|
+| Checkout | Checks out the repository |
+| Install Node (act) | Manual Node.js 22 install for local `act` runs |
+| Setup Node (GitHub) | Standard Node.js 22 setup for GitHub-hosted runners |
+| Set up JDK | Installs Temurin JDK 17 |
+| Setup Android SDK | Installs the Android SDK via `android-actions/setup-android` |
+| Build Android debug | Runs `./gradlew buildAndroidDebug` from `common/` |
+
+---
+
+### Android Code Style (`android-style.yml`)
+
+**Trigger:** Pull requests targeting `main` that touch any of the following paths:
+
+- `android/src/**/*.java`
+- `android/src/**/*.kt`
+- `android/src/**/*.xml`
+
+**Runner:** `ubuntu-22.04`
+
+**What it does:**
+
+Enforces code style on all Android source files. Four independent checks are run in sequence:
+
+1. **ktlint** — validates Kotlin source files against the project's ktlint rules.
+2. **Checkstyle** — validates Java source files using the project's Checkstyle configuration at `.github/config/checkstyle.xml`. Checkstyle is downloaded directly from its GitHub releases at version 13.3.0.
+3. **Prettier + XML plugin** — validates Android XML resource files using Prettier with the `@prettier/plugin-xml` plugin, configured by `.github/config/prettier.xml.json`.
+4. **editorconfig-checker** — verifies that all `.java`, `.kt`, and `.xml` files comply with the repository's EditorConfig rules (final newlines, no trailing whitespace).
+
+**Steps summary:**
+
+| Step | Description |
+|------|-------------|
+| Checkout | Checks out the repository |
+| Set up Java | Installs Temurin JDK 21 |
+| Install ktlint | Uses the shared `.github/actions/install-ktlint` composite action |
+| Run ktlint | Lints `android/src/**/*.kt` |
+| Run Checkstyle | Downloads and runs Checkstyle 13.3.0 against `android/src` |
+| Install Node | Uses the shared `.github/actions/install-node` composite action |
+| Install Prettier and XML plugin | Runs `npm install --save-dev prettier @prettier/plugin-xml` |
+| Check XML formatting | Runs `npx prettier --check` on `android/src/**/*.xml` |
+| Install editorconfig-checker | Uses the shared `.github/actions/install-ec` composite action |
+| Verify EditorConfig | Runs `editorconfig-checker` on all `.java`, `.kt`, and `.xml` files under `android/src` |
+
+---
+
+### Documentation (`docs.yml`)
+
+**Trigger:** Pushes to `main` that touch any of the following paths:
+
+- `docs/content/**`
+- `.github/workflows/docs.yml`
+- `docs/zensical.toml`
+
+**Runner:** `ubuntu-22.04`
+
+**Permissions:** `contents: read`, `pages: write`, `id-token: write`
+
+**Concurrency:** Only one deployment runs at a time (`group: pages`); any in-progress run is cancelled when a new one starts.
+
+**What it does:**
+
+Builds and deploys the project's documentation site to GitHub Pages using the [Zensical](https://pypi.org/project/zensical/) static site generator. The built site is written to `docs/site/`, uploaded as a Pages artifact, and then deployed.
+
+**Steps summary:**
+
+| Step | Description |
+|------|-------------|
+| Configure Pages | Configures the GitHub Pages environment |
+| Checkout | Checks out the repository |
+| Setup Python | Installs Python 3.x |
+| Install Dependencies | Upgrades pip and installs `zensical` |
+| Build Documentation | Runs `zensical build --clean --config-file docs/zensical.toml` |
+| Upload Pages | Uploads `docs/site` as a Pages artifact |
+| Deploy Pages | Deploys the uploaded artifact to GitHub Pages |
+
+---
+
+### GDScript Code Style (`gdscript-style.yml`)
+
+**Trigger:** Pull requests targeting `main` that touch any of the following paths:
+
+- `addon/src/**/*.gd`
+- `demo/**/*.gd`
+
+**Runner:** `ubuntu-22.04`
+
+**What it does:**
+
+Validates GDScript formatting across the addon and demo directories using two tools:
+
+1. **gdformat** (from [gdtoolkit](https://github.com/Scony/godot-gdscript-toolkit)) — checks formatting compliance with `--check` (dry run). The `.gdformatrc` configuration file is copied from `.github/config/` to the working directory before checking. Certain auto-generated files are excluded: `AdmobPlugin.gd` and `MediationNetwork.gd` in the addon, and `Main.gd` in the demo. Files under `demo/addons/` are also excluded.
+2. **editorconfig-checker** — verifies final newlines and no trailing whitespace on all `.gd` files (same exclusion for `demo/addons/`).
+
+**Steps summary:**
+
+| Step | Description |
+|------|-------------|
+| Checkout | Checks out the repository |
+| Install gdtoolkit | Creates a Python venv at `/opt/gdtoolkit`, installs `gdtoolkit`, adds it to `$GITHUB_PATH` |
+| Verify Formatting | Copies `.gdformatrc`, runs `gdformat --check` on addon and demo `.gd` files |
+| Install editorconfig-checker | Uses the shared `.github/actions/install-ec` composite action |
+| Verify EditorConfig | Runs `editorconfig-checker` on all `.gd` files in addon and demo |
+
+---
+
+### Gradle Kotlin DSL Style (`gradle-kts-style.yml`)
+
+**Trigger:** Pull requests targeting `main` that touch any of the following paths:
+
+- `addon/*.gradle.kts`
+- `android/*.gradle.kts`
+- `common/*.gradle.kts`
+
+**Runner:** `ubuntu-22.04`
+
+**What it does:**
+
+Validates formatting of all Gradle Kotlin DSL build files using two tools:
+
+1. **ktlint 1.8.0** — checks all `*.gradle.kts` files at the root of `addon/`, `android/`, and `common/`.
+2. **editorconfig-checker 3.6.1** — verifies final newlines and no trailing whitespace on the same set of files.
+
+**Steps summary:**
+
+| Step | Description |
+|------|-------------|
+| Checkout | Checks out the repository |
+| Install Node | Uses the shared `.github/actions/install-node` composite action |
+| Set up JDK | Installs Temurin JDK 17 |
+| Install ktlint | Uses the shared `.github/actions/install-ktlint` composite action with version `1.8.0` |
+| Run ktlint | Runs `ktlint` on all `*.gradle.kts` files in `addon/`, `android/`, and `common/` |
+| Install editorconfig-checker | Uses the shared `.github/actions/install-ec` composite action with version `3.6.1` |
+| Verify EditorConfig | Runs `editorconfig-checker` on the same set of files |
+
+---
+
+### iOS Build (`ios-build.yml`)
+
+**Trigger:** Pull requests targeting `main` that touch any of the following paths:
+
+- `common/config/**`
+- `common/*.gradle.kts`
+- `ios/src/**`
+- `ios/config/**`
+- `ios/*.gradle.kts`
+- `ios/*.xcodeproj/**`
+
+**Runner:** `macos-latest`
+
+**Purpose:**
+
+Check that the iOS plugin build completes successfully after each PR submission.
+
+**What it does:**
+
+Builds a debug iOS xcframework. The workflow first downloads the Godot engine sources and generates the Godot header files (both via dedicated Gradle tasks that delegate to `script/build_ios.sh`), then runs the full `buildiOSDebug` Gradle task. This task depends on GDScript generation, iOS config generation, SPM dependency management, and the Xcode build itself.
+
+**Steps summary:**
+
+| Step | Description |
+|------|-------------|
+| Checkout | Checks out the repository |
+| Install Node | Uses the shared `.github/actions/install-node` composite action |
+| Set up JDK | Installs Temurin JDK 17 |
+| Download Godot | Runs `./gradlew downloadGodot` from `common/` |
+| Generate Godot Headers | Runs `./gradlew generateGodotHeaders` from `common/` |
+| Build iOS debug | Runs `./gradlew buildiOSDebug` from `common/` |
+
+---
+
+### iOS Code Style (`ios-style.yml`)
+
+**Trigger:** Pull requests targeting `main` that touch any of the following paths:
+
+- `ios/src/**/*.m`
+- `ios/src/**/*.mm`
+- `ios/src/**/*.h`
+- `ios/src/**/*.swift`
+
+**Runner:** `macos-latest`
+
+**What it does:**
+
+Validates code style on all iOS source files. Three independent checks are run:
+
+1. **SwiftLint** — lints Swift files under `ios/src/` using the configuration at `.github/config/.swiftlint.yml`. Output is formatted for GitHub Actions annotations.
+2. **clang-format** — performs a dry-run check (`--dry-run --Werror`) on all Objective-C and Objective-C++ files (`.m`, `.mm`, `.h`) using the style rules in `.github/config/.clang-format`.
+3. **editorconfig-checker** — verifies final newlines and no trailing whitespace on all `.m`, `.mm`, `.h`, and `.swift` files (installed via Homebrew).
+
+**Steps summary:**
+
+| Step | Description |
+|------|-------------|
+| Checkout | Checks out the repository |
+| Install SwiftLint | Runs `brew install swiftlint` |
+| Install clang-format | Runs `brew install clang-format` |
+| Run SwiftLint | Runs `swiftlint lint` on all `*.swift` files under `ios/src` |
+| Run clang-format check | Runs `clang-format --dry-run --Werror` on all `.m`, `.mm`, `.h` files under `ios/src` |
+| Install editorconfig-checker | Runs `brew install editorconfig-checker` |
+| Verify EditorConfig | Runs `editorconfig-checker` on all iOS source files |
+
+---
+
+### Properties File Style (`properties-style.yml`)
+
+**Trigger:** Pull requests targeting `main` that touch any of the following paths:
+
+- `common/config/*.properties`
+- `ios/config/*.properties`
+
+**Runner:** `ubuntu-22.04`
+
+**What it does:**
+
+Validates that all `.properties` configuration files comply with the repository's EditorConfig rules (final newlines and no trailing whitespace) using **editorconfig-checker**.
+
+**Steps summary:**
+
+| Step | Description |
+|------|-------------|
+| Checkout | Checks out the repository |
+| Install editorconfig-checker | Uses the shared `.github/actions/install-ec` composite action |
+| Validate properties formatting | Runs `editorconfig-checker` on `common/config/*.properties` and `ios/config/*.properties` |
+
+---
+
+### Script Code Style (`script-style.yml`)
+
+**Trigger:** Pull requests targeting `main` that touch any of the following paths:
+
+- `script/**/*.sh`
+- `script/**/*.rb`
+
+**Runner:** `ubuntu-22.04`
+
+**What it does:**
+
+Validates coding style for all shell and Ruby scripts under `script/`. Three tools are run in sequence:
+
+1. **ShellCheck** (v0.10.0) — static analysis for shell scripts (`*.sh`). Downloaded as a pre-built binary.
+2. **RuboCop** (1.85.0) — lints Ruby scripts using the configuration at `.github/config/.rubocop.yml`.
+3. **editorconfig-checker** — verifies final newlines and no trailing whitespace on all `.sh` and `.rb` files.
+
+**Steps summary:**
+
+| Step | Description |
+|------|-------------|
+| Checkout | Checks out the repository |
+| Install Node | Uses the shared `.github/actions/install-node` composite action |
+| Install ShellCheck | Downloads ShellCheck v0.10.0 binary and adds it to `$GITHUB_PATH` |
+| Run ShellCheck | Runs `shellcheck` on all `*.sh` files under `script/` |
+| Set up Ruby | Installs Ruby 3.2 via `ruby/setup-ruby` with bundler cache |
+| Install RuboCop | Runs `gem install rubocop -v 1.85.0` |
+| Run RuboCop | Runs `rubocop --config .github/config/.rubocop.yml script` |
+| Install editorconfig-checker | Uses the shared `.github/actions/install-ec` composite action |
+| Verify EditorConfig | Runs `editorconfig-checker` on all `.sh` and `.rb` files under `script/` |
+
+---
+
+### Shared Composite Actions
+
+Several workflows reference local composite actions under `.github/actions/` rather than repeating installation steps inline. The following shared actions are used across multiple workflows:
+
+| Action | Used by |
+|--------|---------|
+| `install-node` | `android-style`, `gradle-kts-style`, `ios-build`, `script-style` |
+| `install-ktlint` | `android-style`, `gradle-kts-style` |
+| `install-ec` | `android-style`, `gdscript-style`, `gradle-kts-style`, `properties-style`, `script-style` |
 
 ---
 
@@ -901,7 +1327,7 @@ This creates:
 ./script/install.sh -t /path/to/your/project -z /path/to/PluginTemplatePlugin-*.zip
 
 # Example
-./script/install.sh -t ~/MyGame -z release/PluginTemplatePlugin-Multi-v6.0.zip
+./script/install.sh -t ~/MyGame -z release/PluginTemplatePlugin-Multi-v1.0.zip
 ```
 
 ---
@@ -976,6 +1402,48 @@ rm -rf ios/build/DerivedData
 # Solution: install the gem manually
 gem install xcodeproj --user-install
 # The build system will also install it automatically if Ruby is available.
+```
+
+#### Tests
+
+**Problem:** Android tests fail with `ClassNotFoundException` for JUnit 5
+```bash
+# Solution: ensure the test runtime launcher is on the classpath.
+# Check that common/gradle/libs.versions.toml includes:
+#   test-runtime-junit-platform-launcher = { module = "org.junit.platform:junit-platform-launcher", ... }
+# and that android-build.gradle.kts adds it as testRuntimeOnly.
+```
+
+**Problem:** Android coverage report is empty after test run
+```bash
+# Solution: testDebugUnitTest must run before createDebugUnitTestCoverageReport.
+# Use printTestSummary (which sequences them correctly) rather than running
+# createDebugUnitTestCoverageReport in isolation.
+```
+
+**Problem:** iOS tests fail with "scheme not found" error
+```bash
+# The scheme file must exist at:
+#   ios/plugin.xcodeproj/xcshareddata/xcschemes/plugin_template_plugin_tests.xcscheme
+# and the test target must be listed in the targets array of project.pbxproj.
+# Verify both are present:
+find ios/plugin.xcodeproj -name "plugin_template_plugin_tests.xcscheme"
+grep "plugin_template_plugin_tests" ios/plugin.xcodeproj/project.pbxproj
+```
+
+**Problem:** iOS tests fail with "module not found" or linker errors
+```bash
+# The test target links against libplugin_template_plugin.a.
+# Ensure the main target was built before running tests:
+./script/build_ios.sh -b   # build first
+./script/build_ios.sh -t   # then test
+```
+
+**Problem:** iOS tests fail with Godot engine symbol errors (memnew, Engine::get_singleton)
+```bash
+# Tests that exercise PluginTemplatePlugin (the Godot Object subclass) or the
+# bootstrap init/deinit functions require the Godot engine, which is not
+# available in the XCTest host. Move those tests to GDScript integration tests.
 ```
 
 ### Getting Help
