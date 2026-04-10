@@ -6,7 +6,7 @@ plugins {
     id("base-conventions")
 }
 
-// ── Load config data class ────────────────────────────────────────────────────
+// -- Load config data class ----------------------------------------------------
 //
 // All project.extra values (templateDir, outputDir, iosFrameworks, etc.) are
 // already set by base-conventions.  pluginConfig is loaded here for typed
@@ -15,7 +15,7 @@ plugins {
 
 val pluginConfig = loadPluginConfig()
 
-// ── Collect all catalog library aliases (used in @androidDependencies@ token) ─
+// -- Collect all catalog library aliases (used in @androidDependencies@ token) -
 
 val androidDependencies =
     extensions
@@ -23,7 +23,7 @@ val androidDependencies =
         .named("libs")
         .run { libraryAliases.map { findLibrary(it).get().get() } }
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
+// -- Helpers -------------------------------------------------------------------
 
 /** Wraps each item in a [List] in double-quotes and joins with ", ". */
 fun List<String>.toQuotedString(): String = joinToString(", ") { "\"$it\"" }
@@ -71,7 +71,7 @@ fun TaskContainerScope.registerGdscriptFormatTask(
     val gdformatrcSource = file("$projectDir/../.github/config/.gdformatrc")
     val gdformatrcDest = addonSrcDir.resolve(".gdformatrc")
     val sharedGdformatrcDest = sharedSrcDir.resolve(".gdformatrc")
-    val excludePatterns = listOf("**/*Plugin.gd")
+    val excludePatterns = listOf("**/*Plugin.gd", "**/MediationNetwork.gd")
 
     register<Exec>(name) {
         this.description = description
@@ -131,7 +131,7 @@ fun TaskContainerScope.registerGdscriptFormatTask(
     }
 }
 
-// ── Tasks ─────────────────────────────────────────────────────────────────────
+// -- Tasks ---------------------------------------------------------------------
 
 tasks {
     // Capture project.extra values at TaskContainerScope level - before any
@@ -194,7 +194,17 @@ tasks {
 
         val allTokens: Map<String, String> =
             buildMap {
-                project.extra.properties.forEach { (k, v) -> put(k, v.toString()) }
+                project.extra.properties.forEach { (k, v) ->
+                    val raw = v.toString()
+                    put(
+                        k,
+                        if (raw.contains(",")) {
+                            raw.split(",").joinToString(", ") { "\"${it.trim()}\"" }
+                        } else {
+                            raw
+                        },
+                    )
+                }
                 put("androidDependencies", androidDependencies.joinToString(", ") { "\"$it\"" })
                 put("iosFrameworks", iosFrameworks.toQuotedString())
                 put("iosEmbeddedFrameworks", iosEmbeddedFrameworks.toQuotedString())
@@ -248,7 +258,17 @@ tasks {
 
         val allTokens: Map<String, String> =
             buildMap {
-                project.extra.properties.forEach { (k, v) -> put(k, v.toString()) }
+                project.extra.properties.forEach { (k, v) ->
+                    val raw = v.toString()
+                    put(
+                        k,
+                        if (raw.contains(",")) {
+                            raw.split(",").joinToString(", ") { "\"${it.trim()}\"" }
+                        } else {
+                            raw
+                        },
+                    )
+                }
                 put("androidDependencies", androidDependencies.joinToString(", ") { "\"$it\"" })
                 put("iosFrameworks", iosFrameworks.toQuotedString())
                 put("iosEmbeddedFrameworks", iosEmbeddedFrameworks.toQuotedString())
