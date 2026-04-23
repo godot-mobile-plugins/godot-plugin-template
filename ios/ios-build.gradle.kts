@@ -289,23 +289,23 @@ fun TaskContainerScope.registerSwiftFormatTask(
     description: String,
     fix: Boolean,
 ) {
-    val iosSrcDir = file("$projectDir/src")
-
     register<Exec>(name) {
         this.description = description
         this.group = if (fix) "formatting" else "verification"
 
-        workingDir = iosSrcDir
+        workingDir = projectDir
 
         doFirst {
             val sourceFiles =
-                fileTree(iosSrcDir) { include("**/*.swift") }
-                    .files
-                    .map { it.relativeTo(iosSrcDir).path }
+                fileTree(projectDir) {
+                    include("**/*.swift")
+                    exclude("**/DerivedData/**")
+                }.files
+                    .map { it.relativeTo(projectDir).path }
                     .sorted()
 
             if (sourceFiles.isEmpty()) {
-                throw GradleException("$name: no Swift source files found under ${iosSrcDir.absolutePath}")
+                throw GradleException("$name: no Swift source files found under ${projectDir.absolutePath}")
             }
 
             commandLine(
@@ -313,7 +313,7 @@ fun TaskContainerScope.registerSwiftFormatTask(
                     add("swiftlint")
                     if (fix) add("--fix") else add("lint")
                     add("--config")
-                    add("../../.github/config/.swiftlint.yml")
+                    add("../.github/config/.swiftlint.yml")
                     addAll(sourceFiles)
                 },
             )
@@ -1005,7 +1005,7 @@ tasks {
                 """
                 xcrun simctl bootstatus $udid -b &
                 BOOT_PID=$!;
-                (sleep 120 && kill ${'$'}BOOT_PID 2>/dev/null) &
+                (sleep 30 && kill ${'$'}BOOT_PID 2>/dev/null) &
                 wait ${'$'}BOOT_PID
                 """.trimIndent().replace("\n", " ")
 
@@ -1071,7 +1071,7 @@ tasks {
                     "Result      : \(.result // "Unknown")",
                     "",
                     "Configurations:",
-                    "───────────────",
+                    "---------------",
                     (.devicesAndConfigurations[]? |
                         "  • \(.device.deviceName) (\(.device.osVersion))" +
                         " | Passed: \(.passedTests) | Failed: \(.failedTests)"
@@ -1080,7 +1080,7 @@ tasks {
 
                 echo ""
                 echo "📦 Test Suites"
-                echo "───────────────"
+                echo "---------------"
                 xcrun xcresulttool get test-results tests \
                     --path "${'$'}BUNDLE" --format json 2>/dev/null \
                 | jq -r '
@@ -1090,7 +1090,7 @@ tasks {
 
                 echo ""
                 echo "🧪 Code Coverage"
-                echo "───────────────"
+                echo "---------------"
                 xcrun xccov view --report --json "${'$'}BUNDLE" 2>/dev/null \
                 | jq -r '
                     (.targets // [])[] |
