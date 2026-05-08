@@ -5,7 +5,7 @@
 extends Node
 
 @onready var plugin_template_node: PluginTemplate = $PluginTemplate
-@onready var get_plugin_template_button: Button = $CanvasLayer/MainContainer/VBoxContainer/GetStateButton
+@onready var get_plugin_template_button: Button = %GetButton
 @onready var _label: RichTextLabel = $CanvasLayer/MainContainer/VBoxContainer/RichTextLabel as RichTextLabel
 @onready var _android_texture_rect := %AndroidTextureRect as TextureRect
 @onready var _ios_texture_rect := %iOSTextureRect as TextureRect

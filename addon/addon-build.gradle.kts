@@ -21,7 +21,11 @@ val androidDependencies =
     extensions
         .getByType<VersionCatalogsExtension>()
         .named("libs")
-        .run { libraryAliases.map { findLibrary(it).get().get() } }
+        .run {
+            libraryAliases
+                .filter { it.startsWith("runtime.") }
+                .map { findLibrary(it).get().get() }
+        }
 
 // -- Helpers -------------------------------------------------------------------
 
@@ -153,6 +157,9 @@ tasks {
     val iosLinkerFlags = extra["iosLinkerFlags"] as List<String>
 
     @Suppress("UNCHECKED_CAST")
+    val iosBundleFiles = extra["iosBundleFiles"] as List<String>
+
+    @Suppress("UNCHECKED_CAST")
     val iosSpmDependencies = extra["iosSpmDependencies"] as List<SpmDependency>
 
     register<Delete>("cleanOutput") {
@@ -209,6 +216,7 @@ tasks {
                 put("iosFrameworks", iosFrameworks.toQuotedString())
                 put("iosEmbeddedFrameworks", iosEmbeddedFrameworks.toQuotedString())
                 put("iosLinkerFlags", iosLinkerFlags.toQuotedString())
+                put("iosBundleFiles", iosBundleFiles.toQuotedString())
                 put("spmDependencies", iosSpmDependencies.toGdscriptFormat())
             }
 
@@ -239,6 +247,7 @@ tasks {
         inputs.property("iosFrameworks", iosFrameworks.joinToString())
         inputs.property("iosEmbeddedFrameworks", iosEmbeddedFrameworks.joinToString())
         inputs.property("iosLinkerFlags", iosLinkerFlags.joinToString())
+        inputs.property("iosBundleFiles", iosBundleFiles.joinToString())
         inputs.property("iosSpmDependencies", iosSpmDependencies.joinToString())
 
         outputs.dir("$outputDir/addons/GMPShared")
@@ -273,6 +282,7 @@ tasks {
                 put("iosFrameworks", iosFrameworks.toQuotedString())
                 put("iosEmbeddedFrameworks", iosEmbeddedFrameworks.toQuotedString())
                 put("iosLinkerFlags", iosLinkerFlags.toQuotedString())
+                put("iosBundleFiles", iosBundleFiles.toQuotedString())
                 put("spmDependencies", iosSpmDependencies.toGdscriptFormat())
             }
 
@@ -303,6 +313,7 @@ tasks {
         inputs.property("iosFrameworks", iosFrameworks.joinToString())
         inputs.property("iosEmbeddedFrameworks", iosEmbeddedFrameworks.joinToString())
         inputs.property("iosLinkerFlags", iosLinkerFlags.joinToString())
+        inputs.property("iosBundleFiles", iosBundleFiles.joinToString())
         inputs.property("iosSpmDependencies", iosSpmDependencies.joinToString())
 
         outputs.dir("$outputDir/addons/${pluginConfig.pluginName}")

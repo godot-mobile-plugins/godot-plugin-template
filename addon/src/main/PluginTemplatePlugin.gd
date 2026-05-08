@@ -11,6 +11,7 @@ const IOS_PLATFORM_VERSION: String = "@iosPlatformVersion@"
 const IOS_FRAMEWORKS: Array = [ @iosFrameworks@ ]
 const IOS_EMBEDDED_FRAMEWORKS: Array = [ @iosEmbeddedFrameworks@ ]
 const IOS_LINKER_FLAGS: Array = [ @iosLinkerFlags@ ]
+const IOS_BUNDLE_FILES: Array = [ @iosBundleFiles@ ]
 const SPM_DEPENDENCIES: Array = [ @spmDependencies@ ]
 
 var android_export_plugin: AndroidExportPlugin
@@ -77,6 +78,9 @@ class IosExportPlugin extends EditorExportPlugin:
 
 			for __flag in IOS_LINKER_FLAGS:
 				add_apple_embedded_platform_linker_flags(__flag)
+
+			for __bundle_file in IOS_BUNDLE_FILES:
+				add_apple_embedded_platform_bundle_file(__bundle_file)
 
 			for __spm_dep in SPM_DEPENDENCIES:
 				_spm_dependencies.append(SpmDependency.new(__spm_dep))
