@@ -396,18 +396,20 @@ fun TaskContainerScope.registerSwiftFormatTask(
                     .sorted()
 
             if (sourceFiles.isEmpty()) {
-                throw GradleException("$name: no Swift source files found under ${projectDir.absolutePath}")
+                logger.lifecycle("$name: No Swift source files found under ${projectDir.absolutePath}. Skipping.")
+                // Provide a dummy command so the Exec task doesn't fail with an empty command line error
+                commandLine("echo", "No Swift source files found.")
+            } else {
+                commandLine(
+                    buildList {
+                        add("swiftlint")
+                        if (fix) add("--fix") else add("lint")
+                        add("--config")
+                        add("../.github/config/.swiftlint.yml")
+                        addAll(sourceFiles)
+                    },
+                )
             }
-
-            commandLine(
-                buildList {
-                    add("swiftlint")
-                    if (fix) add("--fix") else add("lint")
-                    add("--config")
-                    add("../.github/config/.swiftlint.yml")
-                    addAll(sourceFiles)
-                },
-            )
         }
     }
 }
@@ -671,12 +673,7 @@ tasks {
             val spmConfigFile = file("$projectDir/config/spm_dependencies.json")
             val deps = readSpmDependencies(spmConfigFile)
 
-            if (deps.isEmpty()) {
-                println("Warning: No dependencies found for plugin. Skipping SPM update.")
-                return@doLast
-            }
-
-            val totalProducts = deps.sumOf { it.products.size }
+            var totalProducts = deps.sumOf { it.products.size }
             println("Found $totalProducts SPM ${if (totalProducts == 1) "dependency" else "dependencies"}:")
             deps.forEach { dep ->
                 dep.products.forEach { println("\t• $it (${dep.url} @ ${dep.version})") }
@@ -708,67 +705,85 @@ tasks {
             val scriptDir = file("$repositoryRootDir/script")
 
             // -- Module target: compile-only (--no-link) ----------------------
-            // Firebase frameworks must be in packageProductDependencies so the
+            // Dependency frameworks must be in packageProductDependencies so the
             // Swift compiler can resolve their modules (Authentication.swift,
             // AuthProviding.swift etc. import them).  However they must NOT be
-            // linked into FirebasePlugin.a — the consuming Godot app links them
+            // linked into *Plugin.a — the consuming Godot app links them
             // independently, and duplicate symbols would cause export failure.
             val moduleName = "${pluginConfig.pluginModuleName}_plugin"
             val testTargetName = "${pluginConfig.pluginModuleName}_plugin_tests"
 
-            println("Updating Xcode project with SPM dependencies...")
-            println("  - Module target '$moduleName' (compile-only, not linked):")
-            deps.forEach { dep ->
-                dep.products.forEach { product ->
-                    println("      • $product")
-                    execOps.exec {
-                        commandLine(
-                            "ruby",
-                            "$scriptDir/spm_manager.rb",
-                            "-a",
-                            "--target",
-                            moduleName,
-                            "--no-link",
-                            xcodeproj,
-                            dep.url,
-                            dep.version,
-                            product,
-                        )
+            if (!deps.isEmpty()) {
+                println("Updating Xcode project with SPM dependencies...")
+                println("  - Module target '$moduleName' (compile-only, not linked):")
+                deps.forEach { dep ->
+                    dep.products.forEach { product ->
+                        println("      • $product")
+                        execOps.exec {
+                            commandLine(
+                                "ruby",
+                                "$scriptDir/spm_manager.rb",
+                                "-a",
+                                "--target",
+                                moduleName,
+                                "--no-link",
+                                xcodeproj,
+                                dep.url,
+                                dep.version,
+                                product,
+                            )
+                        }
                     }
                 }
+
+                println("SPM update completed for main target.")
+            } else {
+                println("Warning: No dependencies found for plugin. Skipping SPM update for main target.")
             }
 
-            // -- Test target: compile + link (normal) --------------------------
-            // The test target compiles Swift files directly (not via the .a) and
-            // must link Firebase frameworks itself.
             val spmTestConfigFile = file("$projectDir/config/spm_test_dependencies.json")
-            val testDeps = if (spmTestConfigFile.exists()) readSpmDependencies(spmTestConfigFile) else deps
+            val testDeps = if (spmTestConfigFile.exists()) readSpmDependencies(spmTestConfigFile) else emptyList()
 
-            println("  - Test target '$testTargetName' (compile + link):")
+            totalProducts = testDeps.sumOf { it.products.size }
+            println("Found $totalProducts SPM test ${if (totalProducts == 1) "dependency" else "dependencies"}:")
             testDeps.forEach { dep ->
-                dep.products.forEach { product ->
-                    println("      • $product")
-                    execOps.exec {
-                        commandLine(
-                            "ruby",
-                            "$scriptDir/spm_manager.rb",
-                            "-a",
-                            "--target",
-                            testTargetName,
-                            xcodeproj,
-                            dep.url,
-                            dep.version,
-                            product,
-                        )
+                dep.products.forEach { println("\t• $it (${dep.url} @ ${dep.version})") }
+            }
+            println()
+
+            if (!testDeps.isEmpty()) {
+                // -- Test target: compile + link (normal) --------------------------
+                // The test target compiles Swift files directly (not via the .a) and
+                // must link frameworks itself.
+
+                println("  - Test target '$testTargetName' (compile + link):")
+                testDeps.forEach { dep ->
+                    dep.products.forEach { product ->
+                        println("      • $product")
+                        execOps.exec {
+                            commandLine(
+                                "ruby",
+                                "$scriptDir/spm_manager.rb",
+                                "-a",
+                                "--target",
+                                testTargetName,
+                                xcodeproj,
+                                dep.url,
+                                dep.version,
+                                product,
+                            )
+                        }
                     }
                 }
-            }
 
-            println("SPM update completed.")
+                println("SPM update completed for test target.")
+            } else {
+                println("Warning: No test dependencies found for plugin. Skipping SPM update for test target.")
+            }
         }
     }
 
-    register<Exec>("resolveSPMDependencies") {
+    register("resolveSPMDependencies") {
         description = "Resolves SPM package dependencies via xcodebuild"
         group = "setup"
 
@@ -783,19 +798,41 @@ tasks {
         outputs.file("$xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved")
         outputs.dir(derivedDataDir.resolve("SourcePackages"))
 
-        isIgnoreExitValue = true
+        val execOps = objects.newInstance<Injected>().execOps
 
-        commandLine(
-            "xcodebuild",
-            "-resolvePackageDependencies",
-            "-project",
-            xcodeproj,
-            "-scheme",
-            "${pluginConfig.pluginModuleName}_plugin",
-            "-derivedDataPath",
-            derivedDataDir.absolutePath,
-            "GODOT_DIR=$godotDir",
-        )
+        doLast {
+            // Resolve main plugin scheme
+            execOps.exec {
+                commandLine(
+                    "xcodebuild",
+                    "-resolvePackageDependencies",
+                    "-project",
+                    xcodeproj,
+                    "-scheme",
+                    "${pluginConfig.pluginModuleName}_plugin",
+                    "-derivedDataPath",
+                    derivedDataDir.absolutePath,
+                    "GODOT_DIR=$godotDir",
+                )
+                isIgnoreExitValue = true
+            }
+
+            // Resolve test scheme
+            execOps.exec {
+                commandLine(
+                    "xcodebuild",
+                    "-resolvePackageDependencies",
+                    "-project",
+                    xcodeproj,
+                    "-scheme",
+                    "${pluginConfig.pluginModuleName}_plugin_tests",
+                    "-derivedDataPath",
+                    derivedDataDir.absolutePath,
+                    "GODOT_DIR=$godotDir",
+                )
+                isIgnoreExitValue = true
+            }
+        }
     }
 
     register("validateSwiftVersion") {
@@ -1294,4 +1331,22 @@ tasks {
         "Formats Swift source files in-place using swiftlint --fix",
         fix = true,
     )
+
+    register("checkiOSFormat") {
+        description = "Validates format in all source code"
+        group = "verification"
+        dependsOn(
+            project(":ios").tasks.named("checkObjCFormat"),
+            project(":ios").tasks.named("checkSwiftFormat"),
+        )
+    }
+
+    register("applyiOSFormat") {
+        description = "Formats all source code"
+        group = "formatting"
+        dependsOn(
+            project(":ios").tasks.named("formatObjCSource"),
+            project(":ios").tasks.named("formatSwiftSource"),
+        )
+    }
 }

@@ -33,8 +33,6 @@ func _exit_tree() -> void:
 
 
 class AndroidExportPlugin extends EditorExportPlugin:
-	var _plugin_name = PLUGIN_NAME
-
 
 	func _supports_platform(platform: EditorExportPlatform) -> bool:
 		return platform is EditorExportPlatformAndroid
@@ -42,13 +40,13 @@ class AndroidExportPlugin extends EditorExportPlugin:
 
 	func _get_android_libraries(platform: EditorExportPlatform, debug: bool) -> PackedStringArray:
 		if debug:
-			return PackedStringArray(["%s/bin/debug/%s-debug.aar" % [_plugin_name, _plugin_name]])
+			return PackedStringArray(["%s/bin/debug/%s-debug.aar" % [PLUGIN_NAME, PLUGIN_NAME]])
 		else:
-			return PackedStringArray(["%s/bin/release/%s-release.aar" % [_plugin_name, _plugin_name]])
+			return PackedStringArray(["%s/bin/release/%s-release.aar" % [PLUGIN_NAME, PLUGIN_NAME]])
 
 
 	func _get_name() -> String:
-		return _plugin_name
+		return PLUGIN_NAME
 
 
 	func _get_android_dependencies(platform: EditorExportPlatform, debug: bool) -> PackedStringArray:
@@ -56,7 +54,6 @@ class AndroidExportPlugin extends EditorExportPlugin:
 
 
 class IosExportPlugin extends EditorExportPlugin:
-	var _plugin_name = PLUGIN_NAME
 	var _spm_dependencies = []
 
 
@@ -65,7 +62,7 @@ class IosExportPlugin extends EditorExportPlugin:
 
 
 	func _get_name() -> String:
-		return _plugin_name
+		return PLUGIN_NAME
 
 
 	func _export_begin(_features: PackedStringArray, _is_debug: bool, _path: String, _flags: int) -> void:

@@ -109,7 +109,8 @@ Thank you for your interest in contributing to the Godot PluginTemplate Plugin! 
 │   ├-- config/
 │   │   ├-- ios.properties                   # iOS configuration
 │   │   ├-- ios-build.properties             # Gradle build customization for ios module
-│   │   ├-- spm_dependencies.json            # SPM dependency configuration
+│   │   ├-- spm_dependencies.json            # SPM dependency configuration (main plugin target)
+│   │   ├-- spm_test_dependencies.json       # Optional: SPM dependency configuration (test target only)
 │   │   └-- *.gdip                           # Godot iOS plugin config
 │   │
 │   └-- godot/                               # Downloaded Godot source (default location; configurable via local.properties)
@@ -154,7 +155,7 @@ val pluginConfig = loadPluginConfig()
 val godotConfig  = loadGodotConfig()
 val iosConfig    = loadIosConfig()
 
-println(pluginConfig.pluginName)        // "PluginTemplatePlugin"
+println(pluginConfig.pluginName)        // "*Plugin"
 println(godotConfig.godotAarUrl)        // full GitHub download URL
 println(iosConfig.frameworks)           // List<String> - already parsed
 ```
@@ -205,6 +206,8 @@ const SPM_DEPENDENCIES: Array = [ @spmDependencies@ ]
 # After token replacement (two dependencies):
 const SPM_DEPENDENCIES: Array = [ {&"url": "https://github.com/owner/repo", &"version": "1.2.3", &"products": ["ProductA", "ProductB"]}, {&"url": "https://github.com/other/pkg", &"version": "2.0.0", &"products": ["ProductC"]} ]
 ```
+
+> **Note:** `IosConfig.spmDependencies` only reflects `ios/config/spm_dependencies.json` (the **main plugin target**'s dependencies). The optional `ios/config/spm_test_dependencies.json` file (test-target-only SPM dependencies) is read directly by the iOS build's Gradle tasks at execution time and is **not** part of `IosConfig` or the `@spmDependencies@` token — see [SPM Dependencies](#-ios-configuration) below.
 
 ---
 
@@ -268,6 +271,7 @@ These tools are needed when running `checkFormat` or `applyFormat` tasks:
 - **clang-format** - ObjC/C++ formatter: `brew install clang-format` (iOS only)
 - **swiftlint** - Swift linter/formatter: `brew install swiftlint` (iOS only)
 - **gdformat** - GDScript formatter: install via the Godot toolchain
+- **rubocop** - Ruby linter/formatter: `gem install rubocop` (also used to lint `script/spm_manager.rb`)
 
 ### Verifying Prerequisites
 
@@ -315,7 +319,8 @@ The build files are static and shared across all GMP plugins. Any plugin-specifi
     └-- config/
         ├-- ios.properties                 # iOS configuration
         ├-- ios-build.properties           # Gradle build customization for ios module
-        └-- spm_dependencies.json          # SPM dependency configuration
+        ├-- spm_dependencies.json          # SPM dependency configuration (main plugin target)
+        └-- spm_test_dependencies.json     # Optional: SPM dependency configuration (test target only)
 ```
 
 ### <img src="https://raw.githubusercontent.com/godot-mobile-plugins/godot-plugin-template/main/addon/src/main/icon.png" width="20"> Common Configuration
@@ -469,9 +474,16 @@ flags=-ObjC,-Wl,...
 
 # Files to include in the app bundle
 bundle_files=res://assets/VisionPlugin/face_landmarker.task
+
+# iOS Simulator used by the testiOS task (see iOS Unit Tests below)
+test_platform=iOS Simulator
+test_destination_name=iPhone 17
+test_os=latest
 ```
 
 The `frameworks`, `embedded_frameworks`, `flags`, and `bundle_files` values are comma-separated lists. The build system parses them into typed lists at configuration time (`IosConfig.kt`) - blank entries are ignored. Values are used as-is for token replacement in GDScript templates and passed directly to `xcodebuild`.
+
+`test_platform`, `test_destination_name`, and `test_os` configure the simulator used to run iOS unit tests - they are matched against `xcrun simctl list devices` to boot a simulator and build the `xcodebuild -destination` value (see [iOS Unit Tests](#ios-unit-tests)). Unlike the other `ios.properties` values, these are **not** exposed as GDScript tokens.
 
 GDScript templates may reference the following tokens for iOS values set in `ios.properties` and `spm_dependencies.json`:
 
@@ -514,6 +526,12 @@ If the plugin has no SPM dependencies:
 
 ]
 ```
+
+Dependencies declared in `spm_dependencies.json` are added to the **main plugin target** (`<pluginModuleName>_plugin`) as compile-only (`--no-link`) dependencies via `script/spm_manager.rb` - they're available for the Swift compiler to resolve imports against, but are not linked into the plugin's static library. The consuming Godot app links them independently at export time using the committed `Package.resolved`.
+
+#### Test-only SPM Dependencies
+
+If a package is needed only by the XCTest target (e.g. a mocking or test-assertion library), declare it in the optional `ios/config/spm_test_dependencies.json` file, using the same `url`/`version`/`products` format as `spm_dependencies.json`. Dependencies in this file are added to the `<pluginModuleName>_plugin_tests` target as normal (compile **and** link) dependencies and are never injected into the main plugin target. If the file does not exist, no test-only dependencies are added and `updateSPMDependencies` logs a warning and skips that step.
 
 ---
 
@@ -590,6 +608,7 @@ Cross-platform builds with the `build.sh` script.
 |--------|-------------|
 | `-a` | Build plugin for Android platform (`-a -- -h` for all options) |
 | `-i` | Build plugin for iOS platform (`-i -- -h` for all options) |
+| `-b` | Build plugin for both Android and iOS platforms |
 | `-c` | Remove existing builds |
 | `-C` | Remove existing builds and archives |
 | `-d` | Uninstall plugin from demo app |
@@ -599,6 +618,7 @@ Cross-platform builds with the `build.sh` script.
 | `-I` | Create iOS release archive |
 | `-M` | Create multi-platform release archive |
 | `-R` | Create all release archives |
+| `-t` | Run tests (Android + iOS) |
 | `-v` | Verify source code format compliance |
 
 #### Output Locations
@@ -642,10 +662,12 @@ Cross-platform builds with the `build.sh` script.
 | `-c` | Clean Android build |
 | `-d` | Uninstall Android plugin from demo app |
 | `-D` | Install Android plugin to demo app |
+| `-f` | Fix source code format issues |
 | `-h` | Display script usage information |
 | `-r` | Build Android plugin with release build variant |
 | `-R` | Create Android release archive |
 | `-t` | Run Android unit tests (prints per-suite pass/fail table and code coverage) |
+| `-v` | Verify source code format compliance |
 
 #### Android Studio
 
@@ -702,6 +724,7 @@ If using Android Studio, make sure to open the root Gradle project from the `com
 | `-c` | Clean existing build |
 | `-d` | Uninstall iOS plugin from demo app |
 | `-D` | Install iOS plugin to demo app |
+| `-f` | Fix source code format issues |
 | `-g` | Remove Godot headers directory |
 | `-G` | Download Godot headers |
 | `-h` | Display help |
@@ -711,6 +734,7 @@ If using Android Studio, make sure to open the root Gradle project from the `com
 | `-R` | Create release archive |
 | `-s` | Simulator build; use with `-b` for simulator debug, `-B` for simulator release |
 | `-t` | Run iOS unit tests (requires macOS and Xcode; Godot headers must be present) |
+| `-v` | Verify source code format compliance |
 
 #### Build Process Explained
 
@@ -732,18 +756,19 @@ The iOS build process involves several steps that are orchestrated automatically
    - Confirms the `GODOT_VERSION` file in the Godot headers directory matches `godotVersion` in `godot.properties`
 
 4. **Update & Resolve SPM Packages**:
-   - Reads dependency definitions from `ios/config/spm_dependencies.json`
-   - Injects package references into the Xcode project via `script/spm_manager.rb` (requires Ruby and the `xcodeproj` gem)
-   - Resolves the packages with `xcodebuild -resolvePackageDependencies`
+   - Reads main-target dependency definitions from `ios/config/spm_dependencies.json` and injects them into the `<pluginModuleName>_plugin` target via `script/spm_manager.rb` (requires Ruby and the `xcodeproj` gem) as compile-only (`--no-link`) dependencies
+   - If `ios/config/spm_test_dependencies.json` exists, injects its dependencies into the `<pluginModuleName>_plugin_tests` target as normal compile-and-link dependencies (see [Test-only SPM Dependencies](#test-only-spm-dependencies))
+   - Resolves both the plugin and test schemes with `xcodebuild -resolvePackageDependencies`
 
 5. **Build XCFrameworks**:
-   - Builds up to four variants via `xcodebuild archive`:
+   - Builds up to four variants via `xcodebuild archive` against the `plugin.xcodeproj/project.xcworkspace` workspace:
      - `buildiOSDebug` - device (arm64), debug
      - `buildiOSRelease` - device (arm64), release
      - `buildiOSDebugSimulator` - simulator (arm64/x86_64), debug
      - `buildiOSReleaseSimulator` - simulator (arm64/x86_64), release
    - The `-s` flag selects simulator variants; without it, device variants are built
    - Archives are created as `.xcarchive` bundles under `ios/build/lib/`
+   - After archiving, any compiled object files belonging to linked SPM dependencies are stripped from the plugin's own static library with `ar -d` (Xcode's `--no-link` only prevents Frameworks-phase linking - it still archives every compiled SPM object into the `.a` via `libtool`), so the resulting `{PluginName}.a` contains only the plugin's own object files
    - XCFrameworks combining device and simulator slices are assembled in `ios/build/framework/`
    - **Only the plugin's own xcframeworks** (`PluginName.debug.xcframework`, `PluginName.release.xcframework`) are copied into the plugin directory and included in release archives
    - SPM dependency xcframeworks produced in `ios/build/DerivedData/` are **not** bundled in the archive; they are resolved by Xcode at Godot iOS export time using the `Package.resolved` file that is committed alongside the Xcode project
@@ -751,6 +776,7 @@ The iOS build process involves several steps that are orchestrated automatically
 #### Output Locations
 
 - **Godot headers:** `ios/godot/` (default) or path set by `godot.dir` in `common/local.properties`
+- **Godot iOS Simulator library (test runs only):** `<godot dir>/bin/libgodot.ios.template_debug.arm64.simulator.a`, downloaded automatically by `downloadGodotiOSLibrary` the first time `testiOS` runs
 - **Build artifacts:** `ios/build/`
 - **xcarchives:** `ios/build/lib/ios_debug.xcarchive`, `ios_release.xcarchive`, `sim_debug.xcarchive`, `sim_release.xcarchive`
 - **Plugin XCFrameworks:** `ios/build/framework/PluginTemplatePlugin.debug.xcframework`, `PluginTemplatePlugin.release.xcframework`
@@ -783,6 +809,7 @@ These delegate to the following per-language Gradle sub-tasks:
 | `checkSwiftFormat` | `formatSwiftSource` | Swift | swiftlint | ios |
 | `checkKtsFormat` | `formatKtsSource` | Gradle KTS | ktlint | common |
 | `checkBashScriptFormat` | `applyBashScriptFormat` | Bash | shellcheck | common |
+| `checkRubyScriptFormat` | `applyRubyScriptFormat` | Ruby | Rubocop | common |
 | `checkEditorConfig` | _(n/a)_ | All files | editorconfig-checker | common |
 
 Sub-tasks can also be run individually. For example, to check only GDScript formatting:
@@ -792,7 +819,7 @@ cd common
 ./gradlew :addon:checkGdscriptFormat
 ```
 
-Sub-tasks that require external tools (`ktlint`, `shellcheck`, `editorconfig-checker`, `clang-format`, `swiftlint`, `gdformat`) will fail with a clear error if the tool is not found on `PATH`. See [Prerequisites](#-prerequisites) for installation instructions.
+Sub-tasks that require external tools (`ktlint`, `shellcheck`, `editorconfig-checker`, `clang-format`, `swiftlint`, `gdformat`, `rubocop`) will fail with a clear error if the tool is not found on `PATH`. See [Prerequisites](#-prerequisites) for installation instructions.
 
 ---
 
@@ -880,12 +907,12 @@ iOS tests are written with **XCTest** and live under `ios/test/unit/`. There are
 | `PluginTemplateTests.swift` | Swift | `PluginTemplate` class — init, `isActiveKey`, `onThisHappened` callback, ObjC bridging, concurrency |
 | `PluginTemplateLoggerTests.mm` | Objective-C++ | `plugin_template_log` global — initialization, all log levels, format string handling |
 
-The tests are compiled into the `plugin_template_plugin_tests` Xcode test bundle target, which declares a dependency on the main `plugin_template_plugin` static library target. The Xcode scheme used by the build system is `plugin_template_plugin_tests`.
+The tests are compiled into the `plugin_template_plugin_tests` Xcode test bundle target, which declares a dependency on the main `plugin_template_plugin` static library target. The Xcode scheme used by the build system is `plugin_template_plugin_tests`, run against the `plugin.xcodeproj/project.xcworkspace` workspace (rather than the bare `.xcodeproj`) so that SPM test dependencies resolve correctly.
 
 #### Running iOS tests
 
 ```bash
-# Run all iOS tests and print a pass/fail summary
+# Run all iOS tests and print a pass/fail + coverage summary
 ./script/build_ios.sh -t
 
 # Or via Gradle directly
@@ -893,20 +920,37 @@ cd common
 ./gradlew :ios:testiOS
 ```
 
-> **Note:** iOS tests require macOS and Xcode. The Godot headers must already be present in `ios/godot/` (or the path configured by `godot.dir`). If they are missing, run `./script/build_ios.sh -G` first.
+> **Note:** iOS tests require macOS and Xcode. Godot headers and the Godot iOS Simulator debug library are downloaded automatically as part of the `testiOS` task graph the first time tests run (skipped if already present) - there's no need to run `./script/build_ios.sh -G` first.
 
 #### What the pipeline does
 
-The `testiOS` Gradle task runs:
+Running `testiOS` triggers the following, in order:
 
-```
-xcodebuild test
-  -project ios/plugin.xcodeproj
-  -scheme plugin_template_plugin_tests
-  -destination 'platform=iOS Simulator,...'
-```
+1. **Download prerequisites** - `downloadGodotHeaders` and `downloadGodotiOSLibrary` fetch the Godot headers and the `libgodot.ios.template_debug.arm64.simulator.a` static library into the configured Godot directory.
+2. **Validate configuration** - `validateGodotVersion` and `validateSwiftVersion` check the downloaded Godot version and the configured `swift_version`; `syncSwiftVersionToPbxproj` writes `swift_version` into `project.pbxproj`.
+3. **Resolve SPM dependencies** - `resolveSPMDependencies` resolves both the plugin and test schemes.
+4. **Boot the simulator** - `bootiOSSimulator` looks up the simulator named by `test_destination_name` in `ios/config/ios.properties` via `xcrun simctl list devices`, boots it headlessly, and waits (up to 30s) for it to finish booting.
+5. **Run the tests**, with code coverage enabled, against the booted simulator:
+   ```
+   xcodebuild test
+     -workspace ios/plugin.xcodeproj/project.xcworkspace
+     -scheme plugin_template_plugin_tests
+     -destination 'id=<booted simulator UDID>'
+     -derivedDataPath ios/build/DerivedData
+     -resultBundlePath ios/build/TestResults/testiOS.xcresult
+     -enableCodeCoverage YES
+     GODOT_DIR=<godot dir>
+     SWIFT_VERSION=<swift_version>
+   ```
+   If no simulator UDID is available (e.g. `bootiOSSimulator` was skipped and `SIMULATOR_UDID` isn't set in the environment), the destination falls back to `platform=<test_platform>,name=<test_destination_name>,OS=<test_os>` built from `ios.properties`.
+6. **Print a summary** - `testiOS` is `finalizedBy` `printTestSummaryiOS`, which reads the `.xcresult` bundle with `xcrun xcresulttool` and `xcrun xccov` and prints total/passed/failed/skipped counts, pass rate, per-configuration results, per-suite results, and per-target line coverage.
 
-The task exits non-zero if any test fails and prints `xcodebuild`'s test output to the console.
+The `testiOS` task itself exits non-zero if any test fails.
+
+#### Output
+
+- **Test result bundle:** `ios/build/TestResults/testiOS.xcresult`
+- **Console summary:** printed automatically after every `testiOS` run by `printTestSummaryiOS`
 
 #### Xcode project wiring
 
@@ -1408,6 +1452,14 @@ gem install xcodeproj --user-install
 # The build system will also install it automatically if Ruby is available.
 ```
 
+**Problem:** `ERROR: Simulator '<name>' not found` when running tests
+```bash
+# bootiOSSimulator matches test_destination_name from ios/config/ios.properties
+# against available simulators. Solution: list available simulators and update
+# test_destination_name to match an installed device:
+xcrun simctl list devices available
+```
+
 #### Tests
 
 **Problem:** Android tests fail with `ClassNotFoundException` for JUnit 5
@@ -1448,6 +1500,15 @@ grep "plugin_template_plugin_tests" ios/plugin.xcodeproj/project.pbxproj
 # Tests that exercise PluginTemplatePlugin (the Godot Object subclass) or the
 # bootstrap init/deinit functions require the Godot engine, which is not
 # available in the XCTest host. Move those tests to GDScript integration tests.
+```
+
+**Problem:** `printTestSummaryiOS` reports "No xcresult bundle found"
+```bash
+# testiOS didn't produce a result bundle - usually because plugin.xcodeproj/
+# project.xcworkspace is missing, or bootiOSSimulator failed to boot a
+# simulator. Verify the simulator exists, then re-run:
+xcrun simctl list devices available
+./script/build_ios.sh -t
 ```
 
 ### Getting Help
@@ -1524,5 +1585,3 @@ Include:
 - [Android Developer Documentation](https://developer.android.com/)
 - [iOS Developer Documentation](https://developer.apple.com/documentation/)
 - [Gradle Documentation](https://docs.gradle.org/)
-
----

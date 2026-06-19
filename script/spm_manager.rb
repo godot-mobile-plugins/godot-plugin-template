@@ -156,7 +156,10 @@ begin
 						"[compile-only, not linked] in #{File.basename(project_path)}\n\n"
 			else
 				frameworks_phase = target.frameworks_build_phase
-				frameworks_phase.add_file_reference(ref)
+				# Create a new PBXBuildFile that points to the product dependency
+				build_file = project.new(Xcodeproj::Project::Object::PBXBuildFile)
+				build_file.product_ref = ref
+				frameworks_phase.files << build_file
 				puts "Successfully added SPM dependency '#{product_name}' " \
 						"(#{url} @ #{version}) to target '#{target.name}' " \
 						"[compile + link] in #{File.basename(project_path)}\n\n"

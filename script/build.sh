@@ -31,11 +31,12 @@ function display_help()
 	echo_yellow "libraries and configuration."
 	echo
 	"$SCRIPT_DIR"/echocolor.sh -Y "Syntax:"
-	echo_yellow "	$0 [-a|A|c|C|d|D|h|i|I|M|R|t|z|Z]"
+	echo_yellow "	$0 [-a|A|b|c|C|d|D|h|i|I|M|R|t|z|Z]"
 	echo
 	"$SCRIPT_DIR"/echocolor.sh -Y "Options:"
 	echo_yellow "	a	build plugin for the Android platform"
 	echo_yellow "	A	build and create Android release archive"
+	echo_yellow "	b	build Android and iOS platforms"
 	echo_yellow "	c	remove existing builds"
 	echo_yellow "	C	remove existing builds and release archives"
 	echo_yellow "	d	uninstall plugin from demo app"
@@ -126,7 +127,7 @@ function display_warning()
 
 function run_android_build()
 {
-	local build_arguments="$1"
+	local build_arguments="${1:-"-b"}"
 
 	display_step "Running Android build script with opts: $build_arguments"
 
@@ -136,7 +137,7 @@ function run_android_build()
 
 function run_ios_build()
 {
-	local build_arguments="$1"
+	local build_arguments="${1:-"-b"}"
 
 	display_step "Running iOS build script with opts: $build_arguments"
 
@@ -144,7 +145,7 @@ function run_ios_build()
 }
 
 
-while getopts "aAcCdDfhiIMRtv" option; do
+while getopts "aAbcCdDfhiIMRtv" option; do
 	case $option in
 		h)
 			display_help
@@ -154,6 +155,10 @@ while getopts "aAcCdDfhiIMRtv" option; do
 			;;
 		A)
 			do_android_release=true
+			;;
+		b)
+			do_build_android=true
+			do_build_ios=true
 			;;
 		c)
 			do_clean_build=true

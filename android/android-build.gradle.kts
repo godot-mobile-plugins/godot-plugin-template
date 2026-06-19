@@ -618,6 +618,26 @@ tasks {
         }
     }
 
+    register("checkAndroidFormat") {
+        description = "Validates format in all source code"
+        group = "verification"
+        dependsOn(
+            project(":android").tasks.named("checkJavaFormat"),
+            project(":android").tasks.named("checkKotlinFormat"),
+            project(":android").tasks.named("checkXmlFormat"),
+        )
+    }
+
+    register("applyAndroidFormat") {
+        description = "Formats all source code"
+        group = "formatting"
+        dependsOn(
+            project(":android").tasks.named("rewriteRun"),
+            project(":android").tasks.named("formatKotlinSource"),
+            project(":android").tasks.named("formatXml"),
+        )
+    }
+
     named("preBuild") {
         dependsOn("downloadGodotAar")
     }

@@ -2,8 +2,8 @@
 // © 2026-present https://github.com/<<GitHubUsername>>
 //
 
-import XCTest
 @testable import plugin_template_plugin
+import XCTest
 
 // MARK: - PluginTemplate Swift Class Tests
 

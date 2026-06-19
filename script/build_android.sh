@@ -14,6 +14,8 @@ do_create_archive=false
 do_uninstall=false
 do_install=false
 do_run_tests=false
+do_check_format=false
+do_apply_format=false
 
 
 function display_help()
@@ -23,18 +25,19 @@ function display_help()
 	echo_yellow "libraries and configuration."
 	echo
 	"$SCRIPT_DIR"/echocolor.sh -Y "Syntax:"
-	echo_yellow "	$0 [-b|c|d|D|h|r|R|t]"
+	echo_yellow "	$0 [-b|c|d|D|f|h|r|R|t|v]"
 	echo
 	"$SCRIPT_DIR"/echocolor.sh -Y "Options:"
 	echo_yellow "	b	build plugin for the Android platform"
 	echo_yellow "	c	remove existing Android build"
 	echo_yellow "	d	uninstall Android plugin from demo app"
 	echo_yellow "	D	install Android plugin to demo app"
+	echo_yellow "	f	fix source code format issues"
 	echo_yellow "	h	display usage information"
 	echo_yellow "	r	build Android plugin with release build variant"
 	echo_yellow "	R	create Android release archive"
 	echo_yellow "	t	run Android tests (shows per-suite pass/fail table and code coverage)"
-	echo
+	echo_yellow "	v	verify source code format compliance"
 	"$SCRIPT_DIR"/echocolor.sh -Y "Examples:"
 	echo_yellow "	* clean existing build, do a release build for Android, and create archive"
 	echo_yellow "		$> $0 -cbrR"
@@ -53,6 +56,9 @@ function display_help()
 	echo
 	echo_yellow "	* run all Android tests and display coverage summary"
 	echo_yellow "		$> $0 -t"
+	echo
+	echo_yellow "	* verify source code format compliance"
+	echo_yellow "		$> $0 -v"
 	echo
 }
 
@@ -100,7 +106,7 @@ function display_warning()
 }
 
 
-while getopts "bcdDhrRt" option; do
+while getopts "bcdDfhrRtv" option; do
 	case $option in
 		h)
 			display_help
@@ -117,6 +123,9 @@ while getopts "bcdDhrRt" option; do
 		D)
 			do_install=true
 			;;
+		f)
+			do_apply_format=true
+			;;
 		r)
 			gradle_build_task="buildAndroidRelease"
 			;;
@@ -125,6 +134,9 @@ while getopts "bcdDhrRt" option; do
 			;;
 		t)
 			do_run_tests=true
+			;;
+		v)
+			do_check_format=true
 			;;
 		\?)
 			display_error "Invalid option $option"
@@ -163,12 +175,6 @@ then
 	"$SCRIPT_DIR"/run_gradle_task.sh "createAndroidArchive"
 fi
 
-if [[ "$do_install" == true ]]
-then
-	display_status "Installing Android plugin to demo app"
-	"$SCRIPT_DIR"/run_gradle_task.sh "installToDemoAndroid"
-fi
-
 if [[ "$do_run_tests" == true ]]
 then
 	display_status "Running Android tests"
@@ -180,4 +186,22 @@ then
 	#                               coverage summary, then exits non-zero if any
 	#                               tests failed
 	"$SCRIPT_DIR"/run_gradle_task.sh ":android:printTestSummary"
+fi
+
+if [[ "$do_check_format" == true ]]
+then
+	display_status "Verifying source code format compliance"
+	"$SCRIPT_DIR"/run_gradle_task.sh "checkAndroidFormat"
+fi
+
+if [[ "$do_apply_format" == true ]]
+then
+	display_status "Fixing source code format issues"
+	"$SCRIPT_DIR"/run_gradle_task.sh "applyAndroidFormat"
+fi
+
+if [[ "$do_install" == true ]]
+then
+	display_status "Installing Android plugin to demo app"
+	"$SCRIPT_DIR"/run_gradle_task.sh "installToDemoAndroid"
 fi
