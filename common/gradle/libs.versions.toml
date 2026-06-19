@@ -27,7 +27,8 @@ mockk = "1.13.17"
 opengl-api = "gl1.1-android-2.1_r1"
 
 # -- Godot plugin dependencies -------------------------------------------------
-appcompat = "1.7.1"
+androidx-appcompat = "1.7.1"
+
 
 [libraries]
 
@@ -46,7 +47,8 @@ test-runtime-junit-platform-launcher = { module = "org.junit.platform:junit-plat
 test-runtime-opengl-api = { module = "org.khronos:opengl-api", version.ref = "opengl-api" }
 
 # -- Godot plugin --------------------------------------------------------------
-runtime-androidx-appcompat = { module = "androidx.appcompat:appcompat", version.ref = "appcompat" }
+runtime-androidx-appcompat = { module = "androidx.appcompat:appcompat", version.ref = "androidx-appcompat" }
+
 
 [plugins]
 

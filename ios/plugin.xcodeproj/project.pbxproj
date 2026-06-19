@@ -21,16 +21,6 @@
 		078A3A4B2F336DA7008B4674 /* PluginTemplate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 07C98E082F3348BA002D3480 /* PluginTemplate.swift */; };
 /* End PBXBuildFile section */
 
-/* Begin PBXContainerItemProxy section */
-		0721C6A32F82629000A9BA75 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = 90CAAA8C24E71FF10013969F /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = 90CAAA9324E71FF10013969F;
-			remoteInfo = plugin_template_plugin;
-		};
-/* End PBXContainerItemProxy section */
-
 /* Begin PBXCopyFilesBuildPhase section */
 		90CAAA9224E71FF10013969F /* CopyFiles */ = {
 			isa = PBXCopyFilesBuildPhase;
@@ -162,11 +152,8 @@
 			buildRules = (
 			);
 			dependencies = (
-				0721C6A42F82629000A9BA75 /* PBXTargetDependency */,
 			);
 			name = plugin_template_plugin_tests;
-			packageProductDependencies = (
-			);
 			productName = plugin_template_plugin_tests;
 			productReference = 0721C69E2F82629000A9BA75 /* plugin_template_plugin_tests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
@@ -264,14 +251,6 @@
 		};
 /* End PBXSourcesBuildPhase section */
 
-/* Begin PBXTargetDependency section */
-		0721C6A42F82629000A9BA75 /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			target = 90CAAA9324E71FF10013969F /* plugin_template_plugin */;
-			targetProxy = 0721C6A32F82629000A9BA75 /* PBXContainerItemProxy */;
-		};
-/* End PBXTargetDependency section */
-
 /* Begin XCBuildConfiguration section */
 		0721C6A52F82629000A9BA75 /* Debug */ = {
 			isa = XCBuildConfiguration;
@@ -294,7 +273,7 @@
 					"$(SRCROOT)/test/fixtures",
 					"$(SRCROOT)/src",
 				);
-				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 14.3;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -306,10 +285,6 @@
 				);
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
 				MARKETING_VERSION = 1.0;
-				OTHER_LDFLAGS = (
-					"$(inherited)",
-					"$(GODOT_DIR)/bin/libgodot.ios.template_debug.$(CURRENT_ARCH).simulator.a",
-				);
 				OTHER_CFLAGS = (
 					"-g",
 					"-DDEBUG",
@@ -358,6 +333,12 @@
 					"-isystem",
 					"$(GODOT_DIR)/platform/ios",
 				);
+				OTHER_LDFLAGS = (
+					"$(inherited)",
+					"-undefined",
+					"dynamic_lookup",
+					"$(GODOT_DIR)/bin/libgodot.ios.template_debug.$(CURRENT_ARCH).simulator.a",
+				);
 				PRODUCT_BUNDLE_IDENTIFIER = "org.godotengine.plugin.plugin-template-unit-tests";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = NO;
@@ -392,7 +373,7 @@
 					"$(SRCROOT)/test/fixtures",
 					"$(SRCROOT)/src",
 				);
-				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 14.3;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -404,10 +385,6 @@
 				);
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
 				MARKETING_VERSION = 1.0;
-				OTHER_LDFLAGS = (
-					"$(inherited)",
-					"$(GODOT_DIR)/bin/libgodot.ios.template_debug.$(CURRENT_ARCH).simulator.a",
-				);
 				OTHER_CFLAGS = (
 					"-fmodules",
 					"-fobjc-arc",
@@ -446,6 +423,12 @@
 					"$(GODOT_DIR)/drivers/apple_embedded",
 					"-isystem",
 					"$(GODOT_DIR)/platform/ios",
+				);
+				OTHER_LDFLAGS = (
+					"$(inherited)",
+					"-undefined",
+					"dynamic_lookup",
+					"$(GODOT_DIR)/bin/libgodot.ios.template_debug.$(CURRENT_ARCH).simulator.a",
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = "org.godotengine.plugin.plugin-template-unit-tests";
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -511,7 +494,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 14.3;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
@@ -565,7 +548,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 14.3;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				SDKROOT = iphoneos;
@@ -585,7 +568,7 @@
 					"$(inherited)",
 					"$(SRCROOT)/src",
 				);
-				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 14.3;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -668,7 +651,7 @@
 					"$(inherited)",
 					"$(SRCROOT)/src",
 				);
-				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 14.3;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",

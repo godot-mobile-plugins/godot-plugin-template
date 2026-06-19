@@ -20,6 +20,8 @@ do_create_archive=false
 do_uninstall=false
 do_install=false
 do_run_tests=false
+do_check_format=false
+do_apply_format=false
 
 
 function display_help()
@@ -31,7 +33,7 @@ function display_help()
 	echo_yellow "If plugin version is not set with the -z option, then Godot version will be used."
 	echo
 	"$SCRIPT_DIR"/echocolor.sh -Y "Syntax:"
-	echo_yellow "	$0 [-a|A|b|B|c|d|D|g|G|h|p|P|r|R|s|t]"
+	echo_yellow "	$0 [-a|A|b|B|c|d|D|f|g|G|h|p|P|r|R|s|t|v]"
 	echo
 	"$SCRIPT_DIR"/echocolor.sh -Y "Options:"
 	echo_yellow "	a	update SPM and build both variants of plugin"
@@ -42,6 +44,7 @@ function display_help()
 	echo_yellow "	c	remove any existing plugin build"
 	echo_yellow "	d	uninstall iOS plugin from demo app"
 	echo_yellow "	D	install iOS plugin to demo app"
+	echo_yellow "	f	fix source code format issues"
 	echo_yellow "	g	remove directory with godot header files"
 	echo_yellow "	G	download the configured godot headers version into godot directory"
 	echo_yellow "	h	display usage information"
@@ -51,6 +54,7 @@ function display_help()
 	echo_yellow "	R	create iOS release archive"
 	echo_yellow "	s	simulator build; use with -b for simulator debug, -B for simulator release"
 	echo_yellow "	t	run iOS tests (shows per-suite pass/fail table and code coverage)"
+	echo_yellow "	v	verify source code format compliance"
 	echo
 	"$SCRIPT_DIR"/echocolor.sh -Y "Examples:"
 	echo_yellow "	* clean existing build, remove godot, and rebuild all"
@@ -117,7 +121,7 @@ function display_error()
 }
 
 
-while getopts "aAbBcdDgGhpPrRst" option; do
+while getopts "aAbBcdDfgGhpPrRstv" option; do
 	case $option in
 		h)
 			display_help
@@ -148,6 +152,9 @@ while getopts "aAbBcdDgGhpPrRst" option; do
 		D)
 			do_install=true
 			;;
+		f)
+			do_apply_format=true
+			;;
 		g)
 			do_remove_godot=true
 			;;
@@ -171,6 +178,9 @@ while getopts "aAbBcdDgGhpPrRst" option; do
 			;;
 		t)
 			do_run_tests=true
+			;;
+		v)
+			do_check_format=true
 			;;
 		\?)
 			display_error "invalid option"
@@ -241,14 +251,26 @@ then
 	"$SCRIPT_DIR"/run_gradle_task.sh "createiOSArchive"
 fi
 
-if [[ "$do_install" == true ]]
-then
-	display_status "Installing iOS plugin to demo app"
-	"$SCRIPT_DIR"/run_gradle_task.sh "installToDemoiOS"
-fi
-
 if [[ "$do_run_tests" == true ]]
 then
 	display_status "Running iOS tests"
 	"$SCRIPT_DIR"/run_gradle_task.sh ":ios:testiOS"
+fi
+
+if [[ "$do_check_format" == true ]]
+then
+	display_status "Verifying source code format compliance"
+	"$SCRIPT_DIR"/run_gradle_task.sh "checkiOSFormat"
+fi
+
+if [[ "$do_apply_format" == true ]]
+then
+	display_status "Fixing source code format issues"
+	"$SCRIPT_DIR"/run_gradle_task.sh "applyiOSFormat"
+fi
+
+if [[ "$do_install" == true ]]
+then
+	display_status "Installing iOS plugin to demo app"
+	"$SCRIPT_DIR"/run_gradle_task.sh "installToDemoiOS"
 fi

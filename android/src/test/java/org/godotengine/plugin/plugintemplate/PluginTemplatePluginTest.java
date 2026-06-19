@@ -166,7 +166,7 @@ public class PluginTemplatePluginTest {
 
 	@Test
 	public void getPluginTemplate_isIdempotent() {
-		Object[] first  = plugin.get_plugin_template();
+		Object[] first = plugin.get_plugin_template();
 		Object[] second = plugin.get_plugin_template();
 		assertArrayEquals(
 				first,
