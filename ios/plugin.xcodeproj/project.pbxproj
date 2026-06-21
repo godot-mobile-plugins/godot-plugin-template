@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 73;
+	objectVersion = 54;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -11,6 +11,10 @@
 		0721C6C12F82639B00A9BA75 /* XCTest.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0721C6C02F82639B00A9BA75 /* XCTest.framework */; platformFilter = ios; };
 		0721C6D22F82700000A9BA75 /* PluginTemplateTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0721C6D02F82700000A9BA75 /* PluginTemplateTests.swift */; };
 		0721C6D32F82700000A9BA75 /* PluginTemplateLoggerTests.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0721C6D12F82700000A9BA75 /* PluginTemplateLoggerTests.mm */; };
+		077F161C2FE7A01F00FFFBA5 /* plugin_template_logger.mm in Sources */ = {isa = PBXBuildFile; fileRef = 077F16142FE7A01F00FFFBA5 /* plugin_template_logger.mm */; };
+		077F161D2FE7A01F00FFFBA5 /* plugin_template_plugin.mm in Sources */ = {isa = PBXBuildFile; fileRef = 077F16162FE7A01F00FFFBA5 /* plugin_template_plugin.mm */; };
+		077F161E2FE7A01F00FFFBA5 /* plugin_template_plugin_bootstrap.mm in Sources */ = {isa = PBXBuildFile; fileRef = 077F16182FE7A01F00FFFBA5 /* plugin_template_plugin_bootstrap.mm */; };
+		077F161F2FE7A01F00FFFBA5 /* PluginTemplate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 077F161A2FE7A01F00FFFBA5 /* PluginTemplate.swift */; };
 		07A134692FE7735400F7EB07 /* PluginTemplateTestFixtures.mm in Sources */ = {isa = PBXBuildFile; fileRef = 07A134682FE7735400F7EB07 /* PluginTemplateTestFixtures.mm */; };
 /* End PBXBuildFile section */
 
@@ -31,27 +35,18 @@
 		0721C6C02F82639B00A9BA75 /* XCTest.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = XCTest.framework; path = Platforms/iPhoneOS.platform/Developer/Library/Frameworks/XCTest.framework; sourceTree = DEVELOPER_DIR; };
 		0721C6D02F82700000A9BA75 /* PluginTemplateTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PluginTemplateTests.swift; sourceTree = "<group>"; };
 		0721C6D12F82700000A9BA75 /* PluginTemplateLoggerTests.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = PluginTemplateLoggerTests.mm; sourceTree = "<group>"; };
+		077F16132FE7A01F00FFFBA5 /* plugin_template_logger.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = plugin_template_logger.h; sourceTree = "<group>"; };
+		077F16142FE7A01F00FFFBA5 /* plugin_template_logger.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = plugin_template_logger.mm; sourceTree = "<group>"; };
+		077F16152FE7A01F00FFFBA5 /* plugin_template_plugin.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = plugin_template_plugin.h; sourceTree = "<group>"; };
+		077F16162FE7A01F00FFFBA5 /* plugin_template_plugin.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = plugin_template_plugin.mm; sourceTree = "<group>"; };
+		077F16172FE7A01F00FFFBA5 /* plugin_template_plugin_bootstrap.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = plugin_template_plugin_bootstrap.h; sourceTree = "<group>"; };
+		077F16182FE7A01F00FFFBA5 /* plugin_template_plugin_bootstrap.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = plugin_template_plugin_bootstrap.mm; sourceTree = "<group>"; };
+		077F16192FE7A01F00FFFBA5 /* plugin_template_plugin-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "plugin_template_plugin-Bridging-Header.h"; sourceTree = "<group>"; };
+		077F161A2FE7A01F00FFFBA5 /* PluginTemplate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PluginTemplate.swift; sourceTree = "<group>"; };
 		07A134672FE7735400F7EB07 /* PluginTemplateTestFixtures.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = PluginTemplateTestFixtures.h; sourceTree = "<group>"; };
 		07A134682FE7735400F7EB07 /* PluginTemplateTestFixtures.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = PluginTemplateTestFixtures.mm; sourceTree = "<group>"; };
 		90CAAA9424E71FF10013969F /* libplugin_template_plugin.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libplugin_template_plugin.a; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
-
-/* Begin PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet section */
-		07A04E3F2FE772CF00DAB908 /* PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet */ = {
-			isa = PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet;
-			buildPhase = 90CAAA9024E71FF10013969F /* Sources */;
-			membershipExceptions = (
-				plugin_template_logger.h,
-				plugin_template_plugin_bootstrap.h,
-				"plugin_template_plugin-Bridging-Header.h",
-				plugin_template_plugin.h,
-			);
-		};
-/* End PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet section */
-
-/* Begin PBXFileSystemSynchronizedRootGroup section */
-		07A04E3E2FE772C300DAB908 /* main */ = {isa = PBXFileSystemSynchronizedRootGroup; exceptions = (07A04E3F2FE772CF00DAB908 /* PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet */, ); explicitFileTypes = {}; explicitFolders = (); path = main; sourceTree = "<group>"; };
-/* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
 		0721C69B2F82629000A9BA75 /* Frameworks */ = {
@@ -100,10 +95,25 @@
 			path = test;
 			sourceTree = "<group>";
 		};
+		077F161B2FE7A01F00FFFBA5 /* main */ = {
+			isa = PBXGroup;
+			children = (
+				077F16132FE7A01F00FFFBA5 /* plugin_template_logger.h */,
+				077F16142FE7A01F00FFFBA5 /* plugin_template_logger.mm */,
+				077F16152FE7A01F00FFFBA5 /* plugin_template_plugin.h */,
+				077F16162FE7A01F00FFFBA5 /* plugin_template_plugin.mm */,
+				077F16172FE7A01F00FFFBA5 /* plugin_template_plugin_bootstrap.h */,
+				077F16182FE7A01F00FFFBA5 /* plugin_template_plugin_bootstrap.mm */,
+				077F16192FE7A01F00FFFBA5 /* plugin_template_plugin-Bridging-Header.h */,
+				077F161A2FE7A01F00FFFBA5 /* PluginTemplate.swift */,
+			);
+			path = main;
+			sourceTree = "<group>";
+		};
 		07C98E092F3348BA002D3480 /* src */ = {
 			isa = PBXGroup;
 			children = (
-				07A04E3E2FE772C300DAB908 /* main */,
+				077F161B2FE7A01F00FFFBA5 /* main */,
 				073E18702F835E0400D42B57 /* test */,
 			);
 			path = src;
@@ -167,9 +177,6 @@
 			);
 			dependencies = (
 			);
-			fileSystemSynchronizedGroups = (
-				07A04E3E2FE772C300DAB908 /* main */,
-			);
 			name = plugin_template_plugin;
 			productName = plugin_template_plugin;
 			productReference = 90CAAA9424E71FF10013969F /* libplugin_template_plugin.a */;
@@ -196,6 +203,7 @@
 				};
 			};
 			buildConfigurationList = 90CAAA8F24E71FF10013969F /* Build configuration list for PBXProject "plugin" */;
+			compatibilityVersion = "Xcode 9.3";
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
@@ -203,7 +211,6 @@
 				Base,
 			);
 			mainGroup = 90CAAA8B24E71FF10013969F;
-			preferredProjectObjectVersion = 50;
 			productRefGroup = 90CAAA9524E71FF10013969F /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
@@ -239,6 +246,10 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				077F161C2FE7A01F00FFFBA5 /* plugin_template_logger.mm in Sources */,
+				077F161D2FE7A01F00FFFBA5 /* plugin_template_plugin.mm in Sources */,
+				077F161E2FE7A01F00FFFBA5 /* plugin_template_plugin_bootstrap.mm in Sources */,
+				077F161F2FE7A01F00FFFBA5 /* PluginTemplate.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -330,6 +341,7 @@
 					"$(inherited)",
 					"-undefined",
 					dynamic_lookup,
+					"-Wl,-dead_strip",
 					"$(GODOT_DIR)/bin/libgodot.ios.template_debug.$(CURRENT_ARCH).simulator.a",
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = "org.godotengine.plugin.plugin-template-unit-tests";
@@ -421,6 +433,7 @@
 					"$(inherited)",
 					"-undefined",
 					dynamic_lookup,
+					"-Wl,-dead_strip",
 					"$(GODOT_DIR)/bin/libgodot.ios.template_debug.$(CURRENT_ARCH).simulator.a",
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = "org.godotengine.plugin.plugin-template-unit-tests";
