@@ -106,6 +106,13 @@ function display_warning()
 }
 
 
+# Display help if execution has no arguments
+if [[ $# -eq 0 ]]; then
+	display_help
+	exit 0
+fi
+
+
 while getopts "bcdDfhrRtv" option; do
 	case $option in
 		h)
