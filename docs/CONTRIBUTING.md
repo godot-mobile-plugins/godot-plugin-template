@@ -900,7 +900,7 @@ Place new test files under `android/src/test/java/` (or `kotlin/`) mirroring you
 
 ### iOS Unit Tests
 
-iOS tests are written with **XCTest** and live under `ios/test/unit/`. There are two test files:
+iOS tests are written with **XCTest** and live under `ios/src/test/unit/`. There are two test files:
 
 | File | Language | Coverage |
 |------|----------|---------|
@@ -967,9 +967,9 @@ The test target is wired into the Xcode project as follows:
 
 #### Writing new iOS tests
 
-Swift tests: add a new `XCTestCase` subclass to `ios/test/unit/` and register the file in the `plugin_template_plugin_tests` target's Sources build phase in `project.pbxproj`.
+Swift tests: add a new `XCTestCase` subclass to `ios/src/test/unit/` and register the file in the `plugin_template_plugin_tests` target's Sources build phase in `project.pbxproj`.
 
-Objective-C++ tests: add a `.mm` file to `ios/test/unit/`. Import `plugin_template_logger.h` for logger access or `plugin_template_plugin.h` for the plugin class. Add the file to the Sources build phase the same way.
+Objective-C++ tests: add a `.mm` file to `ios/src/test/unit/`. Import `plugin_template_logger.h` for logger access or `plugin_template_plugin.h` for the plugin class. Add the file to the Sources build phase the same way.
 
 > **Note on Godot engine classes:** `PluginTemplatePlugin` (the `Object` subclass), `plugin_template_plugin_init()`, and `plugin_template_plugin_deinit()` all depend on `memnew`/`memdelete` and `Engine::get_singleton()`, which are Godot engine internals unavailable in a plain XCTest host. Test those paths using GDScript integration tests via the Godot editor or the [GUT](https://github.com/bitwes/Gut) framework instead.
 

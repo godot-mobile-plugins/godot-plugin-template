@@ -259,8 +259,8 @@ fun TaskContainerScope.registerIosTestTask(
         val workspace = file("$projectDir/plugin.xcodeproj/project.xcworkspace")
         val testResultsDir = file("$projectDir/build/TestResults")
 
-        inputs.dir("$projectDir/src")
-        inputs.dir("$projectDir/test")
+        inputs.dir("$projectDir/src/main")
+        inputs.dir("$projectDir/src/test")
         outputs.dir(testResultsDir)
 
         onlyIf("iOS test scheme exists") {

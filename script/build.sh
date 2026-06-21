@@ -145,6 +145,13 @@ function run_ios_build()
 }
 
 
+# Display help if execution has no arguments
+if [[ $# -eq 0 ]]; then
+	display_help
+	exit 0
+fi
+
+
 while getopts "aAbcCdDfhiIMRtv" option; do
 	case $option in
 		h)
