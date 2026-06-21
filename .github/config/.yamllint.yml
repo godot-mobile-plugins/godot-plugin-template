@@ -1,0 +1,16 @@
+#
+# Copyright (c) 2026-present Godot Mobile Plugins (https://github.com/godot-mobile-plugins)
+#
+extends: default
+rules:
+  line-length:
+    max: 120
+  document-start: disable
+  comments:
+    min-spaces-from-content: 2
+    require-starting-space: true
+  empty-lines:
+    max: 1
+  brackets:
+    # Forbids the use of inline flow sequences [item1, item2] but allows empty ones []
+    forbid: non-empty

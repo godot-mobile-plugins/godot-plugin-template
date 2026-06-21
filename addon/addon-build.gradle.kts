@@ -1,5 +1,5 @@
 //
-// © 2024-present https://github.com/cengiz-pz
+// © 2024-present Godot Mobile Plugins (https://github.com/godot-mobile-plugins)
 //
 
 plugins {

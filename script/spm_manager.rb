@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 #
-# © 2026-present https://github.com/cengiz-pz
+# Copyright (c) 2026-present Godot Mobile Plugins (https://github.com/godot-mobile-plugins)
 #
 
 require 'xcodeproj'

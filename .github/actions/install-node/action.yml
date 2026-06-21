@@ -1,10 +1,8 @@
 #
-# © 2026-present https://github.com/cengiz-pz
+# Copyright (c) 2026-present Godot Mobile Plugins (https://github.com/godot-mobile-plugins)
 #
-
 name: Install Node
 description: Installs Node.js manually when running under act, or via actions/setup-node on GitHub.
-
 runs:
   using: composite
   steps:
@@ -13,28 +11,22 @@ runs:
       shell: bash
       run: |
         NODE_VERSION=24.14.1
-
         OS=$(uname -s)
         ARCH=$(uname -m)
-
         if [ "$OS" = "Darwin" ]; then
           PLATFORM="darwin"
         else
           PLATFORM="linux"
         fi
-
         if [ "$ARCH" = "arm64" ]; then
           ARCH="arm64"
         else
           ARCH="x64"
         fi
-
         FILE="node-v$NODE_VERSION-$PLATFORM-$ARCH.tar.xz"
         URL="https://nodejs.org/dist/v$NODE_VERSION"
-
         echo "Downloading $FILE from $URL"
         curl -fsSL "$URL/$FILE" -o node.tar.xz
-
         mkdir -p "$HOME/node"
         tar -xJf node.tar.xz -C "$HOME/node" --strip-components=1
 
@@ -43,10 +35,8 @@ runs:
 
         # Make available to later steps
         echo "$HOME/node/bin" >> "$GITHUB_PATH"
-
         node -v
         npm -v
-
     - name: Setup Node (GitHub)
       if: env.ACT != 'true'
       uses: actions/setup-node@v6

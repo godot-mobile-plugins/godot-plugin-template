@@ -1,0 +1,19 @@
+#
+# Copyright (c) 2026-present Godot Mobile Plugins (https://github.com/godot-mobile-plugins)
+#
+
+# Matches 'document-start: disable'
+explicit_start = false
+
+# Matches 'line-length: 120'
+line_length = 120
+
+# Specify the minimum number of spaces before an inline comment
+comments_min_spaces_from_content = 2
+
+# Extra comment rules available in yamlfix:
+comments_require_starting_space = true   # Forces a space after the '#' symbol
+comments_whitelines = 1 
+
+# Enforce block sequence style (hyphenated multi-line lists) over flow style (inline brackets)
+sequence_style = "block_style"

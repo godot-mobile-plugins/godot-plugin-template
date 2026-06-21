@@ -1,19 +1,15 @@
 #
-# © 2026-present https://github.com/cengiz-pz
+# Copyright (c) 2026-present Godot Mobile Plugins (https://github.com/godot-mobile-plugins)
 #
-
 name: Install editorconfig-checker
 description: Installs a pinned version of editorconfig-checker with caching.
-
 inputs:
   version:
-    description: 'The version of editorconfig-checker to install'
+    description: The version of editorconfig-checker to install
     required: false
-    default: '3.6.1'
-
+    default: 3.6.1
 runs:
   using: composite
-
   steps:
     - name: Cache editorconfig-checker
       id: cache-ec
@@ -23,7 +19,6 @@ runs:
       with:
         path: ~/.local/bin/editorconfig-checker
         key: ${{ runner.os }}-${{ runner.arch }}-ec-${{ inputs.version }}
-
     - name: Install editorconfig-checker
       # This runs if there's a cache miss OR if the cache step was skipped entirely
       if: steps.cache-ec.outputs.cache-hit != 'true'
@@ -42,12 +37,10 @@ runs:
           echo "Unsupported architecture: $ARCH_TYPE"
           exit 1
         fi
-
         ASSET="ec-${OS_TYPE}-${ARCH}"
-
         echo "Downloading ${ASSET}..."
-        curl -sSLO "https://github.com/editorconfig-checker/editorconfig-checker/releases/download/v${{ inputs.version }}/${ASSET}.tar.gz"
-
+        URL="https://github.com/editorconfig-checker/editorconfig-checker"
+        curl -sSLO "${URL}/releases/download/v${{ inputs.version }}/${ASSET}.tar.gz"
         tar xzf "${ASSET}.tar.gz"
         mkdir -p "$HOME/.local/bin"
         mv "bin/${ASSET}" "$HOME/.local/bin/editorconfig-checker"
@@ -55,7 +48,6 @@ runs:
 
         # Clean up
         rm -rf "${ASSET}.tar.gz" bin/
-
     - name: Add to PATH
       shell: bash
       run: echo "$HOME/.local/bin" >> "$GITHUB_PATH"

@@ -1,43 +1,41 @@
 #
-# © 2026-present https://github.com/cengiz-pz
+# Copyright (c) 2026-present Godot Mobile Plugins (https://github.com/godot-mobile-plugins)
 #
-
 name: iOS Code Style
-
 on:
   pull_request:
     branches:
       - main
     paths:
-      - 'ios/src/**/*.m'
-      - 'ios/src/**/*.mm'
-      - 'ios/src/**/*.h'
-      - 'ios/src/**/*.swift'
-
+      - ios/src/**/*.m
+      - ios/src/**/*.mm
+      - ios/src/**/*.h
+      - ios/src/**/*.swift
 jobs:
   ios-style:
     runs-on: macos-latest
-
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
-
+        uses: actions/checkout@v7
       - name: Install SwiftLint
         run: brew install swiftlint
-
       - name: Install clang-format
         run: brew install clang-format
-
       - name: Run SwiftLint
-        run: find ios/src \( -name "*.swift" \) | xargs swiftlint lint --config "$GITHUB_WORKSPACE/.github/config/.swiftlint.yml"
-
+        run: |
+          find ios/src \( -name "*.swift" \) -print0 | xargs -0 swiftlint lint \
+            --config "$GITHUB_WORKSPACE/.github/config/.swiftlint.yml"
       - name: Run clang-format check
         run: |
           find ios/src \( -name "*.m" -o -name "*.mm" -o -name "*.h" \) \
-          -exec clang-format --style=file:.github/config/.clang-format --dry-run --Werror {} +
-
+            -print0 | xargs -0 clang-format --style=file:.github/config/.clang-format --dry-run --Werror
       - name: Install editorconfig-checker
         run: brew install editorconfig-checker
-
       - name: Verify EditorConfig (Final Newline & Trailing Space)
-        run: find ios/src \( -name "*.m" -o -name "*.mm" -o -name "*.h" -o -name "*.swift" \) | xargs editorconfig-checker
+        run: |-
+          find ios/src \( \
+            -name "*.m" \
+            -o -name "*.mm" \
+            -o -name "*.h" \
+            -o -name "*.swift" \
+          \) -print0 | xargs -0 editorconfig-checker
