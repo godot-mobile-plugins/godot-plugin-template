@@ -118,8 +118,8 @@ jobs:
           ISSUE_LINES=$(gh issue list \
             --milestone "${EXPECTED_VERSION}" \
             --state closed \
-            --json number \
-            --jq '.[].number | "- #\(.)"' || echo "- (No milestone issues linked)")
+            --json number,title \
+            --jq '.[] | "- #\(.number) \(.title)"' || echo "- (No milestone issues linked)")
 
           gh release create "$TAG_NAME" \
             --draft \
