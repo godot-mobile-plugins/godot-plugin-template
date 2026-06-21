@@ -49,11 +49,13 @@ jobs:
           echo "Expected Version (Input/Milestone): '${EXPECTED_VERSION}'"
           if [ "${PLUGIN_VERSION}" != "${EXPECTED_VERSION}" ]; then
             echo "::error::Validation Failed."
-            echo "The pluginVersion '${PLUGIN_VERSION}' in plugin.properties does not match the triggered version '${EXPECTED_VERSION}'."
+            echo "The pluginVersion '${PLUGIN_VERSION}' does not match \
+          the triggered version '${EXPECTED_VERSION}'."
             exit 1
           fi
           echo "Validation Successful."
-          echo "The pluginVersion '${PLUGIN_VERSION}' correctly matches the triggered version '${EXPECTED_VERSION}'."
+          echo "The pluginVersion '${PLUGIN_VERSION}' correctly matches \
+          the triggered version '${EXPECTED_VERSION}'."
 
       # -- Node ----------------------------------------------------------------
       - name: Install Node
@@ -102,20 +104,22 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |-
           # Using EXPECTED_VERSION here to map to the milestone title.
-          # "|| echo" ensures that manual triggers without an exact milestone match don't fail the pipeline.
+          # Manual triggers without an exact milestone match won't fail the pipeline.
           ISSUE_LINES=$(gh issue list \
             --milestone "${EXPECTED_VERSION}" \
             --state closed \
             --json number,title \
             --jq '.[] | "- #\(.number) \(.title)"' || echo "- (No milestone issues linked)")
+          TITLE="${{ steps.plugin_config.outputs['plugin.pluginNodeName'] }} Plugin $TAG_NAME"
+          GV="${{ steps.plugin_config.outputs['godot.godotVersion'] }}"
           gh release create "$TAG_NAME" \
             --draft \
-            --title "${{ steps.plugin_config.outputs['plugin.pluginNodeName'] }} Plugin $TAG_NAME" \
+            --title "$TITLE" \
             --notes "## New in this release:
           ${ISSUE_LINES}
           <br />
           _This version..._
-          -  _has been tested against and supports Godot version ${{ steps.plugin_config.outputs['godot.godotVersion'] }}._" \
+          -  _has been tested against and supports Godot version ${GV}._" \
             "${{ steps.archives.outputs.android_zip }}" \
             "${{ steps.archives.outputs.ios_zip }}" \
             "${{ steps.archives.outputs.multi_zip }}"

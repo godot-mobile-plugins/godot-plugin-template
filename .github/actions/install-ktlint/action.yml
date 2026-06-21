@@ -28,7 +28,8 @@ runs:
       run: |
         echo "Cache miss: Downloading ktlint version ${{ inputs.version }}..."
         mkdir -p "$HOME/.local/bin"
-        curl -sSL "https://github.com/pinterest/ktlint/releases/download/${{ inputs.version }}/ktlint" -o "$HOME/.local/bin/ktlint"
+        URL="https://github.com/pinterest/ktlint/releases/download"
+        curl -sSL "${URL}/${{ inputs.version }}/ktlint" -o "$HOME/.local/bin/ktlint"
         chmod +x "$HOME/.local/bin/ktlint"
 
     # Expose ktlint to PATH (must run on both cache hits and misses)

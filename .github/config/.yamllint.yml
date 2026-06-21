@@ -7,7 +7,7 @@ rules:
     max: 120
   document-start: disable
   comments:
-    min-spaces-from-content: 3
+    min-spaces-from-content: 2
     require-starting-space: true
   empty-lines:
     max: 1

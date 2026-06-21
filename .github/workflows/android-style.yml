@@ -24,7 +24,8 @@ jobs:
       - name: Run Checkstyle
         run: |
           CHECKSTYLE_VERSION="12.3.1"
-          wget "https://github.com/checkstyle/checkstyle/releases/download/checkstyle-${CHECKSTYLE_VERSION}/checkstyle-${CHECKSTYLE_VERSION}-all.jar" \
+          BASE_URL="https://github.com/checkstyle/checkstyle/releases/download"
+          wget "${BASE_URL}/checkstyle-${CHECKSTYLE_VERSION}/checkstyle-${CHECKSTYLE_VERSION}-all.jar" \
             -O checkstyle-all.jar
           java -jar checkstyle-all.jar -c .github/config/checkstyle.xml android/src
       - name: Install Node
@@ -40,4 +41,9 @@ jobs:
       - name: Install editorconfig-checker
         uses: ./.github/actions/install-ec
       - name: Verify EditorConfig (Final Newline & Trailing Space)
-        run: find android/src \( -name "*.java" -o -name "*.kt" -o -name "*.xml" \) | xargs editorconfig-checker
+        run: |-
+          find android/src \( \
+            -name "*.java" \
+            -o -name "*.kt" \
+            -o -name "*.xml" \
+          \) | xargs editorconfig-checker

@@ -39,7 +39,8 @@ runs:
         fi
         ASSET="ec-${OS_TYPE}-${ARCH}"
         echo "Downloading ${ASSET}..."
-        curl -sSLO "https://github.com/editorconfig-checker/editorconfig-checker/releases/download/v${{ inputs.version }}/${ASSET}.tar.gz"
+        URL="https://github.com/editorconfig-checker/editorconfig-checker"
+        curl -sSLO "${URL}/releases/download/v${{ inputs.version }}/${ASSET}.tar.gz"
         tar xzf "${ASSET}.tar.gz"
         mkdir -p "$HOME/.local/bin"
         mv "bin/${ASSET}" "$HOME/.local/bin/editorconfig-checker"
