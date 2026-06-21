@@ -13,7 +13,6 @@ on:
       - 'common/**/*.gradle.kts'
       - 'ios/config/**'
       - 'ios/src/**'
-      - 'ios/test/**'
       - 'ios/**/*.gradle.kts'
       - 'ios/*.xcodeproj/**'
 

@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 54;
+	objectVersion = 73;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -11,14 +11,7 @@
 		0721C6C12F82639B00A9BA75 /* XCTest.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0721C6C02F82639B00A9BA75 /* XCTest.framework */; platformFilter = ios; };
 		0721C6D22F82700000A9BA75 /* PluginTemplateTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0721C6D02F82700000A9BA75 /* PluginTemplateTests.swift */; };
 		0721C6D32F82700000A9BA75 /* PluginTemplateLoggerTests.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0721C6D12F82700000A9BA75 /* PluginTemplateLoggerTests.mm */; };
-		078A3A442F336DA7008B4674 /* plugin_template_logger.h in Sources */ = {isa = PBXBuildFile; fileRef = 07C98E012F3348BA002D3480 /* plugin_template_logger.h */; };
-		078A3A452F336DA7008B4674 /* plugin_template_logger.mm in Sources */ = {isa = PBXBuildFile; fileRef = 07C98E022F3348BA002D3480 /* plugin_template_logger.mm */; };
-		078A3A462F336DA7008B4674 /* plugin_template_plugin.h in Sources */ = {isa = PBXBuildFile; fileRef = 07C98E032F3348BA002D3480 /* plugin_template_plugin.h */; };
-		078A3A472F336DA7008B4674 /* plugin_template_plugin.mm in Sources */ = {isa = PBXBuildFile; fileRef = 07C98E042F3348BA002D3480 /* plugin_template_plugin.mm */; };
-		078A3A482F336DA7008B4674 /* plugin_template_plugin_bootstrap.h in Sources */ = {isa = PBXBuildFile; fileRef = 07C98E052F3348BA002D3480 /* plugin_template_plugin_bootstrap.h */; };
-		078A3A492F336DA7008B4674 /* plugin_template_plugin_bootstrap.mm in Sources */ = {isa = PBXBuildFile; fileRef = 07C98E062F3348BA002D3480 /* plugin_template_plugin_bootstrap.mm */; };
-		078A3A4A2F336DA7008B4674 /* plugin_template_plugin-Bridging-Header.h in Sources */ = {isa = PBXBuildFile; fileRef = 07C98E072F3348BA002D3480 /* plugin_template_plugin-Bridging-Header.h */; };
-		078A3A4B2F336DA7008B4674 /* PluginTemplate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 07C98E082F3348BA002D3480 /* PluginTemplate.swift */; };
+		07A134692FE7735400F7EB07 /* PluginTemplateTestFixtures.mm in Sources */ = {isa = PBXBuildFile; fileRef = 07A134682FE7735400F7EB07 /* PluginTemplateTestFixtures.mm */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -35,19 +28,30 @@
 
 /* Begin PBXFileReference section */
 		0721C69E2F82629000A9BA75 /* plugin_template_plugin_tests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = plugin_template_plugin_tests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		0721C6C02F82639B00A9BA75 /* XCTest.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = XCTest.framework; path = Platforms/iPhoneOS.platform/Developer/Library/Frameworks/XCTest.framework; sourceTree = DEVELOPER_DIR; };
 		0721C6D02F82700000A9BA75 /* PluginTemplateTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PluginTemplateTests.swift; sourceTree = "<group>"; };
 		0721C6D12F82700000A9BA75 /* PluginTemplateLoggerTests.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = PluginTemplateLoggerTests.mm; sourceTree = "<group>"; };
-		0721C6C02F82639B00A9BA75 /* XCTest.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = XCTest.framework; path = Platforms/iPhoneOS.platform/Developer/Library/Frameworks/XCTest.framework; sourceTree = DEVELOPER_DIR; };
-		07C98E012F3348BA002D3480 /* plugin_template_logger.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = plugin_template_logger.h; sourceTree = "<group>"; };
-		07C98E022F3348BA002D3480 /* plugin_template_logger.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = plugin_template_logger.mm; sourceTree = "<group>"; };
-		07C98E032F3348BA002D3480 /* plugin_template_plugin.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = plugin_template_plugin.h; sourceTree = "<group>"; };
-		07C98E042F3348BA002D3480 /* plugin_template_plugin.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = plugin_template_plugin.mm; sourceTree = "<group>"; };
-		07C98E052F3348BA002D3480 /* plugin_template_plugin_bootstrap.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = plugin_template_plugin_bootstrap.h; sourceTree = "<group>"; };
-		07C98E062F3348BA002D3480 /* plugin_template_plugin_bootstrap.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = plugin_template_plugin_bootstrap.mm; sourceTree = "<group>"; };
-		07C98E072F3348BA002D3480 /* plugin_template_plugin-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "plugin_template_plugin-Bridging-Header.h"; sourceTree = "<group>"; };
-		07C98E082F3348BA002D3480 /* PluginTemplate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PluginTemplate.swift; sourceTree = "<group>"; };
+		07A134672FE7735400F7EB07 /* PluginTemplateTestFixtures.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = PluginTemplateTestFixtures.h; sourceTree = "<group>"; };
+		07A134682FE7735400F7EB07 /* PluginTemplateTestFixtures.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = PluginTemplateTestFixtures.mm; sourceTree = "<group>"; };
 		90CAAA9424E71FF10013969F /* libplugin_template_plugin.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libplugin_template_plugin.a; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet section */
+		07A04E3F2FE772CF00DAB908 /* PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet */ = {
+			isa = PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet;
+			buildPhase = 90CAAA9024E71FF10013969F /* Sources */;
+			membershipExceptions = (
+				plugin_template_logger.h,
+				plugin_template_plugin_bootstrap.h,
+				"plugin_template_plugin-Bridging-Header.h",
+				plugin_template_plugin.h,
+			);
+		};
+/* End PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet section */
+
+/* Begin PBXFileSystemSynchronizedRootGroup section */
+		07A04E3E2FE772C300DAB908 /* main */ = {isa = PBXFileSystemSynchronizedRootGroup; exceptions = (07A04E3F2FE772CF00DAB908 /* PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet */, ); explicitFileTypes = {}; explicitFolders = (); path = main; sourceTree = "<group>"; };
+/* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
 		0721C69B2F82629000A9BA75 /* Frameworks */ = {
@@ -72,8 +76,8 @@
 		073E18652F835E0400D42B57 /* fixtures */ = {
 			isa = PBXGroup;
 			children = (
-				073E18632F835E0400D42B57 /* PluginTemplateTestFixtures.h */,
-				073E18642F835E0400D42B57 /* PluginTemplateTestFixtures.mm */,
+				07A134672FE7735400F7EB07 /* PluginTemplateTestFixtures.h */,
+				07A134682FE7735400F7EB07 /* PluginTemplateTestFixtures.mm */,
 			);
 			path = fixtures;
 			sourceTree = "<group>";
@@ -99,14 +103,8 @@
 		07C98E092F3348BA002D3480 /* src */ = {
 			isa = PBXGroup;
 			children = (
-				07C98E012F3348BA002D3480 /* plugin_template_logger.h */,
-				07C98E022F3348BA002D3480 /* plugin_template_logger.mm */,
-				07C98E032F3348BA002D3480 /* plugin_template_plugin.h */,
-				07C98E042F3348BA002D3480 /* plugin_template_plugin.mm */,
-				07C98E052F3348BA002D3480 /* plugin_template_plugin_bootstrap.h */,
-				07C98E062F3348BA002D3480 /* plugin_template_plugin_bootstrap.mm */,
-				07C98E072F3348BA002D3480 /* plugin_template_plugin-Bridging-Header.h */,
-				07C98E082F3348BA002D3480 /* PluginTemplate.swift */,
+				07A04E3E2FE772C300DAB908 /* main */,
+				073E18702F835E0400D42B57 /* test */,
 			);
 			path = src;
 			sourceTree = "<group>";
@@ -114,7 +112,6 @@
 		90CAAA8B24E71FF10013969F = {
 			isa = PBXGroup;
 			children = (
-				073E18702F835E0400D42B57 /* test */,
 				07C98E092F3348BA002D3480 /* src */,
 				90CAAA9524E71FF10013969F /* Products */,
 				90CAAAA824E72A8A0013969F /* Frameworks */,
@@ -170,6 +167,9 @@
 			);
 			dependencies = (
 			);
+			fileSystemSynchronizedGroups = (
+				07A04E3E2FE772C300DAB908 /* main */,
+			);
 			name = plugin_template_plugin;
 			productName = plugin_template_plugin;
 			productReference = 90CAAA9424E71FF10013969F /* libplugin_template_plugin.a */;
@@ -196,7 +196,6 @@
 				};
 			};
 			buildConfigurationList = 90CAAA8F24E71FF10013969F /* Build configuration list for PBXProject "plugin" */;
-			compatibilityVersion = "Xcode 9.3";
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
@@ -204,6 +203,7 @@
 				Base,
 			);
 			mainGroup = 90CAAA8B24E71FF10013969F;
+			preferredProjectObjectVersion = 50;
 			productRefGroup = 90CAAA9524E71FF10013969F /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
@@ -231,6 +231,7 @@
 			files = (
 				0721C6D22F82700000A9BA75 /* PluginTemplateTests.swift in Sources */,
 				0721C6D32F82700000A9BA75 /* PluginTemplateLoggerTests.mm in Sources */,
+				07A134692FE7735400F7EB07 /* PluginTemplateTestFixtures.mm in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -238,14 +239,6 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				078A3A442F336DA7008B4674 /* plugin_template_logger.h in Sources */,
-				078A3A452F336DA7008B4674 /* plugin_template_logger.mm in Sources */,
-				078A3A462F336DA7008B4674 /* plugin_template_plugin.h in Sources */,
-				078A3A472F336DA7008B4674 /* plugin_template_plugin.mm in Sources */,
-				078A3A482F336DA7008B4674 /* plugin_template_plugin_bootstrap.h in Sources */,
-				078A3A492F336DA7008B4674 /* plugin_template_plugin_bootstrap.mm in Sources */,
-				078A3A4A2F336DA7008B4674 /* plugin_template_plugin-Bridging-Header.h in Sources */,
-				078A3A4B2F336DA7008B4674 /* PluginTemplate.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -336,7 +329,7 @@
 				OTHER_LDFLAGS = (
 					"$(inherited)",
 					"-undefined",
-					"dynamic_lookup",
+					dynamic_lookup,
 					"$(GODOT_DIR)/bin/libgodot.ios.template_debug.$(CURRENT_ARCH).simulator.a",
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = "org.godotengine.plugin.plugin-template-unit-tests";
@@ -427,7 +420,7 @@
 				OTHER_LDFLAGS = (
 					"$(inherited)",
 					"-undefined",
-					"dynamic_lookup",
+					dynamic_lookup,
 					"$(GODOT_DIR)/bin/libgodot.ios.template_debug.$(CURRENT_ARCH).simulator.a",
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = "org.godotengine.plugin.plugin-template-unit-tests";
@@ -632,7 +625,7 @@
 				PRODUCT_MODULE_NAME = plugin_template_plugin;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
-				SWIFT_OBJC_BRIDGING_HEADER = "src/plugin_template_plugin-Bridging-Header.h";
+				SWIFT_OBJC_BRIDGING_HEADER = "src/main/plugin_template_plugin-Bridging-Header.h";
 				SWIFT_OBJC_INTERFACE_HEADER_NAME = "plugin_template_plugin-Swift.h";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 5.9;
@@ -706,7 +699,7 @@
 				PRODUCT_MODULE_NAME = plugin_template_plugin;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
-				SWIFT_OBJC_BRIDGING_HEADER = "src/plugin_template_plugin-Bridging-Header.h";
+				SWIFT_OBJC_BRIDGING_HEADER = "src/main/plugin_template_plugin-Bridging-Header.h";
 				SWIFT_OBJC_INTERFACE_HEADER_NAME = "plugin_template_plugin-Swift.h";
 				SWIFT_VERSION = 5.9;
 				TARGETED_DEVICE_FAMILY = "1,2";

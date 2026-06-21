@@ -2,9 +2,9 @@
 // © 2026-present https://github.com/<<GitHubUsername>>
 //
 
-#import "AdmobTestFixtures.h"
+#import "PluginTemplateTestFixtures.h"
 
-@implementation AdmobTestFixtures
+@implementation PluginTemplateTestFixtures
 
 // -- Generic helpers ---------------------------------------------------------
 
