@@ -206,6 +206,20 @@ done
 shift $((OPTIND - 1))
 
 
+# Validate that platform options -a and -i are accompanied by trailing options via '--'
+if [[ "$do_build_android" == true && "$do_build_ios" == false ]] || \
+	[[ "$do_build_ios" == true && "$do_build_android" == false ]]; then
+	if [ $# -eq 0 ]; then
+		echo
+		display_error "Missing required platform build options."
+		echo_yellow "When running with -a or -i, you must supply a '-- -<options>' section."
+		echo_yellow "Example: $0 -a -- -b"
+		echo
+		exit 1
+	fi
+fi
+
+
 if [[ "$do_uninstall" == true ]]
 then
 	display_status "Uninstalling plugin from demo app"

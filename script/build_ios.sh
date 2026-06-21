@@ -121,6 +121,13 @@ function display_error()
 }
 
 
+# Display help if execution has no arguments
+if [[ $# -eq 0 ]]; then
+	display_help
+	exit 0
+fi
+
+
 while getopts "aAbBcdDfgGhpPrRstv" option; do
 	case $option in
 		h)
