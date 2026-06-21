@@ -1041,17 +1041,19 @@ tasks {
         inputs.dir(frameworkDir).optional(true)
         outputs.dir(destDir)
 
-        into("ios/plugins") {
+        into("ios/plugins/${pluginConfig.pluginName}") {
             from(frameworkDir) {
                 include("${pluginConfig.pluginName}.debug.xcframework/**")
                 include("${pluginConfig.pluginName}.release.xcframework/**")
+            }
+            from("$repositoryRootDir/addon/build/output/ios/plugins") {
+                include("*.gdip")
             }
         }
 
         from("$repositoryRootDir/addon/build/output") {
             include("addons/${pluginConfig.pluginName}/**")
             include("addons/GMPShared/**")
-            include("ios/plugins/*.gdip")
         }
     }
 
@@ -1090,6 +1092,10 @@ tasks {
             },
         )
 
+        // Deletes the new nested plugin framework directory
+        delete(file("$demoDir/ios/plugins/${pluginConfig.pluginName}"))
+
+        // Preserved to clean up the .gdip file or legacy artifacts
         delete(
             file("$demoDir/ios/plugins")
                 .listFiles()
