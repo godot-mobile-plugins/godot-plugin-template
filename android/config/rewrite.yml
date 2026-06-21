@@ -1,8 +1,6 @@
 #
 # Copyright (c) 2026-present Godot Mobile Plugins (https://github.com/godot-mobile-plugins)
 #
-
----
 type: specs.openrewrite.org/v1beta/style
 name: org.godotengine.plugin.JavaStyle
 styleConfigs:
@@ -13,9 +11,9 @@ styleConfigs:
       continuationIndent: 8
   - org.openrewrite.java.style.WrappingAndBracesStyle:
       ifStatement:
-        elseOnNewLine: false     # keeps `} else {` on one line
+        elseOnNewLine: false  # keeps `} else {` on one line
       tryStatement:
-        catchOnNewLine: false    # keeps `} catch {` on one line
+        catchOnNewLine: false  # keeps `} catch {` on one line
         finallyOnNewLine: false  # keeps `} finally {` on one line
   - org.openrewrite.java.style.ImportLayoutStyle:
       classCountToUseStarImport: 999

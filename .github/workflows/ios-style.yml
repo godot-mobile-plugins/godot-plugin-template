@@ -4,8 +4,13 @@
 name: iOS Code Style
 on:
   pull_request:
-    branches: [main]
-    paths: [ios/src/**/*.m, ios/src/**/*.mm, ios/src/**/*.h, ios/src/**/*.swift]
+    branches:
+      - main
+    paths:
+      - ios/src/**/*.m
+      - ios/src/**/*.mm
+      - ios/src/**/*.h
+      - ios/src/**/*.swift
 jobs:
   ios-style:
     runs-on: macos-latest

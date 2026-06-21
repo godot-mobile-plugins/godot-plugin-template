@@ -4,8 +4,10 @@
 name: Sync Labels
 on:
   push:
-    branches: [main]
-    paths: [.github/config/labels.yml]
+    branches:
+      - main
+    paths:
+      - .github/config/labels.yml
 permissions:
   issues: write
 jobs:

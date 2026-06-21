@@ -4,8 +4,10 @@
 name: Gradle Kotlin DSL Style
 on:
   pull_request:
-    branches: [main]
-    paths: ['**/*.gradle.kts']
+    branches:
+      - main
+    paths:
+      - '**/*.gradle.kts'
 jobs:
   gradle-kts-style:
     runs-on: ubuntu-22.04

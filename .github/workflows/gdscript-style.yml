@@ -4,8 +4,11 @@
 name: GDScript Code Style
 on:
   pull_request:
-    branches: [main]
-    paths: [addon/src/**/*.gd, demo/**/*.gd]
+    branches:
+      - main
+    paths:
+      - addon/src/**/*.gd
+      - demo/**/*.gd
 jobs:
   gdscript-style:
     runs-on: ubuntu-22.04

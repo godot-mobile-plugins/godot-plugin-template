@@ -4,7 +4,8 @@
 name: Auto Label Issues
 on:
   issues:
-    types: [opened]
+    types:
+      - opened
 jobs:
   triage:
     runs-on: ubuntu-latest

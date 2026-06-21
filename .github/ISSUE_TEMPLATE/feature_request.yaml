@@ -39,7 +39,9 @@ body:
     attributes:
       label: Plugin Version
       description: What version of the plugin are you running?
-      options: ['1.0', Other]
+      options:
+        - '1.0'
+        - Other
       default: 0
     validations:
       required: true

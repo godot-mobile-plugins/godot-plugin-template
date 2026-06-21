@@ -14,3 +14,6 @@ comments_min_spaces_from_content = 2
 # Extra comment rules available in yamlfix:
 comments_require_starting_space = true   # Forces a space after the '#' symbol
 comments_whitelines = 1 
+
+# Enforce block sequence style (hyphenated multi-line lists) over flow style (inline brackets)
+sequence_style = "block_style"

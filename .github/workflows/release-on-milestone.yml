@@ -4,7 +4,8 @@
 name: Draft Release on Milestone Close
 on:
   milestone:
-    types: [closed]
+    types:
+      - closed
   workflow_dispatch:
     inputs:
       version:

@@ -16,7 +16,10 @@ body:
     attributes:
       label: 📂 Catetory
       description: Select at least one category
-      options: [❔ Question, 💡 Idea, 🗣️ Feedback]
+      options:
+        - ❔ Question
+        - 💡 Idea
+        - 🗣️ Feedback
       default: 0
     validations:
       required: true

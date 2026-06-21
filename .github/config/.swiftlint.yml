@@ -1,8 +1,11 @@
 #
 # Copyright (c) 2026-present Godot Mobile Plugins (https://github.com/godot-mobile-plugins)
 #
-included: [ios/src]
-excluded: [ios/src/**/Generated, ios/src/**/Pods]
+included:
+  - ios/src
+excluded:
+  - ios/src/**/Generated
+  - ios/src/**/Pods
 opt_in_rules:
   - empty_count
   - explicit_init
@@ -15,7 +18,8 @@ opt_in_rules:
   - redundant_nil_coalescing
   - sorted_imports
   - indentation_width
-disabled_rules: [empty_parameters]
+disabled_rules:
+  - empty_parameters
 line_length:
   warning: 120
   error: 140
@@ -33,5 +37,10 @@ indentation_width:
   unindent_closure_body: true
 identifier_name:
   min_length: 2
-  excluded: [id, ad, i, x, y]
+  excluded:
+    - id
+    - ad
+    - i
+    - x
+    - y
 reporter: github-actions-logging

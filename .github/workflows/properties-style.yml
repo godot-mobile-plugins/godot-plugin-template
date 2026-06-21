@@ -4,8 +4,11 @@
 name: Properties File Style
 on:
   pull_request:
-    branches: [main]
-    paths: [common/config/*.properties, ios/config/*.properties]
+    branches:
+      - main
+    paths:
+      - common/config/*.properties
+      - ios/config/*.properties
 jobs:
   properties-style:
     runs-on: ubuntu-22.04

@@ -4,8 +4,12 @@
 name: Android Code Style
 on:
   pull_request:
-    branches: [main]
-    paths: [android/src/**/*.java, android/src/**/*.kt, android/src/**/*.xml]
+    branches:
+      - main
+    paths:
+      - android/src/**/*.java
+      - android/src/**/*.kt
+      - android/src/**/*.xml
 jobs:
   android-style:
     runs-on: ubuntu-22.04

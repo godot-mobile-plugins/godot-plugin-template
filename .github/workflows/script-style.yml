@@ -4,8 +4,11 @@
 name: Script Code Style
 on:
   pull_request:
-    branches: [main]
-    paths: [script/**/*.sh, script/**/*.rb]
+    branches:
+      - main
+    paths:
+      - script/**/*.sh
+      - script/**/*.rb
 jobs:
   script-style:
     runs-on: ubuntu-22.04

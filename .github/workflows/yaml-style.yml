@@ -4,8 +4,11 @@
 name: YAML, GitHub Action, and GitHub Workflow Style
 on:
   pull_request:
-    branches: [main]
-    paths: [.github/**/*.yml, .github/**/*.yaml]
+    branches:
+      - main
+    paths:
+      - .github/**/*.yml
+      - .github/**/*.yaml
 jobs:
   validate-actions:
     name: Lint and Validate YAML
