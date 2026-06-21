@@ -9,8 +9,8 @@ on:
     branches:
       - main
     paths:
-      - '.github//**/*.yml'
-      - '.github//**/*.yaml'
+      - '.github/**/*.yml'
+      - '.github/**/*.yaml'
 
 jobs:
   validate-actions:
