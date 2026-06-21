@@ -1,32 +1,23 @@
 #
 # Copyright (c) 2026-present Godot Mobile Plugins (https://github.com/godot-mobile-plugins)
 #
-
 name: GDScript Code Style
-
 on:
   pull_request:
-    branches:
-      - main
-    paths:
-      - 'addon/src/**/*.gd'
-      - 'demo/**/*.gd'
-
+    branches: [main]
+    paths: [addon/src/**/*.gd, demo/**/*.gd]
 jobs:
   gdscript-style:
     runs-on: ubuntu-22.04
-
     steps:
       - name: Checkout
         uses: actions/checkout@v7
-
       - name: Install gdtoolkit
         run: |
           python3 -m venv /opt/gdtoolkit
           /opt/gdtoolkit/bin/pip install gdtoolkit
           echo "/opt/gdtoolkit/bin" >> $GITHUB_PATH
           /opt/gdtoolkit/bin/gdformat --version
-
       - name: Verify Formatting
         run: |
           cp .github/config/.gdformatrc .gdformatrc
@@ -34,12 +25,10 @@ jobs:
           find addon/src -type f -name "*.gd" ! -name "*Plugin.gd" | xargs gdformat --check
           echo "Checking GDScript formatting in demo directory..."
           find demo -type f -name "*.gd" -not -path "demo/addons/*" | xargs gdformat --check
-
       - name: Install editorconfig-checker
         uses: ./.github/actions/install-ec
-
       - name: Verify EditorConfig (Final Newline & Trailing Space)
-        run: |
+        run: |-
           cp .github/config/.gdformatrc .gdformatrc
           echo "Running EditorConfig verification in addon directory..."
           find addon/src -type f -name "*.gd" | xargs editorconfig-checker

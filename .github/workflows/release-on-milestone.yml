@@ -1,33 +1,26 @@
 #
 # Copyright (c) 2026-present Godot Mobile Plugins (https://github.com/godot-mobile-plugins)
 #
-
 name: Draft Release on Milestone Close
-
 on:
   milestone:
-    types:
-      - closed
+    types: [closed]
   workflow_dispatch:
     inputs:
       version:
-        description: 'Version tag (e.g., 1.0)'
+        description: Version tag (e.g., 1.0)
         required: true
         type: string
-
 permissions:
-  contents: write   # required to create releases and upload assets
-
+  contents: write  # required to create releases and upload assets
 jobs:
   draft-release:
     name: Build archives & create draft release
     if: ${{ !github.event.repository.is_template }}
     runs-on: macos-latest
-
     env:
       TAG_NAME: v${{ inputs.version || github.event.milestone.title }}
       EXPECTED_VERSION: ${{ inputs.version || github.event.milestone.title }}
-
     steps:
       # -- Checkout ------------------------------------------------------------
       - name: Checkout
@@ -52,16 +45,13 @@ jobs:
       - name: Validate plugin version matches milestone or input
         run: |
           PLUGIN_VERSION="${{ steps.plugin_config.outputs['plugin.pluginVersion'] }}"
-
           echo "Plugin Version: '${PLUGIN_VERSION}'"
           echo "Expected Version (Input/Milestone): '${EXPECTED_VERSION}'"
-
           if [ "${PLUGIN_VERSION}" != "${EXPECTED_VERSION}" ]; then
             echo "::error::Validation Failed."
             echo "The pluginVersion '${PLUGIN_VERSION}' in plugin.properties does not match the triggered version '${EXPECTED_VERSION}'."
             exit 1
           fi
-
           echo "Validation Successful."
           echo "The pluginVersion '${PLUGIN_VERSION}' correctly matches the triggered version '${EXPECTED_VERSION}'."
 
@@ -98,11 +88,9 @@ jobs:
           ANDROID_ZIP=$(ls release/*-Android-v*.zip)
           IOS_ZIP=$(ls release/*-iOS-v*.zip)
           MULTI_ZIP=$(ls release/*-Multi-v*.zip)
-
           echo "android_zip=${ANDROID_ZIP}" >> "$GITHUB_OUTPUT"
           echo "ios_zip=${IOS_ZIP}"         >> "$GITHUB_OUTPUT"
           echo "multi_zip=${MULTI_ZIP}"     >> "$GITHUB_OUTPUT"
-
           echo "Found archives:"
           echo "  Android : ${ANDROID_ZIP}"
           echo "  iOS     : ${IOS_ZIP}"
@@ -112,7 +100,7 @@ jobs:
       - name: Create draft release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
+        run: |-
           # Using EXPECTED_VERSION here to map to the milestone title.
           # "|| echo" ensures that manual triggers without an exact milestone match don't fail the pipeline.
           ISSUE_LINES=$(gh issue list \
@@ -120,18 +108,13 @@ jobs:
             --state closed \
             --json number,title \
             --jq '.[] | "- #\(.number) \(.title)"' || echo "- (No milestone issues linked)")
-
           gh release create "$TAG_NAME" \
             --draft \
             --title "${{ steps.plugin_config.outputs['plugin.pluginNodeName'] }} Plugin $TAG_NAME" \
             --notes "## New in this release:
-
           ${ISSUE_LINES}
-
           <br />
-
           _This version..._
-
           -  _has been tested against and supports Godot version ${{ steps.plugin_config.outputs['godot.godotVersion'] }}._" \
             "${{ steps.archives.outputs.android_zip }}" \
             "${{ steps.archives.outputs.ios_zip }}" \

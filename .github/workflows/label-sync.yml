@@ -1,30 +1,22 @@
 #
 # Copyright (c) 2026-present Godot Mobile Plugins (https://github.com/godot-mobile-plugins)
 #
-
 name: Sync Labels
-
 on:
   push:
-    branches:
-      - main
-    paths:
-      - '.github/config/labels.yml'
-
+    branches: [main]
+    paths: [.github/config/labels.yml]
 permissions:
   issues: write
-
 jobs:
   labels:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout
         uses: actions/checkout@v7
         with:
           sparse-checkout: .github/config/labels.yml
-
-      - name: Label Sync 
+      - name: Label Sync
         uses: EndBug/label-sync@v2
         with:
           config-file: .github/config/labels.yml

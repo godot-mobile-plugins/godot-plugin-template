@@ -1,19 +1,15 @@
 #
 # Copyright (c) 2026-present Godot Mobile Plugins (https://github.com/godot-mobile-plugins)
 #
-
 name: Install ktlint
 description: Installs a pinned version of ktlint, caches it, and places it on PATH.
-
 inputs:
   version:
-    description: 'The version of ktlint to install'
+    description: The version of ktlint to install
     required: false
-    default: '1.8.0'
-
+    default: 1.8.0
 runs:
   using: composite
-
   steps:
     # Attempt to restore ktlint from the cache
     - name: Cache ktlint
@@ -38,6 +34,6 @@ runs:
     # Expose ktlint to PATH (must run on both cache hits and misses)
     - name: Add ktlint to PATH
       shell: bash
-      run: |
+      run: |-
         echo "$HOME/.local/bin" >> "$GITHUB_PATH"
         echo "ktlint is ready!"

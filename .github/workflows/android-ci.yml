@@ -1,25 +1,20 @@
 #
 # Copyright (c) 2026-present Godot Mobile Plugins (https://github.com/godot-mobile-plugins)
 #
-
 name: Android CI
-
 on:
   pull_request:
-    branches:
-      - main
+    branches: [main]
     paths:
-      - 'common/config/**'
-      - 'common/**/*.gradle.kts'
-      - 'android/config/**'
-      - 'android/src/**'
-      - 'android/**/*.gradle.kts'
-
+      - common/config/**
+      - common/**/*.gradle.kts
+      - android/config/**
+      - android/src/**
+      - android/**/*.gradle.kts
 jobs:
   android-build-and-test:
     name: Android Build & Tests
     runs-on: ubuntu-22.04
-
     steps:
       # -- Checkout ------------------------------------------------------------
       - name: Checkout

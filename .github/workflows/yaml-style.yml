@@ -1,17 +1,11 @@
 #
 # Copyright (c) 2026-present Godot Mobile Plugins (https://github.com/godot-mobile-plugins)
 #
-
 name: YAML, GitHub Action, and GitHub Workflow Style
-
 on:
   pull_request:
-    branches:
-      - main
-    paths:
-      - '.github/**/*.yml'
-      - '.github/**/*.yaml'
-
+    branches: [main]
+    paths: [.github/**/*.yml, .github/**/*.yaml]
 jobs:
   validate-actions:
     name: Lint and Validate YAML
@@ -19,7 +13,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v7
-
       - name: Install Linting Tools
         run: |
           # Install yamllint for style checking
@@ -29,13 +22,11 @@ jobs:
           # Download actionlint for GitHub Actions syntax validation
           bash <(curl -s https://raw.githubusercontent.com/rhysd/actionlint/main/scripts/download-actionlint.bash)
           sudo mv actionlint /usr/local/bin/
-
       - name: Check YAML Style (yamllint)
         run: |
           yamllint .github/ --config-file .github/config/.yamllint.yml
-
       - name: Validate Actions Syntax (actionlint)
-        run: |
+        run: |-
           # Enable globstar to correctly parse **/*.yml in bash
           shopt -s globstar
 

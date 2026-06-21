@@ -1,27 +1,18 @@
 #
 # Copyright (c) 2026-present Godot Mobile Plugins (https://github.com/godot-mobile-plugins)
 #
-
 name: Properties File Style
-
 on:
   pull_request:
-    branches:
-      - main
-    paths:
-      - 'common/config/*.properties'
-      - 'ios/config/*.properties'
-
+    branches: [main]
+    paths: [common/config/*.properties, ios/config/*.properties]
 jobs:
   properties-style:
     runs-on: ubuntu-22.04
-
     steps:
       - name: Checkout
         uses: actions/checkout@v7
-
       - name: Install editorconfig-checker
         uses: ./.github/actions/install-ec
-
       - name: Validate properties formatting
         run: editorconfig-checker common/config/*.properties ios/config/*.properties
