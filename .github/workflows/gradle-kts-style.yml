@@ -1,5 +1,5 @@
 #
-# © 2026-present https://github.com/cengiz-pz
+# Copyright (c) 2026-present Godot Mobile Plugins (https://github.com/godot-mobile-plugins)
 #
 
 name: Gradle Kotlin DSL Style
@@ -17,7 +17,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Install Node
         uses: ./.github/actions/install-node

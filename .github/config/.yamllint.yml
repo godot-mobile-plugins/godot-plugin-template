@@ -2,4 +2,8 @@
 # Copyright (c) 2026-present Godot Mobile Plugins (https://github.com/godot-mobile-plugins)
 #
 
-kotlin.incremental=false
+extends: default
+
+rules:
+  line-length: disable
+  document-start: disable

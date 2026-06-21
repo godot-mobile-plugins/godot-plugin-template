@@ -1,5 +1,5 @@
 //
-// © 2026-present https://github.com/cengiz-pz
+// © 2026-present Godot Mobile Plugins (https://github.com/godot-mobile-plugins)
 //
 
 // Included build: provides shared convention plugins and build-logic classes

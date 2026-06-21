@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# © 2026-present https://github.com/cengiz-pz
+# Copyright (c) 2026-present Godot Mobile Plugins (https://github.com/godot-mobile-plugins)
 #
 
 set -euo pipefail

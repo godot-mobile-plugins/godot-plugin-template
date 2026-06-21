@@ -1,5 +1,5 @@
 #
-# © 2026-present Godot Mobile Plugins (https://github.com/godot-mobile-plugins)
+# Copyright (c) 2026-present Godot Mobile Plugins (https://github.com/godot-mobile-plugins)
 #
 
 @tool
