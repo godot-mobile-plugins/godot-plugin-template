@@ -91,13 +91,11 @@ jobs:
           ANDROID_ZIP="$(ls release/*-Android-v*.zip)"
           IOS_ZIP="$(ls release/*-iOS-v*.zip)"
           MULTI_ZIP="$(ls release/*-Multi-v*.zip)"
-          
           {
             echo "android_zip=${ANDROID_ZIP}"
             echo "ios_zip=${IOS_ZIP}"
             echo "multi_zip=${MULTI_ZIP}"
           } >> "$GITHUB_OUTPUT"
-          
           echo "Found archives:"
           echo "  Android : ${ANDROID_ZIP}"
           echo "  iOS     : ${IOS_ZIP}"

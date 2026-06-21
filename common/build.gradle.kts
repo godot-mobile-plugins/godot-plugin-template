@@ -371,6 +371,18 @@ tasks {
         }
     }
 
+    fun checkActionlint(project: Project) {
+        val actionlintAvailable =
+            project
+                .exec {
+                    commandLine("which", "actionlint")
+                    isIgnoreExitValue = true
+                }.exitValue == 0
+        if (!actionlintAvailable) {
+            throw GradleException("actionlint is not installed or not on PATH.")
+        }
+    }
+
     register("checkYaml") {
         description = "Checks Yamllint (style) and Actionlint (syntax) compliance of YAML files"
         group = "verification"
@@ -393,22 +405,13 @@ tasks {
                 )
             }
 
-            // 2. Run actionlint to match the github action workflow behavior
-            val actionlintAvailable =
-                project
-                    .exec {
-                        commandLine("which", "actionlint")
-                        isIgnoreExitValue = true
-                    }.exitValue == 0
+            checkActionlint(project)
 
-            if (actionlintAvailable) {
-                project.exec {
-                    workingDir = file(repositoryRootDir)
-                    // actionlint automatically detects files in .github/workflows and .github/actions
-                    commandLine("actionlint")
-                }
-            } else {
-                println("actionlint not found on PATH. Skipping GitHub Actions syntax validation.")
+            // 2. Run actionlint to match the github action workflow behavior
+            project.exec {
+                workingDir = file(repositoryRootDir)
+                // actionlint automatically detects files in .github/workflows
+                commandLine("actionlint")
             }
         }
     }
