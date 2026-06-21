@@ -19,21 +19,21 @@ jobs:
         run: |
           python3 -m venv /opt/gdtoolkit
           /opt/gdtoolkit/bin/pip install gdtoolkit
-          echo "/opt/gdtoolkit/bin" >> $GITHUB_PATH
+          echo "/opt/gdtoolkit/bin" >> "$GITHUB_PATH"
           /opt/gdtoolkit/bin/gdformat --version
       - name: Verify Formatting
         run: |
           cp .github/config/.gdformatrc .gdformatrc
           echo "Checking GDScript formatting in addon directory..."
-          find addon/src -type f -name "*.gd" ! -name "*Plugin.gd" | xargs gdformat --check
+          find addon/src -type f -name "*.gd" ! -name "*Plugin.gd" -print0 | xargs -0 gdformat --check
           echo "Checking GDScript formatting in demo directory..."
-          find demo -type f -name "*.gd" -not -path "demo/addons/*" | xargs gdformat --check
+          find demo -type f -name "*.gd" -not -path "demo/addons/*" -print0 | xargs -0 gdformat --check
       - name: Install editorconfig-checker
         uses: ./.github/actions/install-ec
       - name: Verify EditorConfig (Final Newline & Trailing Space)
         run: |-
           cp .github/config/.gdformatrc .gdformatrc
           echo "Running EditorConfig verification in addon directory..."
-          find addon/src -type f -name "*.gd" | xargs editorconfig-checker
+          find addon/src -type f -name "*.gd" -print0 | xargs -0 editorconfig-checker
           echo "Running EditorConfig verification in demo directory..."
-          find demo -type f -name "*.gd" -not -path "demo/addons/*" | xargs editorconfig-checker
+          find demo -type f -name "*.gd" -not -path "demo/addons/*" -print0 | xargs -0 editorconfig-checker

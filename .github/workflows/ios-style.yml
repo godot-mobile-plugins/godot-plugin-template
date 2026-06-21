@@ -23,12 +23,12 @@ jobs:
         run: brew install clang-format
       - name: Run SwiftLint
         run: |
-          find ios/src \( -name "*.swift" \) | xargs swiftlint lint \
+          find ios/src \( -name "*.swift" \) -print0 | xargs -0 swiftlint lint \
             --config "$GITHUB_WORKSPACE/.github/config/.swiftlint.yml"
       - name: Run clang-format check
         run: |
           find ios/src \( -name "*.m" -o -name "*.mm" -o -name "*.h" \) \
-          -exec clang-format --style=file:.github/config/.clang-format --dry-run --Werror {} +
+            -print0 | xargs -0 clang-format --style=file:.github/config/.clang-format --dry-run --Werror
       - name: Install editorconfig-checker
         run: brew install editorconfig-checker
       - name: Verify EditorConfig (Final Newline & Trailing Space)
@@ -38,4 +38,4 @@ jobs:
             -o -name "*.mm" \
             -o -name "*.h" \
             -o -name "*.swift" \
-          \) | xargs editorconfig-checker
+          \) -print0 | xargs -0 editorconfig-checker

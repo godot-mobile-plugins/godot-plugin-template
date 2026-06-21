@@ -50,4 +50,4 @@ jobs:
             -name "*.java" \
             -o -name "*.kt" \
             -o -name "*.xml" \
-          \) | xargs editorconfig-checker
+          \) -print0 | xargs -0 editorconfig-checker

@@ -32,4 +32,4 @@ jobs:
         with:
           version: 3.6.1
       - name: Verify EditorConfig (Final Newline & Trailing Space)
-        run: find addon android common -maxdepth 1 -name "*.gradle.kts" | xargs editorconfig-checker
+        run: find addon android common -maxdepth 1 -name "*.gradle.kts" -print0 | xargs -0 editorconfig-checker

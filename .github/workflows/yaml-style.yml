@@ -30,8 +30,5 @@ jobs:
           yamllint .github/ --config-file .github/config/.yamllint.yml
       - name: Validate Actions Syntax (actionlint)
         run: |-
-          # Enable globstar to correctly parse **/*.yml in bash
-          shopt -s globstar
-
-          # Run actionlint against the specified directories
-          actionlint .github/workflows/*.yml .github/actions/**/*.yml
+          # Run actionlint from repository root to ensure it checks all relevant files
+          actionlint
