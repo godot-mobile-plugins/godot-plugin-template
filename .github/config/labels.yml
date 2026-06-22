@@ -2,41 +2,53 @@
 # Copyright (c) 2026-present Godot Mobile Plugins (https://github.com/godot-mobile-plugins)
 #
 - name: android
-  color: '#a4c639'
-  description: Related to the Android platform
+  color: '#3DDC84'
+  description: Pertains to Android-specific features, APIs, or integration
 - name: ios
-  color: '#808080'
-  description: Related to the iOS platform
+  color: '#5E5CE6'
+  description: Pertains to iOS-specific features, APIs, or integration
 - name: gdscript
-  color: '#0075ca'
-  description: Related to the GDScript interface
+  color: '#478CBF'
+  description: Issues concerning GDScript API wrappers and bindings
 - name: build system
-  color: '#e4dcb4'
-  description: Issue related to the build system
+  color: '#E3B341'
+  description: Pertains to compilation, dependencies, or CI/CD pipelines
 - name: documentation
-  color: '#b587f3'
-  description: Issue related to documentation
+  color: '#9B59B6'
+  description: Missing, inaccurate, or unclear documentation
 - name: reported bug
-  color: '#c60202'
-  description: Reported issue has been reported as a bug but has not yet been investigated
+  color: '#E74C3C'
+  description: Potential bug that requires investigation and triage
 - name: confirmed bug
-  color: '#f60202'
-  description: Reported issue has been confirmed as a bug after investigation
+  color: '#900C3F'
+  description: Reproduced and confirmed bug requiring a fix
 - name: feature request
-  color: '#a2eeef'
-  description: Request for a new feature
+  color: '#00BCD4'
+  description: Suggestion for a new feature or enhancement
 - name: invalid
-  color: '#d73a4a'
-  description: Issue is invalid
+  color: '#FF9800'
+  description: Does not apply, is fundamentally incorrect, or intended behavior
 - name: not reproducible
-  color: '#f9d0c4'
-  description: Issue is not reproducible
+  color: '#FFC107'
+  description: Cannot be replicated using the provided instructions
 - name: duplicate
-  color: '#ffffff'
-  description: Issue is a duplicate of another issue
+  color: '#9E9E9E'
+  description: Already tracked in another existing issue
 - name: question
-  color: '#e99695'
-  description: Issue is a question or request for clarification
+  color: '#BA68C8'
+  description: Request for help, usage clarification, or technical support
 - name: help wanted
-  color: '#008672'
-  description: Issue that requires help from the community
+  color: '#009688'
+  description: Open to community contributions and pull requests
+- name: export
+  color: '#795548'
+  description: Issues encountered during Godot's project export process
+- name: editor
+  color: '#607D8B'
+  description: Affects Godot Editor UI, custom nodes, or plugin management
+- name: device
+  color: '#CDDC39'
+  description: Run-time issues occurring specifically on physical mobile hardware
+- name: simulator
+  color: '#03A9F4'
+  description: Run-time issues occurring specifically on emulators or simulators
