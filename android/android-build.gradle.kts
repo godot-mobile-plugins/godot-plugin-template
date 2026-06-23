@@ -451,6 +451,9 @@ tasks {
 
         into("res") {
             from(layout.projectDirectory.dir("$pluginDir/android")) { includeEmptyDirs = false }
+            from("$repositoryRootDir/LICENSE") {
+                into("addons/${pluginConfig.pluginName}")
+            }
         }
 
         doLast { println("Android zip archive created at: ${archiveFile.get().asFile.path}") }

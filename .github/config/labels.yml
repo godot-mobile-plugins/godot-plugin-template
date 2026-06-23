@@ -13,6 +13,9 @@
 - name: build system
   color: '#E3B341'
   description: Pertains to compilation, dependencies, or CI/CD pipelines
+- name: workflow
+  color: '#A3B3B1'
+  description: Pertains to GitHub workflows
 - name: documentation
   color: '#9B59B6'
   description: Missing, inaccurate, or unclear documentation

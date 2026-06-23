@@ -1147,6 +1147,9 @@ tasks {
                 // and must not be included in the distributed plugin archive.
                 exclude("ios/framework/**")
             }
+            from("$repositoryRootDir/LICENSE") {
+                into("addons/${pluginConfig.pluginName}")
+            }
         }
 
         doLast { println("iOS zip archive created at: ${archiveFile.get().asFile.path}") }
