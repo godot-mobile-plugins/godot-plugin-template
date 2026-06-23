@@ -462,7 +462,7 @@ tasks {
         val expectedVersionString = "${godotConfig.godotVersion}-${godotConfig.godotReleaseType}"
         val filename = "godot-headers-$expectedVersionString.zip"
         val releaseUrl =
-            "https://github.com/godot-mobile-plugins/godot-headers/releases/download/" +
+            "https://github.com/godot-mobile-plugins/godot-ios-builds/releases/download/" +
                 "$expectedVersionString/$filename"
         val archiveFile = file("$godotDir.zip")
 
