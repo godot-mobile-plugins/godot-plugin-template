@@ -73,6 +73,8 @@ fun TaskContainerScope.registerIosBuildTask(
         dependsOn(
             "validateSwiftVersion",
             "syncSwiftVersionToPbxproj",
+            "validatePlatformVersion",
+            "syncPlatformVersionToPbxproj",
             "validateGodotVersion",
             project(":addon").tasks.named("generateGDScript"),
             project(":addon").tasks.named("generateiOSConfig"),
@@ -88,8 +90,9 @@ fun TaskContainerScope.registerIosBuildTask(
         inputs.dir("$projectDir/src")
         inputs.files(fileTree("$rootDir/config"))
         inputs.files(fileTree("$projectDir/config"))
-        // Track swift_version as a build input - if it changes the task re-runs
+        // Track swift_version and platform_version as build inputs - if either changes the task re-runs
         inputs.property("swiftVersion", iosConfig.swiftVersion)
+        inputs.property("platformVersion", iosConfig.platformVersion)
 
         outputs.dir(libDir.resolve("$archiveName.xcarchive"))
 
@@ -100,6 +103,12 @@ fun TaskContainerScope.registerIosBuildTask(
                 throw GradleException(
                     "ERROR: 'swift_version' is not configured in ios/config/ios.properties.\n" +
                         "Please add it before building, e.g.:\n    swift_version=5.9",
+                )
+            }
+            if (iosConfig.platformVersion.isBlank()) {
+                throw GradleException(
+                    "ERROR: 'platform_version' is not configured in ios/config/ios.properties.\n" +
+                        "Please add it before building, e.g.:\n    platform_version=14.3",
                 )
             }
 
@@ -119,6 +128,7 @@ fun TaskContainerScope.registerIosBuildTask(
                     if (isDebug) add("GCC_PREPROCESSOR_DEFINITIONS=\$(inherited) DEBUG_ENABLED=1")
                     add("GODOT_DIR=$godotDir")
                     add("SWIFT_VERSION=${iosConfig.swiftVersion}")
+                    add("IPHONEOS_DEPLOYMENT_TARGET=${iosConfig.platformVersion}")
                 },
             )
         }
@@ -251,6 +261,8 @@ fun TaskContainerScope.registerIosTestTask(
             "validateGodotVersion",
             "validateSwiftVersion",
             "syncSwiftVersionToPbxproj",
+            "validatePlatformVersion",
+            "syncPlatformVersionToPbxproj",
             "resolveSPMDependencies",
             "bootiOSSimulator",
         )
@@ -310,6 +322,7 @@ fun TaskContainerScope.registerIosTestTask(
                 "YES",
                 "GODOT_DIR=$godotDir",
                 "SWIFT_VERSION=${iosConfig.swiftVersion}",
+                "IPHONEOS_DEPLOYMENT_TARGET=${iosConfig.platformVersion}",
             )
 
             // Set a timeout to prevent infinite hangs (30 minutes)
@@ -855,6 +868,26 @@ tasks {
         }
     }
 
+    register("validatePlatformVersion") {
+        description = "Fails the build with a clear error if platform_version is missing from ios.properties"
+        group = "verification"
+        // Always re-run: this is a fast guard step whose purpose is to catch
+        // misconfiguration before a slow Xcode build starts.
+        outputs.upToDateWhen { false }
+
+        // Track the value as an input so Gradle knows when it changes.
+        inputs.property("platformVersion", iosConfig.platformVersion)
+
+        doLast {
+            if (iosConfig.platformVersion.isBlank()) {
+                throw GradleException(
+                    "ERROR: 'platform_version' is not configured in ios/config/ios.properties.\n" +
+                        "Please add it before building, e.g.:\n    platform_version=14.3",
+                )
+            }
+        }
+    }
+
     register("syncSwiftVersionToPbxproj") {
         description = "Syncs SWIFT_VERSION from ios.properties into plugin.xcodeproj/project.pbxproj"
         group = "setup"
@@ -885,6 +918,43 @@ tasks {
             pbxprojFile.writeText(updated)
 
             logger.lifecycle("Synced SWIFT_VERSION = {} into {}", iosConfig.swiftVersion, pbxprojFile.absolutePath)
+        }
+    }
+
+    register("syncPlatformVersionToPbxproj") {
+        description = "Syncs IPHONEOS_DEPLOYMENT_TARGET from ios.properties into plugin.xcodeproj/project.pbxproj"
+        group = "setup"
+
+        dependsOn("validatePlatformVersion")
+
+        val pbxprojFile = file("$projectDir/plugin.xcodeproj/project.pbxproj")
+
+        // Track platform_version as an input so the task re-runs when it changes.
+        inputs.property("platformVersion", iosConfig.platformVersion)
+
+        outputs.upToDateWhen {
+            pbxprojFile.exists() &&
+                pbxprojFile.readText().contains("IPHONEOS_DEPLOYMENT_TARGET = ${iosConfig.platformVersion};")
+        }
+
+        doLast {
+            if (iosConfig.platformVersion.isBlank()) {
+                throw GradleException("platform_version not set in ios/config/ios.properties")
+            }
+
+            val original = pbxprojFile.readText()
+            val updated =
+                original.replace(
+                    Regex("IPHONEOS_DEPLOYMENT_TARGET = [0-9.]+;"),
+                    "IPHONEOS_DEPLOYMENT_TARGET = ${iosConfig.platformVersion};",
+                )
+            pbxprojFile.writeText(updated)
+
+            logger.lifecycle(
+                "Synced IPHONEOS_DEPLOYMENT_TARGET = {} into {}",
+                iosConfig.platformVersion,
+                pbxprojFile.absolutePath,
+            )
         }
     }
 
