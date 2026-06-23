@@ -10,61 +10,28 @@
 //
 //   1. Makes PluginConfig, GodotConfig, IosConfig, BuildConfig, and the
 //      Project extension functions (loadPluginConfig, loadIosConfig, …)
-//      available on the build script's compilation classpath.
+//      available on the build script's compilation classpath, so submodule
+//      build scripts can call loadPluginConfig() / loadIosConfig() / … directly.
 //
-//   2. Bridges every config value onto project.extra so the small number of
-//      apply(from = …) scripts that still exist (settings.gradle.kts helpers)
-//      can reach them without referencing build-logic types directly.
+//   2. Sets shared directory-layout extras on project.extra used across all
+//      modules.  Config data values (PluginConfig, GodotConfig, IosConfig) are
+//      NOT bridged to project.extra; every submodule accesses them via the
+//      typed loader functions instead.
 //
-//   3. Sets shared directory-layout extras used across all modules.
-//
-//   4. Applies the per-module user-defined extra properties and extra Gradle
+//   3. Applies the per-module user-defined extra properties and extra Gradle
 //      scripts from BuildConfig, keyed by project.path.
 //
 // The four apply(from = …) scripts that previously held this logic
 // (addon.gradle.kts, android.gradle.kts, common.gradle.kts, ios.gradle.kts)
 // have been deleted; their logic lives here.
 
-// -- Load all configs ----------------------------------------------------------
+// -- Load BuildConfig ----------------------------------------------------------
 //
-// These calls are safe here because this IS a precompiled script plugin -
-// the build-logic compiled classes are on this file's own classpath.
+// Only BuildConfig is loaded here; PluginConfig, GodotConfig, and IosConfig are
+// loaded directly by each submodule via loadPluginConfig() / loadGodotConfig() /
+// loadIosConfig() from ProjectExtensions.kt.
 
-val pluginConfig = PluginConfig.load(rootProject.rootDir)
-val godotConfig  = GodotConfig.load(rootProject.rootDir)
-val iosConfig    = IosConfig.load(rootProject.rootDir)
-val buildConfig  = BuildConfig.load(rootProject.rootDir)
-
-// -- PluginConfig -> project.extra ---------------------------------------------
-
-project.extra["pluginNodeName"]            = pluginConfig.pluginNodeName
-project.extra["pluginName"]                = pluginConfig.pluginName
-project.extra["pluginPackageName"]         = pluginConfig.pluginPackageName
-project.extra["pluginVersion"]             = pluginConfig.pluginVersion
-project.extra["pluginModuleName"]          = pluginConfig.pluginModuleName
-project.extra["iosInitializationMethod"]   = pluginConfig.iosInitializationMethod
-project.extra["iosDeinitializationMethod"] = pluginConfig.iosDeinitializationMethod
-
-// -- GodotConfig -> project.extra ----------------------------------------------
-
-project.extra["godotVersion"]     = godotConfig.godotVersion
-project.extra["godotReleaseType"] = godotConfig.godotReleaseType
-project.extra["godotAarUrl"]      = godotConfig.godotAarUrl
-project.extra["godotAarFile"]     = godotConfig.godotAarFile
-
-// -- IosConfig -> project.extra -------------------------------------------------
-//
-// Bridged here so task lambdas that cannot reference IosConfig by type can still
-// reach the values via project.extra.  frameworks, embeddedFrameworks, linkerFlags,
-// and spmDependencies are stored as List<*> - already parsed by IosConfig.load().
-
-project.extra["iosPlatformVersion"]    = iosConfig.platformVersion
-project.extra["iosSwiftVersion"]       = iosConfig.swiftVersion
-project.extra["iosFrameworks"]         = iosConfig.frameworks         // List<String>
-project.extra["iosEmbeddedFrameworks"] = iosConfig.embeddedFrameworks // List<String>
-project.extra["iosLinkerFlags"]        = iosConfig.linkerFlags        // List<String>
-project.extra["iosBundleFiles"]        = iosConfig.bundleFiles        // List<String>
-project.extra["iosSpmDependencies"]    = iosConfig.spmDependencies    // List<SpmDependency>
+val buildConfig = BuildConfig.load(rootProject.rootDir)
 
 // -- Shared directory layout (replaces common.gradle.kts) ---------------------
 //
@@ -77,8 +44,6 @@ project.extra["pluginDir"]         = "${rootProject.rootDir}/build/plugin"
 project.extra["repositoryRootDir"] = "$repoRoot"
 project.extra["archiveDir"]        = "$repoRoot/release"
 project.extra["demoDir"]           = "$repoRoot/demo"
-project.extra["pluginArchiveMulti"] =
-    "${pluginConfig.pluginName}-Multi-v${pluginConfig.pluginVersion}.zip"
 
 // -- Addon source / output layout ----------------------------------------------
 //
@@ -91,7 +56,7 @@ project.extra["templateDir"]       = "$projectDir/src/main"
 project.extra["sharedTemplateDir"] = "$projectDir/src/shared"
 project.extra["outputDir"]         = "$projectDir/build/output"
 
-// -- Per-module archive names and user-defined extras -------------------------
+// -- Per-module user-defined extras -------------------------------------------
 //
 // Conditional on project.path so each module only receives its own extras.
 // The root project receives rootExtraProperties / rootExtraGradle.
@@ -103,15 +68,9 @@ when (project.path) {
     ":addon" ->
         applyBuildConfigExtras(buildConfig.addonExtraProperties, buildConfig.addonExtraGradle)
 
-    ":android" -> {
-        project.extra["pluginArchiveAndroid"] =
-            "${pluginConfig.pluginName}-Android-v${pluginConfig.pluginVersion}.zip"
+    ":android" ->
         applyBuildConfigExtras(buildConfig.androidExtraProperties, buildConfig.androidExtraGradle)
-    }
 
-    ":ios" -> {
-        project.extra["pluginArchiveiOS"] =
-            "${pluginConfig.pluginName}-iOS-v${pluginConfig.pluginVersion}.zip"
+    ":ios" ->
         applyBuildConfigExtras(buildConfig.iosExtraProperties, buildConfig.iosExtraGradle)
-    }
 }
