@@ -32,6 +32,243 @@ interface Injected {
 
 val derivedDataDir = file("$projectDir/build/DerivedData")
 
+// -- Test-report data types ---------------------------------------------------
+//
+// Defined at the top level so they are visible inside every task doLast closure.
+
+data class SuiteResult(
+    val name: String,
+    val tests: Int,
+    val passed: Int,
+    val failed: Int,
+    val skipped: Int,
+)
+
+data class IosCoverageTarget(
+    val name: String,
+    val covered: Long,
+    val total: Long,
+) {
+    val pct: Double = if (total == 0L) 100.0 else covered * 100.0 / total
+}
+
+// -- Test-report helper functions ---------------------------------------------
+
+/**
+ * Parses per-suite test results from an xcresult bundle by running
+ * `xcrun xcresulttool get test-results tests`. Recursively walks the test-node
+ * tree to locate every "Test Suite" node and tallies its direct "Test Case"
+ * children by result. Returns an empty list when the command fails or produces
+ * no usable output.
+ */
+fun parseIosSuiteResults(
+    execOps: ExecOperations,
+    bundlePath: String,
+): List<SuiteResult> {
+    val out = java.io.ByteArrayOutputStream()
+    val execResult =
+        execOps.exec {
+            commandLine(
+                "xcrun", "xcresulttool", "get", "test-results", "tests",
+                "--path", bundlePath, "--format", "json",
+            )
+            standardOutput = out
+            errorOutput = java.io.ByteArrayOutputStream()
+            isIgnoreExitValue = true
+        }
+    if (execResult.exitValue != 0) return emptyList()
+
+    return runCatching {
+        @Suppress("UNCHECKED_CAST")
+        val root =
+            groovy.json.JsonSlurper()
+                .parseText(out.toString("UTF-8")) as Map<String, Any>
+
+        @Suppress("UNCHECKED_CAST")
+        val testNodes = root["testNodes"] as? List<Map<String, Any>> ?: return emptyList()
+
+        val suites = mutableListOf<SuiteResult>()
+
+        fun walk(nodes: List<Map<String, Any>>) {
+            for (node in nodes) {
+                val nodeType = node["nodeType"] as? String ?: ""
+                @Suppress("UNCHECKED_CAST")
+                val children = node["children"] as? List<Map<String, Any>> ?: emptyList()
+
+                if (nodeType == "Test Suite") {
+                    val testCases = children.filter { (it["nodeType"] as? String) == "Test Case" }
+                    if (testCases.isNotEmpty()) {
+                        // Strip package prefix to match the Android substringAfterLast('.') convention.
+                        val suiteName = (node["name"] as? String ?: "Unknown").substringAfterLast('.')
+                        var passed = 0
+                        var failed = 0
+                        var skipped = 0
+                        testCases.forEach { tc ->
+                            when ((tc["result"] as? String)?.lowercase()) {
+                                "passed" -> passed++
+                                "failed" -> failed++
+                                // xcresulttool uses "skipped" and "expected failure"
+                                "skipped", "expected failure" -> skipped++
+                                else -> passed++
+                            }
+                        }
+                        suites.add(
+                            SuiteResult(
+                                suiteName,
+                                passed + failed + skipped,
+                                passed,
+                                failed,
+                                skipped,
+                            ),
+                        )
+                    }
+                }
+
+                if (children.isNotEmpty()) walk(children)
+            }
+        }
+
+        walk(testNodes)
+        suites.sortedBy { it.name }
+    }.getOrDefault(emptyList())
+}
+
+/**
+ * Parses line-coverage data from an xcresult bundle using
+ * `xcrun xccov view --report --json`. Returns one [IosCoverageTarget] per
+ * non-framework build target, sorted alphabetically. Returns an empty list
+ * when coverage data is unavailable (e.g. `-enableCodeCoverage YES` was not
+ * passed to xcodebuild).
+ */
+fun parseIosCoverage(
+    execOps: ExecOperations,
+    bundlePath: String,
+): List<IosCoverageTarget> {
+    val out = java.io.ByteArrayOutputStream()
+    val execResult =
+        execOps.exec {
+            commandLine("xcrun", "xccov", "view", "--report", "--json", bundlePath)
+            standardOutput = out
+            errorOutput = java.io.ByteArrayOutputStream()
+            isIgnoreExitValue = true
+        }
+    if (execResult.exitValue != 0) return emptyList()
+
+    return runCatching {
+        @Suppress("UNCHECKED_CAST")
+        val root =
+            groovy.json.JsonSlurper()
+                .parseText(out.toString("UTF-8")) as Map<String, Any>
+
+        @Suppress("UNCHECKED_CAST")
+        val targets = root["targets"] as? List<Map<String, Any>> ?: return emptyList()
+
+        targets.mapNotNull { t ->
+            val name = t["name"] as? String ?: return@mapNotNull null
+            // Exclude precompiled Apple system frameworks — they carry no project source coverage.
+            if (name.endsWith(".framework")) return@mapNotNull null
+            val covered = (t["coveredLines"] as? Number)?.toLong() ?: 0L
+            val total = (t["executableLines"] as? Number)?.toLong() ?: 0L
+            IosCoverageTarget(name, covered, total)
+        }.sortedBy { it.name }
+    }.getOrDefault(emptyList())
+}
+
+/**
+ * Prints a formatted table of per-suite pass/fail counts to standard output,
+ * using the same visual style as the Android TEST RESULTS table.
+ * Returns `true` if any suite has failing tests so the caller can signal a
+ * build failure after the full report has been displayed.
+ */
+fun printTestResultsTable(suites: List<SuiteResult>): Boolean {
+    val bar = "=".repeat(80)
+    val sep = "-".repeat(80)
+
+    println()
+    println(bar)
+    println(" TEST RESULTS")
+    println(bar)
+
+    if (suites.isEmpty()) {
+        println(" No test results found.")
+        println(" Expected location: build/TestResults/testiOS.xcresult")
+        println(bar)
+        println()
+        return false
+    }
+
+    val nameW = maxOf(suites.maxOf { it.name.length }, "Suite".length)
+
+    println(
+        " %-${nameW}s   %5s   %6s   %6s   %6s"
+            .format("Suite", "Tests", "Passed", "Failed", "Pass %"),
+    )
+    println(sep)
+
+    suites.forEach { s ->
+        val pct = if (s.tests > 0) s.passed * 100.0 / s.tests else 100.0
+        println(
+            " %-${nameW}s   %5d   %6d   %6d   %5.1f%%"
+                .format(s.name, s.tests, s.passed, s.failed, pct),
+        )
+    }
+
+    val totalTests = suites.sumOf { it.tests }
+    val totalPassed = suites.sumOf { it.passed }
+    val totalFailed = suites.sumOf { it.failed }
+    val totalPct = if (totalTests > 0) totalPassed * 100.0 / totalTests else 100.0
+
+    println(sep)
+    println(
+        " %-${nameW}s   %5d   %6d   %6d   %5.1f%%"
+            .format("TOTAL", totalTests, totalPassed, totalFailed, totalPct),
+    )
+    println(bar)
+    println()
+
+    return totalFailed > 0
+}
+
+/**
+ * Prints a formatted table of iOS line-coverage results per target to standard
+ * output, matching the visual style of the Android CODE COVERAGE table.
+ * If [targets] is empty a one-line notice is printed instead.
+ */
+fun printIosCoverageSummary(targets: List<IosCoverageTarget>) {
+    val bar = "=".repeat(80)
+    val sep = "-".repeat(80)
+
+    println(bar)
+    println(" CODE COVERAGE")
+    println(bar)
+
+    if (targets.isEmpty()) {
+        println(" Coverage data not available.")
+        println(" Ensure -enableCodeCoverage YES was passed to xcodebuild.")
+        println(bar)
+        println()
+        return
+    }
+
+    val nameW = maxOf(targets.maxOf { it.name.length }, "Target".length).coerceAtMost(46)
+
+    println(
+        " %-${nameW}s   %7s   %7s   %8s"
+            .format("Target", "Covered", "Total", "Coverage"),
+    )
+    println(sep)
+
+    targets.forEach { t ->
+        println(
+            " %-${nameW}s   %7d   %7d   %7.1f%%"
+                .format(t.name.take(nameW), t.covered, t.total, t.pct),
+        )
+    }
+
+    println(bar)
+    println()
+}
+
 // -- Helpers -------------------------------------------------------------------
 
 fun buildTimestamp(): String = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))
@@ -254,6 +491,11 @@ fun TaskContainerScope.registerIosTestTask(
     register<Exec>(name) {
         this.description = description
         group = "verification"
+        // xcodebuild exits non-zero when tests fail; suppress the raw process
+        // error so printTestSummaryiOS can display the formatted table first
+        // and then throw a GradleException with a meaningful message —
+        // mirroring the ignoreFailures = true pattern used in the Android build.
+        isIgnoreExitValue = true
 
         dependsOn(
             "downloadGodotHeaders",
@@ -1306,7 +1548,7 @@ tasks {
     )
 
     register("printTestSummaryiOS") {
-        description = "Prints a clean test summary (tests per suite + coverage) from the xcresult bundle"
+        description = "Runs iOS unit tests and prints a formatted summary to the console"
         group = "verification"
 
         val testResultsDir = file("$projectDir/build/TestResults")
@@ -1315,70 +1557,28 @@ tasks {
 
         doLast {
             if (!resultBundle.exists()) {
-                println("❌ No xcresult bundle found - testiOS may have been skipped.")
+                println()
+                println("=".repeat(80))
+                println(" TEST RESULTS")
+                println("=".repeat(80))
+                println(" No xcresult bundle found — testiOS may have been skipped.")
+                println(" Expected location: ${resultBundle.absolutePath}")
+                println("=".repeat(80))
+                println()
                 return@doLast
             }
 
             val bundlePath = resultBundle.absolutePath
-            var reportScript =
-                """
-                BUNDLE="${'$'}(echo '$bundlePath')"
 
-                echo "📋 iOS Test Summary"
-                echo "═══════════════════════════════════════════════════════════════"
+            val suites = parseIosSuiteResults(execOps, bundlePath)
+            val targets = parseIosCoverage(execOps, bundlePath)
 
-                JSON=${'$'}(xcrun xcresulttool get test-results summary \
-                    --path "${'$'}BUNDLE" --format json 2>/dev/null || echo '{}')
+            val hasFailures = printTestResultsTable(suites)
+            printIosCoverageSummary(targets)
 
-                echo "${'$'}JSON" | jq -r '
-                    (.passedTests + .failedTests + (.skippedTests // 0)) as ${'$'}total |
-                    (.passedTests * 100 / (if ${'$'}total > 0 then ${'$'}total else 1 end) | round) as ${'$'}rate |
-
-                    "Total Tests : \( ${'$'}total )",
-                    "Passed      : \(.passedTests)",
-                    "Failed      : \(.failedTests)",
-                    "Skipped     : \(.skippedTests // 0)",
-                    "Pass Rate   : \(if ${'$'}total > 0 then (${'$'}rate | tostring) + "%" else "N/A" end)",
-                    "",
-                    "Environment : \(.environmentDescription // "Unknown")",
-                    "Result      : \(.result // "Unknown")",
-                    "",
-                    "Configurations:",
-                    "---------------",
-                    (.devicesAndConfigurations[]? |
-                        "  • \(.device.deviceName) (\(.device.osVersion))" +
-                        " | Passed: \(.passedTests) | Failed: \(.failedTests)"
-                    )
-                ' 2>/dev/null || echo "⚠️  Could not parse test summary JSON"
-
-                echo ""
-                echo "📦 Test Suites"
-                echo "---------------"
-                xcrun xcresulttool get test-results tests \
-                    --path "${'$'}BUNDLE" --format json 2>/dev/null \
-                | jq -r '
-                    .testNodes[]? | .children[]? |
-                    "  \(.name): passed=\(.result)"
-                ' 2>/dev/null || echo "  (suite breakdown unavailable)"
-
-                echo ""
-                echo "🧪 Code Coverage"
-                echo "---------------"
-                xcrun xccov view --report --json "${'$'}BUNDLE" 2>/dev/null \
-                | jq -r '
-                    (.targets // [])[] |
-                    "  \(.name): \(.lineCoverage * 100 | round)% line coverage " +
-                    " (\(.coveredLines)/\(.executableLines) lines)"
-                ' 2>/dev/null || echo "  (coverage data unavailable - was -enableCodeCoverage YES set?)"
-                """.trimIndent()
-
-            execOps.exec {
-                commandLine(
-                    "sh",
-                    "-c",
-                    reportScript,
-                )
-                isIgnoreExitValue = true
+            if (hasFailures) {
+                val n = suites.sumOf { it.failed }
+                throw GradleException("$n test(s) failed — see the TEST RESULTS table above.")
             }
         }
     }
