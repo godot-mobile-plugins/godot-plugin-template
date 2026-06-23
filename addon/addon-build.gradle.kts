@@ -6,14 +6,15 @@ plugins {
     id("base-conventions")
 }
 
-// -- Load config data class ----------------------------------------------------
+// -- Load config data classes --------------------------------------------------
 //
-// All project.extra values (templateDir, outputDir, iosFrameworks, etc.) are
-// already set by base-conventions.  pluginConfig is loaded here for typed
-// member access (pluginConfig.pluginName, .iosInitializationMethod, …) directly
-// in task registration blocks, which is cleaner than casting from project.extra.
+// base-conventions puts typed loaders (loadPluginConfig, loadIosConfig, …) on
+// the compilation classpath, so all config values are accessed via the typed
+// objects rather than project.extra casts.
 
 val pluginConfig = loadPluginConfig()
+val iosConfig = loadIosConfig()
+val godotConfig = loadGodotConfig()
 
 // -- Collect all catalog library aliases (used in @androidDependencies@ token) -
 
@@ -68,8 +69,9 @@ fun TaskContainerScope.registerGdscriptFormatTask(
     description: String,
     check: Boolean,
 ) {
-    // extra["templateDir"] / extra["sharedTemplateDir"] are set by base-conventions
-    // and resolve to this project's src/main and src/shared directories.
+    // templateDir and sharedTemplateDir are computed directory-layout paths set by
+    // base-conventions; they are accessed via project.extra because they are not
+    // derivable from the typed config objects.
     val addonSrcDir = file(extra["templateDir"] as String)
     val sharedSrcDir = file(extra["sharedTemplateDir"] as String)
     val gdformatrcSource = file("$projectDir/../.github/config/.gdformatrc")
@@ -140,29 +142,16 @@ fun TaskContainerScope.registerGdscriptFormatTask(
 // -- Tasks ---------------------------------------------------------------------
 
 tasks {
-    // Capture project.extra values at TaskContainerScope level - before any
-    // register() call - to avoid the task-receiver scoping trap where bare
-    // `extra["key"]` inside a register { } block resolves to the task's own
-    // (empty) ExtraPropertiesExtension instead of the project's.
+    // Directory-layout paths are computed by base-conventions and stored in
+    // project.extra; capture them here at TaskContainerScope level to avoid the
+    // task-receiver scoping trap where bare extra["key"] inside a register { }
+    // lambda resolves to the task's own (empty) ExtraPropertiesExtension rather
+    // than the project's.  Config data values (pluginConfig, iosConfig, …) are
+    // top-level vals captured from the build script closure and are not subject
+    // to this trap.
     val addonSrcDir = file(extra["templateDir"] as String)
     val sharedSrcDir = file(extra["sharedTemplateDir"] as String)
     val outputDir = extra["outputDir"] as String
-    val iosPlatformVersion = extra["iosPlatformVersion"] as String
-
-    @Suppress("UNCHECKED_CAST")
-    val iosFrameworks = extra["iosFrameworks"] as List<String>
-
-    @Suppress("UNCHECKED_CAST")
-    val iosEmbeddedFrameworks = extra["iosEmbeddedFrameworks"] as List<String>
-
-    @Suppress("UNCHECKED_CAST")
-    val iosLinkerFlags = extra["iosLinkerFlags"] as List<String>
-
-    @Suppress("UNCHECKED_CAST")
-    val iosBundleFiles = extra["iosBundleFiles"] as List<String>
-
-    @Suppress("UNCHECKED_CAST")
-    val iosSpmDependencies = extra["iosSpmDependencies"] as List<SpmDependency>
 
     register<Delete>("cleanOutput") {
         group = "clean"
@@ -189,6 +178,7 @@ tasks {
 
     val allTokens: Map<String, String> by lazy {
         buildMap {
+            // Custom tokens from project.extra (comma-separated values are quoted)
             project.extra.properties.forEach { (k, v) ->
                 val raw = v.toString()
                 put(
@@ -200,12 +190,30 @@ tasks {
                     },
                 )
             }
+
+            // PluginConfig scalars
+            put("pluginNodeName", pluginConfig.pluginNodeName)
+            put("pluginName", pluginConfig.pluginName)
+            put("pluginPackageName", pluginConfig.pluginPackageName)
+            put("pluginVersion", pluginConfig.pluginVersion)
+            put("pluginModuleName", pluginConfig.pluginModuleName)
+            put("iosInitializationMethod", pluginConfig.iosInitializationMethod)
+            put("iosDeinitializationMethod", pluginConfig.iosDeinitializationMethod)
+            // GodotConfig scalars
+            put("godotVersion", godotConfig.godotVersion)
+            put("godotReleaseType", godotConfig.godotReleaseType)
+            put("godotAarUrl", godotConfig.godotAarUrl)
+            put("godotAarFile", godotConfig.godotAarFile)
+            // IosConfig scalars
+            put("iosPlatformVersion", iosConfig.platformVersion)
+            put("iosSwiftVersion", iosConfig.swiftVersion)
+            // Formatted collections
             put("androidDependencies", androidDependencies.joinToString(", ") { "\"$it\"" })
-            put("iosFrameworks", iosFrameworks.toQuotedString())
-            put("iosEmbeddedFrameworks", iosEmbeddedFrameworks.toQuotedString())
-            put("iosLinkerFlags", iosLinkerFlags.toQuotedString())
-            put("iosBundleFiles", iosBundleFiles.toQuotedString())
-            put("spmDependencies", iosSpmDependencies.toGdscriptFormat())
+            put("iosFrameworks", iosConfig.frameworks.toQuotedString())
+            put("iosEmbeddedFrameworks", iosConfig.embeddedFrameworks.toQuotedString())
+            put("iosLinkerFlags", iosConfig.linkerFlags.toQuotedString())
+            put("iosBundleFiles", iosConfig.bundleFiles.toQuotedString())
+            put("spmDependencies", iosConfig.spmDependencies.toGdscriptFormat())
         }
     }
 
@@ -247,12 +255,12 @@ tasks {
         inputs.property("pluginVersion", pluginConfig.pluginVersion)
         inputs.property("pluginPackage", pluginConfig.pluginPackageName)
         inputs.property("androidDependencies", androidDependencies.joinToString())
-        inputs.property("iosPlatformVersion", iosPlatformVersion)
-        inputs.property("iosFrameworks", iosFrameworks.joinToString())
-        inputs.property("iosEmbeddedFrameworks", iosEmbeddedFrameworks.joinToString())
-        inputs.property("iosLinkerFlags", iosLinkerFlags.joinToString())
-        inputs.property("iosBundleFiles", iosBundleFiles.joinToString())
-        inputs.property("iosSpmDependencies", iosSpmDependencies.joinToString())
+        inputs.property("iosPlatformVersion", iosConfig.platformVersion)
+        inputs.property("iosFrameworks", iosConfig.frameworks.joinToString())
+        inputs.property("iosEmbeddedFrameworks", iosConfig.embeddedFrameworks.joinToString())
+        inputs.property("iosLinkerFlags", iosConfig.linkerFlags.joinToString())
+        inputs.property("iosBundleFiles", iosConfig.bundleFiles.joinToString())
+        inputs.property("iosSpmDependencies", iosConfig.spmDependencies.joinToString())
 
         outputs.dir("$outputDir/addons/GMPShared")
     }
@@ -293,12 +301,12 @@ tasks {
         inputs.property("pluginVersion", pluginConfig.pluginVersion)
         inputs.property("pluginPackage", pluginConfig.pluginPackageName)
         inputs.property("androidDependencies", androidDependencies.joinToString())
-        inputs.property("iosPlatformVersion", iosPlatformVersion)
-        inputs.property("iosFrameworks", iosFrameworks.joinToString())
-        inputs.property("iosEmbeddedFrameworks", iosEmbeddedFrameworks.joinToString())
-        inputs.property("iosLinkerFlags", iosLinkerFlags.joinToString())
-        inputs.property("iosBundleFiles", iosBundleFiles.joinToString())
-        inputs.property("iosSpmDependencies", iosSpmDependencies.joinToString())
+        inputs.property("iosPlatformVersion", iosConfig.platformVersion)
+        inputs.property("iosFrameworks", iosConfig.frameworks.joinToString())
+        inputs.property("iosEmbeddedFrameworks", iosConfig.embeddedFrameworks.joinToString())
+        inputs.property("iosLinkerFlags", iosConfig.linkerFlags.joinToString())
+        inputs.property("iosBundleFiles", iosConfig.bundleFiles.joinToString())
+        inputs.property("iosSpmDependencies", iosConfig.spmDependencies.joinToString())
 
         outputs.dir("$outputDir/addons/${pluginConfig.pluginName}")
     }
