@@ -69,8 +69,15 @@ fun parseIosSuiteResults(
     val execResult =
         execOps.exec {
             commandLine(
-                "xcrun", "xcresulttool", "get", "test-results", "tests",
-                "--path", bundlePath, "--format", "json",
+                "xcrun",
+                "xcresulttool",
+                "get",
+                "test-results",
+                "tests",
+                "--path",
+                bundlePath,
+                "--format",
+                "json",
             )
             standardOutput = out
             errorOutput = java.io.ByteArrayOutputStream()
@@ -81,7 +88,8 @@ fun parseIosSuiteResults(
     return runCatching {
         @Suppress("UNCHECKED_CAST")
         val root =
-            groovy.json.JsonSlurper()
+            groovy.json
+                .JsonSlurper()
                 .parseText(out.toString("UTF-8")) as Map<String, Any>
 
         @Suppress("UNCHECKED_CAST")
@@ -92,6 +100,7 @@ fun parseIosSuiteResults(
         fun walk(nodes: List<Map<String, Any>>) {
             for (node in nodes) {
                 val nodeType = node["nodeType"] as? String ?: ""
+
                 @Suppress("UNCHECKED_CAST")
                 val children = node["children"] as? List<Map<String, Any>> ?: emptyList()
 
@@ -106,9 +115,12 @@ fun parseIosSuiteResults(
                         testCases.forEach { tc ->
                             when ((tc["result"] as? String)?.lowercase()) {
                                 "passed" -> passed++
+
                                 "failed" -> failed++
+
                                 // xcresulttool uses "skipped" and "expected failure"
                                 "skipped", "expected failure" -> skipped++
+
                                 else -> passed++
                             }
                         }
@@ -157,20 +169,22 @@ fun parseIosCoverage(
     return runCatching {
         @Suppress("UNCHECKED_CAST")
         val root =
-            groovy.json.JsonSlurper()
+            groovy.json
+                .JsonSlurper()
                 .parseText(out.toString("UTF-8")) as Map<String, Any>
 
         @Suppress("UNCHECKED_CAST")
         val targets = root["targets"] as? List<Map<String, Any>> ?: return emptyList()
 
-        targets.mapNotNull { t ->
-            val name = t["name"] as? String ?: return@mapNotNull null
-            // Exclude precompiled Apple system frameworks — they carry no project source coverage.
-            if (name.endsWith(".framework")) return@mapNotNull null
-            val covered = (t["coveredLines"] as? Number)?.toLong() ?: 0L
-            val total = (t["executableLines"] as? Number)?.toLong() ?: 0L
-            IosCoverageTarget(name, covered, total)
-        }.sortedBy { it.name }
+        targets
+            .mapNotNull { t ->
+                val name = t["name"] as? String ?: return@mapNotNull null
+                // Exclude precompiled Apple system frameworks — they carry no project source coverage.
+                if (name.endsWith(".framework")) return@mapNotNull null
+                val covered = (t["coveredLines"] as? Number)?.toLong() ?: 0L
+                val total = (t["executableLines"] as? Number)?.toLong() ?: 0L
+                IosCoverageTarget(name, covered, total)
+            }.sortedBy { it.name }
     }.getOrDefault(emptyList())
 }
 

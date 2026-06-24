@@ -56,13 +56,14 @@ dependencies {
     }
 }
 
-sourceSets {
-    main {
-        java.srcDirs("src/main/java")
-        resources.srcDirs("src/main/resources")
-    }
-}
-
+// All build-logic source files live in src/main/java (Kotlin files, .gradle.kts
+// precompiled script plugins, and data classes).  Declare only that directory so
+// that Gradle never fingerprints the non-existent src/main/kotlin as a task
+// input – a phantom input that can cause spurious stale-output detections.
+//
+// kotlin-dsl adds its own generated source roots (kotlin-dsl-plugins,
+// kotlin-dsl-accessors, kotlin-dsl-external-plugin-spec-builders) separately via
+// task configuration, so the srcDirs() call here does not affect them.
 kotlin.sourceSets.getByName("main") {
-    kotlin.srcDirs("src/main/kotlin", "src/main/java")
+    kotlin.srcDirs("src/main/java")
 }
