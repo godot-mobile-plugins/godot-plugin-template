@@ -2,9 +2,12 @@
 // © 2026-present Godot Mobile Plugins (https://github.com/godot-mobile-plugins)
 //
 
+import org.gradle.api.file.ArchiveOperations
+import org.gradle.api.file.FileSystemOperations
 import org.gradle.process.ExecOperations
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
+import javax.inject.Inject
 
 plugins {
     id("base-conventions")
@@ -28,6 +31,12 @@ val iosConfig = loadIosConfig()
 interface Injected {
     @get:Inject
     val execOps: ExecOperations
+
+    @get:Inject
+    val fsOps: FileSystemOperations
+
+    @get:Inject
+    val archiveOps: ArchiveOperations
 }
 
 val derivedDataDir = file("$projectDir/build/DerivedData")
@@ -317,6 +326,7 @@ fun TaskContainerScope.registerIosBuildTask(
     val libDir = file("$projectDir/build/lib")
     val frameworkDir = file("$projectDir/build/framework")
 
+    val execOps = project.objects.newInstance<Injected>().execOps
     register<Exec>(name) {
         this.description = description
         group = "build"
@@ -397,9 +407,6 @@ fun TaskContainerScope.registerIosBuildTask(
                     "Failed to rename ${builtLib.absolutePath} to ${renamedLib.absolutePath}",
                 )
             }
-
-            // Inject ExecOperations using your predefined Injected interface
-            val execOps = project.objects.newInstance<Injected>().execOps
 
             // -- Dynamically strip SPM dependency objects from the static library --
             //
@@ -535,6 +542,8 @@ fun TaskContainerScope.registerIosTestTask(
             workspace.exists()
         }
 
+        val extraProps = project.extra
+
         doFirst {
             // Delete the existing result bundle to avoid xcodebuild errors
             val resultBundle = testResultsDir.resolve("$name.xcresult")
@@ -546,8 +555,8 @@ fun TaskContainerScope.registerIosTestTask(
 
             // Try pulling from Gradle extra properties first (set by bootiOSSimulator), then fallback to env
             val simulatorUdid =
-                if (project.extra.has("SIMULATOR_UDID")) {
-                    project.extra["SIMULATOR_UDID"] as String
+                if (extraProps.has("SIMULATOR_UDID")) {
+                    extraProps["SIMULATOR_UDID"] as String
                 } else {
                     System.getenv("SIMULATOR_UDID")?.takeIf { it.isNotBlank() }
                 }
@@ -761,11 +770,14 @@ tasks {
         dest(archiveFile)
         overwrite(false)
 
+        val fsOps = objects.newInstance<Injected>().fsOps
+        val archiveOps = objects.newInstance<Injected>().archiveOps
+
         doLast {
             godotDirectory.mkdirs()
 
-            project.copy {
-                from(project.zipTree(archiveFile))
+            fsOps.copy {
+                from(archiveOps.zipTree(archiveFile))
                 includeEmptyDirs = false
                 into(godotDirectory)
             }
@@ -809,9 +821,12 @@ tasks {
         dest(archiveFile)
         overwrite(false)
 
+        val fsOps = objects.newInstance<Injected>().fsOps
+        val archiveOps = objects.newInstance<Injected>().archiveOps
+
         doLast {
-            project.copy {
-                from(project.zipTree(archiveFile))
+            fsOps.copy {
+                from(archiveOps.zipTree(archiveFile))
                 includeEmptyDirs = false
                 into(godotDirectory)
                 // Strip top-level wrapper directory so the result is always
@@ -1434,10 +1449,10 @@ tasks {
         group = "clean"
         description = "Cleans iOS build outputs"
 
-        val iosBuildDir = provider { project.file("$projectDir/build") }
+        val iosBuildDir = layout.projectDirectory.dir("build")
 
         doFirst {
-            val dir = iosBuildDir.get()
+            val dir = iosBuildDir.asFile
             if (dir.exists()) {
                 logger.lifecycle("Removing iOS build directory: ${dir.absolutePath}")
             } else {
@@ -1486,6 +1501,7 @@ tasks {
         group = "setup"
 
         val execOps = objects.newInstance<Injected>().execOps
+        val extraProps = project.extra
 
         doLast {
             val destName = iosConfig.testDestinationName
@@ -1546,7 +1562,7 @@ tasks {
             logger.lifecycle("SpringBoard ready. UUD: {}", udid)
 
             // Save UDID for the testiOS task to consume
-            project.extra.set("SIMULATOR_UDID", udid)
+            extraProps.set("SIMULATOR_UDID", udid)
         }
     }
 

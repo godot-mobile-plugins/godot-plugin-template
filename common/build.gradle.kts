@@ -5,7 +5,6 @@
 plugins {
     id("base-conventions")
     alias(libs.plugins.android.library) apply false
-    alias(libs.plugins.kotlin.android) apply false
     alias(libs.plugins.undercouch.download) apply false
     alias(libs.plugins.openrewrite) apply false
     alias(libs.plugins.node) apply false
@@ -216,13 +215,16 @@ tasks {
 
         workingDir = file(repositoryRootDir)
 
+        val providerFactory = providers // Capture at configuration time
         doFirst {
             val shellcheckAvailable =
-                project
+                providerFactory
                     .exec {
                         commandLine("which", "shellcheck")
                         isIgnoreExitValue = true
-                    }.exitValue == 0
+                    }.result
+                    .get()
+                    .exitValue == 0
             if (!shellcheckAvailable) {
                 throw GradleException(
                     "shellcheck is not installed or not on PATH.\n" +
@@ -249,13 +251,16 @@ tasks {
 
         workingDir = file(repositoryRootDir)
 
+        val providerFactory = providers // Capture at configuration time
         doFirst {
             val shellcheckAvailable =
-                project
+                providerFactory
                     .exec {
                         commandLine("which", "shellcheck")
                         isIgnoreExitValue = true
-                    }.exitValue == 0
+                    }.result
+                    .get()
+                    .exitValue == 0
             if (!shellcheckAvailable) {
                 throw GradleException(
                     "shellcheck is not installed or not on PATH.\n" +
@@ -277,63 +282,61 @@ tasks {
             .map { it.absolutePath }
             .sorted()
 
-    fun checkRubocop(project: Project) {
+    fun checkRubocop(providers: ProviderFactory) {
         val rubocopAvailable =
-            project
+            providers
                 .exec {
                     commandLine("which", "rubocop")
                     isIgnoreExitValue = true
-                }.exitValue == 0
+                }.result
+                .get()
+                .exitValue == 0
         if (!rubocopAvailable) {
             throw GradleException("rubocop is not installed or not on PATH.")
         }
     }
 
-    register("checkRubyScriptFormat") {
+    register<Exec>("checkRubyScriptFormat") {
         description = "Checks Rubocop compliance of all Ruby scripts under script/"
         group = "verification"
+        workingDir = file(repositoryRootDir)
 
-        doLast {
-            checkRubocop(project)
+        val providerFactory = providers // Capture at configuration time
+        doFirst {
+            checkRubocop(providerFactory)
             if (rubySourceFiles.isEmpty()) {
                 throw GradleException("checkRubyScriptFormat: no *.rb files found.")
             }
-
-            project.exec {
-                workingDir = file(repositoryRootDir)
-                commandLine(
-                    listOf(
-                        "rubocop",
-                        "--config",
-                        "$repositoryRootDir/.github/config/.rubocop.yml",
-                    ) + rubySourceFiles,
-                )
-            }
+            commandLine(
+                listOf(
+                    "rubocop",
+                    "--config",
+                    "$repositoryRootDir/.github/config/.rubocop.yml",
+                ) + rubySourceFiles,
+            )
         }
     }
 
-    register("applyRubyScriptFormat") {
+    register<Exec>("applyRubyScriptFormat") {
         description = "Applies Rubocop suggested fixes to Ruby scripts under script/"
         group = "formatting"
+        workingDir = file(repositoryRootDir)
+        isIgnoreExitValue = true
 
-        doLast {
-            checkRubocop(project)
+        val providerFactory = providers // Capture at configuration time
+        doFirst {
+            checkRubocop(providerFactory)
             if (rubySourceFiles.isEmpty()) {
                 throw GradleException("applyRubyScriptFormat: no *.rb files found.")
             }
-
-            project.exec {
-                workingDir = file(repositoryRootDir)
-                isIgnoreExitValue = true
-                commandLine(
-                    listOf(
-                        "rubocop",
-                        "--config",
-                        "$repositoryRootDir/.github/config/.rubocop.yml",
-                        "--autocorrect",
-                    ) + rubySourceFiles,
-                )
-            }
+            commandLine(
+                listOf(
+                    "rubocop",
+                    "--config",
+                    "$repositoryRootDir/.github/config/.rubocop.yml",
+                    "--autocorrect",
+                ) + rubySourceFiles,
+            )
         }
     }
 
@@ -350,98 +353,106 @@ tasks {
             )
         }.files.map { it.absolutePath }.sorted()
 
-    fun checkYamllint(project: Project) {
+    fun checkYamllint(providers: ProviderFactory) {
         val yamllintAvailable =
-            project
+            providers
                 .exec {
                     commandLine("which", "yamllint")
                     isIgnoreExitValue = true
-                }.exitValue == 0
+                }.result
+                .get()
+                .exitValue == 0
         if (!yamllintAvailable) {
             throw GradleException("yamllint is not installed or not on PATH.")
         }
     }
 
-    fun checkYamlfix(project: Project) {
+    fun checkYamlfix(providers: ProviderFactory) {
         val yamlfixAvailable =
-            project
+            providers
                 .exec {
                     commandLine("which", "yamlfix")
                     isIgnoreExitValue = true
-                }.exitValue == 0
+                }.result
+                .get()
+                .exitValue == 0
         if (!yamlfixAvailable) {
             throw GradleException("yamlfix is not installed or not on PATH.")
         }
     }
 
-    fun checkActionlint(project: Project) {
+    fun checkActionlint(providers: ProviderFactory) {
         val actionlintAvailable =
-            project
+            providers
                 .exec {
                     commandLine("which", "actionlint")
                     isIgnoreExitValue = true
-                }.exitValue == 0
+                }.result
+                .get()
+                .exitValue == 0
         if (!actionlintAvailable) {
             throw GradleException("actionlint is not installed or not on PATH.")
+        }
+    }
+
+    register<Exec>("checkYamllint") {
+        description = "Checks Yamllint (style) compliance of YAML files"
+        group = "verification"
+        workingDir = file(repositoryRootDir)
+
+        val providerFactory = providers // Capture at configuration time
+        doFirst {
+            checkYamllint(providerFactory)
+            if (yamlSourceFiles.isEmpty()) {
+                throw GradleException("checkYamllint: no *.yml or *.yaml files found.")
+            }
+            commandLine(
+                listOf(
+                    "yamllint",
+                    "--config-file",
+                    "$repositoryRootDir/.github/config/.yamllint.yml",
+                ) + yamlSourceFiles,
+            )
+        }
+    }
+
+    register<Exec>("checkActionlint") {
+        description = "Checks Actionlint (syntax) compliance of YAML files"
+        group = "verification"
+        workingDir = file(repositoryRootDir)
+
+        val providerFactory = providers // Capture at configuration time
+        doFirst {
+            checkActionlint(providerFactory)
+            commandLine("actionlint")
         }
     }
 
     register("checkYaml") {
         description = "Checks Yamllint (style) and Actionlint (syntax) compliance of YAML files"
         group = "verification"
-
-        doLast {
-            checkYamllint(project)
-            if (yamlSourceFiles.isEmpty()) {
-                throw GradleException("checkYaml: no *.yml or *.yaml files found.")
-            }
-
-            // 1. Run yamllint to enforce the .yamllint.yml rules
-            project.exec {
-                workingDir = file(repositoryRootDir)
-                commandLine(
-                    listOf(
-                        "yamllint",
-                        "--config-file",
-                        "$repositoryRootDir/.github/config/.yamllint.yml",
-                    ) + yamlSourceFiles,
-                )
-            }
-
-            checkActionlint(project)
-
-            // 2. Run actionlint to match the github action workflow behavior
-            project.exec {
-                workingDir = file(repositoryRootDir)
-                // actionlint automatically detects files in .github/workflows
-                commandLine("actionlint")
-            }
-        }
+        dependsOn("checkYamllint", "checkActionlint")
     }
 
-    register("formatYaml") {
+    register<Exec>("formatYaml") {
         description = "Formats YAML files in-place using yamlfix"
         group = "formatting"
+        workingDir = file(repositoryRootDir)
+        isIgnoreExitValue = true
 
-        doLast {
-            checkYamlfix(project)
+        val providerFactory = providers // Capture at configuration time
+        doFirst {
+            checkYamlfix(providerFactory)
             if (yamlSourceFiles.isEmpty()) {
                 throw GradleException("formatYaml: no *.yml or *.yaml files found.")
             }
-
-            project.exec {
-                workingDir = file(repositoryRootDir)
-                // Ignore exit value since yamlfix may return non-zero if files were modified
-                isIgnoreExitValue = true
-
-                commandLine(
-                    listOf(
-                        "yamlfix",
-                        "--config-file",
-                        "$repositoryRootDir/.github/config/.yamlfix.toml",
-                    ) + yamlSourceFiles,
-                )
-            }
+            commandLine(
+                listOf(
+                    "yamlfix",
+                    "--config-file",
+                    "$repositoryRootDir/.github/config/.yamlfix.toml",
+                ) + yamlSourceFiles,
+            )
         }
     }
 
