@@ -15,8 +15,9 @@
 plugins {
     `kotlin-dsl`
     `java-gradle-plugin`
-    alias(libs.plugins.kotlin.serialization)
+    kotlin("plugin.serialization") version embeddedKotlinVersion
 }
+
 
 java {
     toolchain {

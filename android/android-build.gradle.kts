@@ -13,7 +13,6 @@ import javax.xml.parsers.DocumentBuilderFactory
 plugins {
     id("base-conventions")
     alias(libs.plugins.android.library)
-    alias(libs.plugins.kotlin.android)
     alias(libs.plugins.undercouch.download)
     alias(libs.plugins.openrewrite)
     alias(libs.plugins.node)
@@ -242,6 +241,10 @@ configure<org.openrewrite.gradle.RewriteExtension> {
 
 // -- Android configuration -----------------------------------------------------
 
+base {
+    archivesName.set(pluginConfig.pluginName)
+}
+
 android {
     namespace = pluginConfig.pluginPackageName
     compileSdk =
@@ -272,13 +275,6 @@ android {
     kotlin {
         compilerOptions {
             jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
-        }
-    }
-
-    libraryVariants.all {
-        outputs.all {
-            (this as LibraryVariantOutputImpl).outputFileName =
-                "${pluginConfig.pluginName}-$name.aar"
         }
     }
 
@@ -655,11 +651,9 @@ tasks {
         dependsOn("testDebugUnitTest")
         dependsOn("createDebugUnitTestCoverageReport")
 
+        val buildDirProvider = project.layout.buildDirectory // Capture at configuration time
         doLast {
-            val buildDir =
-                project.layout.buildDirectory
-                    .get()
-                    .asFile
+            val buildDir = buildDirProvider.get().asFile
             val resultsDir = File(buildDir, "test-results/testDebugUnitTest")
             val coverageXml = File(buildDir, "reports/coverage/test/debug/report.xml")
             val coverageDir = coverageXml.parentFile

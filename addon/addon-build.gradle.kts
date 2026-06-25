@@ -2,6 +2,9 @@
 // © 2024-present Godot Mobile Plugins (https://github.com/godot-mobile-plugins)
 //
 
+import org.gradle.api.file.FileSystemOperations
+import javax.inject.Inject
+
 plugins {
     id("base-conventions")
 }
@@ -15,6 +18,11 @@ plugins {
 val pluginConfig = loadPluginConfig()
 val iosConfig = loadIosConfig()
 val godotConfig = loadGodotConfig()
+
+interface Injected {
+    @get:Inject
+    val fsOps: FileSystemOperations
+}
 
 // -- Collect all catalog library aliases (used in @androidDependencies@ token) -
 
@@ -79,6 +87,8 @@ fun TaskContainerScope.registerGdscriptFormatTask(
     val sharedGdformatrcDest = sharedSrcDir.resolve(".gdformatrc")
     val excludePatterns = listOf("**/*Plugin.gd", "**/MediationNetwork.gd")
 
+    val fsOps = project.objects.newInstance<Injected>().fsOps
+
     register<Exec>(name) {
         this.description = description
         this.group = if (check) "verification" else "formatting"
@@ -86,12 +96,12 @@ fun TaskContainerScope.registerGdscriptFormatTask(
         workingDir = addonSrcDir
 
         doFirst {
-            copy {
+            fsOps.copy {
                 from(gdformatrcSource)
                 into(addonSrcDir)
             }
             if (sharedSrcDir.exists()) {
-                copy {
+                fsOps.copy {
                     from(gdformatrcSource)
                     into(sharedSrcDir)
                 }
