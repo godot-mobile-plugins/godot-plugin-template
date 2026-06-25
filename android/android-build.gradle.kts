@@ -237,6 +237,7 @@ configure<org.openrewrite.gradle.RewriteExtension> {
     )
     activeStyle("org.godotengine.plugin.JavaStyle")
     configFile = projectDir.resolve("config/rewrite.yml")
+    exclusion("**/*.kt", "**/*.kts")
 }
 
 // -- Android configuration -----------------------------------------------------
