@@ -369,7 +369,7 @@ fun TaskContainerScope.registerIosBuildTask(
             if (iosConfig.platformVersion.isBlank()) {
                 throw GradleException(
                     "ERROR: 'platform_version' is not configured in ios/config/ios.properties.\n" +
-                        "Please add it before building, e.g.:\n    platform_version=14.3",
+                        "Please add it before building, e.g.:\n    platform_version=15.0",
                 )
             }
 
@@ -1153,7 +1153,7 @@ tasks {
             if (iosConfig.platformVersion.isBlank()) {
                 throw GradleException(
                     "ERROR: 'platform_version' is not configured in ios/config/ios.properties.\n" +
-                        "Please add it before building, e.g.:\n    platform_version=14.3",
+                        "Please add it before building, e.g.:\n    platform_version=15.0",
                 )
             }
         }
