@@ -4,13 +4,13 @@
 
 extends Node
 
+var _active_texture_rect: TextureRect
+
 @onready var plugin_template_node: PluginTemplate = $PluginTemplate
 @onready var get_plugin_template_button: Button = %GetButton
-@onready var _label: RichTextLabel = $CanvasLayer/MainContainer/VBoxContainer/RichTextLabel as RichTextLabel
-@onready var _android_texture_rect := %AndroidTextureRect as TextureRect
-@onready var _ios_texture_rect := %iOSTextureRect as TextureRect
-
-var _active_texture_rect: TextureRect
+@onready var _label: RichTextLabel = $CanvasLayer/MainContainer/VBoxContainer/RichTextLabel
+@onready var _android_texture_rect: TextureRect = %AndroidTextureRect
+@onready var _ios_texture_rect: TextureRect = %iOSTextureRect
 
 
 func _ready() -> void:
