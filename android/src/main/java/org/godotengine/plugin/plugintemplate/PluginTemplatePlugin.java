@@ -20,6 +20,27 @@ import org.godotengine.godot.plugin.SignalInfo;
 import org.godotengine.godot.plugin.UsedByGodot;
 
 
+/**
+ * Godot Android plugin entry point.
+ *
+ * <p>Notes for plugin authors targeting Godot 4.8+:
+ * <ul>
+ *   <li>Lifecycle: {@code onMainCreate}, {@code onMain*} and the activity callbacks run on the
+ *       host (UI) thread; {@code onGodotSetupCompleted}, {@code onGodotMainLoopStarted} and
+ *       {@code onGodotTerminating} run on the render thread. Use {@code runOnHostThread} /
+ *       {@code runOnRenderThread} to switch.</li>
+ *   <li>{@code Godot.alert()} (and {@code OS.alert()} from GDScript) now blocks the render thread
+ *       until the dialog is dismissed. Do not call it from the render thread, and expect frame
+ *       rendering to pause while it is shown.</li>
+ *   <li>Remote dependencies returned by the editor plugin's {@code _get_android_dependencies()}
+ *       are resolved inside the export project's {@code fusedDepsLib} module
+ *       (com.android.fused-library), not in the app module. Only {@code platform()} /
+ *       {@code enforcedPlatform()} entries stay in the app module.</li>
+ *   <li>With the "gradle_build/minification" export option, R8 keeps every GodotPlugin subclass
+ *       and every {@code @UsedByGodot} member. Anything else reached via reflection needs a rule
+ *       in {@code android/config/consumer-rules.pro}.</li>
+ * </ul>
+ */
 public class PluginTemplatePlugin extends GodotPlugin {
 	public static final String CLASS_NAME = PluginTemplatePlugin.class.getSimpleName();
 	static final String LOG_TAG = "godot::" + CLASS_NAME;

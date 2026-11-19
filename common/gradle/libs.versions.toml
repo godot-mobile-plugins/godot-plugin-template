@@ -7,7 +7,7 @@
 # -- Android -------------------------------------------------------------------
 compileSdk = "36"
 minSdk = "24"
-buildTools = "36.0.0"
+buildTools = "36.1.0"
 android-gradle-plugin = "9.2.0"
 
 # -- Build tool dependencies ---------------------------------------------------
@@ -26,6 +26,9 @@ mockk = "1.13.17"
 opengl-api = "gl1.1-android-2.1_r1"
 
 # -- Godot plugin dependencies -------------------------------------------------
+# NOTE: In Godot 4.8+ exports, remote dependencies declared here are resolved inside the
+# generated project's fusedDepsLib module (com.android.fused-library), not in the app
+# module. Only platform()/enforcedPlatform() BOM entries stay in the app module.
 androidx-appcompat = "1.7.1"
 
 
