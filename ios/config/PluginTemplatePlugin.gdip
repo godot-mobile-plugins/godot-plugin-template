@@ -9,8 +9,6 @@ binary="@pluginName@.xcframework"
 initialization="@iosInitializationMethod@"
 deinitialization="@iosDeinitializationMethod@"
 
-use_swift_runtime=true
-
 [dependencies]
 linked=[]
 embedded=[]
