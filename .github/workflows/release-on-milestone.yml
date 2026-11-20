@@ -41,6 +41,7 @@ jobs:
             pluginNodeName
             pluginVersion
             godotVersion
+            godotReleaseType
 
       # -- Validate plugin version ----------------------------------------------
       - name: Validate plugin version matches milestone or input
@@ -115,6 +116,7 @@ jobs:
             --jq '.[] | "- #\(.number) \(.title)"' || echo "- (No milestone issues linked)")
           TITLE="${{ steps.plugin_config.outputs['plugin.pluginNodeName'] }} Plugin $TAG_NAME"
           GV="${{ steps.plugin_config.outputs['godot.godotVersion'] }}"
+          GV="${GV}.${{ steps.plugin_config.outputs['godot.godotReleaseType'] }}"
           gh release create "$TAG_NAME" \
             --draft \
             --title "$TITLE" \

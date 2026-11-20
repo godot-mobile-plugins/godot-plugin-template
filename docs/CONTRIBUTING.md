@@ -339,7 +339,7 @@ The `common/config/godot.properties` file contains core Godot version settings:
 
 ```properties
 # Godot configuration
-godotVersion=4.6                  # Target Godot version
+godotVersion=4.8                  # Target Godot version
 godotReleaseType=stable           # Release type: stable, dev6, beta3, rc1, etc.
 ```
 

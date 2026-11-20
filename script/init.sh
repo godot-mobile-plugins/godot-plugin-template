@@ -96,7 +96,6 @@ replace_string() {
 	matching_files=$(find "$root_dir" -type f \
 		-not -path "$root_dir/.git/*" \
 		-not -path "$root_dir/script/*" \
-		-not -path "$root_dir/demo/addons/*" \
 		-not -path "$root_dir/ios/godot/*" \
 		-not -path "$root_dir/ios/Pods/*" \
 		-not -iname "*.png" \
@@ -127,7 +126,6 @@ replace_string() {
 	find "$root_dir" -type f \
 		-not -path "$root_dir/.git/*" \
 		-not -path "$root_dir/script/*" \
-		-not -path "$root_dir/demo/addons/*" \
 		-not -path "$root_dir/ios/godot/*" \
 		-not -path "$root_dir/ios/Pods/*" \
 		-not -iname "*.png" \
@@ -171,7 +169,6 @@ rename_template() {
 	done < <(find "$root_dir" -depth -name "*$target*" \
 		-not -path "$root_dir/.git/*" \
 		-not -path "$root_dir/script/*" \
-		-not -path "$root_dir/demo/addons/*" \
 		-not -path "$root_dir/ios/godot/*" \
 		-not -path "$root_dir/ios/Pods/*" \
 		-print0)

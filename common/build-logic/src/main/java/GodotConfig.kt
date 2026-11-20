@@ -15,15 +15,15 @@ import java.util.Properties
  * plugins { id("base-conventions") }
  *
  * val godotConfig = loadGodotConfig()
- * println(godotConfig.godotVersion)    // "4.3"
- * println(godotConfig.godotAarFile)    // "godot-lib-4.3.stable.aar"
+ * println(godotConfig.godotVersion)    // "4.8"
+ * println(godotConfig.godotAarFile)    // "godot-lib-4.8.beta4.aar"
  * ```
  *
  * Derived properties ([godotAarUrl], [godotAarFile]) are computed from the raw version
  * fields and are never stored in the `.properties` file.
  */
 data class GodotConfig(
-    /** Godot engine version, e.g. `4.3`. */
+    /** Godot engine version, e.g. `4.8`. */
     val godotVersion: String,
     /** Release qualifier appended to the version, e.g. `stable`. */
     val godotReleaseType: String,
@@ -43,13 +43,13 @@ data class GodotConfig(
                 "$godotVersion-$godotReleaseType/" +
                 "godot-lib.$godotVersion.$godotReleaseType.template_release.aar"
 
-    /** Local filename for the cached AAR in the flat-dir repository, e.g. `godot-lib-4.3.stable.aar`. */
+    /** Local filename for the cached AAR in the flat-dir repository, e.g. `godot-lib-4.8.beta4.aar`. */
     val godotAarFile: String
         get() = "godot-lib-$godotVersion.$godotReleaseType.aar"
 
     /**
      * ZIP archive name for the iOS Simulator debug library,
-     * e.g. `godot-ios-simulator-debug-4.6-stable.zip`.
+     * e.g. `godot-ios-simulator-debug-4.8-beta4.zip`.
      */
     val godotIosSimulatorLibZip: String
         get() = "godot-ios-simulator-debug-$godotVersion-$godotReleaseType.zip"
@@ -65,8 +65,8 @@ data class GodotConfig(
      *
      * Example:
      * ```
-     * https://github.com/godot-mobile-plugins/godot-ios-builds/releases/download/4.6-stable/
-     *     godot-ios-simulator-debug-4.6-stable.zip
+     * https://github.com/godot-mobile-plugins/godot-ios-builds/releases/download/4.8-beta4/
+     *     godot-ios-simulator-debug-4.8-beta4.zip
      * ```
      */
     val godotIosSimulatorLibUrl: String

@@ -266,6 +266,10 @@ android {
         manifestPlaceholders["godotPluginName"] = pluginConfig.pluginName
         manifestPlaceholders["godotPluginPackageName"] = pluginConfig.pluginPackageName
         buildConfigField("String", "GODOT_PLUGIN_NAME", "\"${pluginConfig.pluginName}\"")
+
+        // Packaged into the AAR as proguard.txt so that consuming Godot 4.8+ exports built
+        // with the "gradle_build/minification" option keep what this plugin needs.
+        consumerProguardFiles("config/consumer-rules.pro")
     }
 
     compileOptions {
