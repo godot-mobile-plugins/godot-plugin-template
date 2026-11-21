@@ -50,12 +50,40 @@ jobs:
           VALID_LABEL_NAMES: ${{ steps.load_config.outputs.label_names }}
         run: |-
           python - <<'EOF'
-          import os, json
+          import os, json, random, time, importlib
           from google import genai
-          from google.genai import types
+          from google.genai import errors, types
+
+          # Retry settings for transient Gemini failures (overload, rate limiting, timeouts, network errors)
+          MAX_ATTEMPTS = 5
+          BASE_DELAY_SECONDS = 5  # Delays grow exponentially: ~5s, 10s, 20s, 40s
+          REQUEST_TIMEOUT_MS = 60_000
+          RETRYABLE_STATUS_CODES = {408, 429, 500, 502, 503, 504}
+
+          # Depending on its version, google-genai uses either httpx or httpx2 as its HTTP client
+          TRANSIENT_NETWORK_ERRORS = []
+          for module_name in ('httpx', 'httpx2'):
+              try:
+                  http_module = importlib.import_module(module_name)
+              except ImportError:
+                  continue
+              for error_name in ('TimeoutException', 'NetworkError', 'RemoteProtocolError'):
+                  error_class = getattr(http_module, error_name, None)
+                  if error_class is not None:
+                      TRANSIENT_NETWORK_ERRORS.append(error_class)
+          TRANSIENT_NETWORK_ERRORS = tuple(TRANSIENT_NETWORK_ERRORS)
+
+          def is_retryable(e):
+              if isinstance(e, errors.APIError):
+                  return e.code in RETRYABLE_STATUS_CODES
+              return isinstance(e, TRANSIENT_NETWORK_ERRORS)
+
           valid_labels = json.loads(os.environ['VALID_LABELS'])
           valid_label_names = json.loads(os.environ['VALID_LABEL_NAMES'])
-          client = genai.Client(api_key=os.environ['GEMINI_API_KEY'])
+          client = genai.Client(
+              api_key=os.environ['GEMINI_API_KEY'],
+              http_options=types.HttpOptions(timeout=REQUEST_TIMEOUT_MS)
+          )
           prompt = f"""
           You are an automated triage assistant for a Godot game engine plugin GitHub repository dealing with Android,
           iOS, and GDScript.
@@ -67,21 +95,36 @@ jobs:
           {os.environ.get('ISSUE_BODY', '')}
           """
           print("Sending prompt to Gemini...")
-          try:
-              response = client.models.generate_content(
-                  model='gemini-2.5-flash',
-                  contents=prompt,
-                  config=types.GenerateContentConfig(
-                      response_mime_type="application/json",
-                      response_schema={
-                          "type": "ARRAY",
-                          "items": {
-                              "type": "STRING",
-                              "enum": valid_label_names
+          response = None
+          for attempt in range(1, MAX_ATTEMPTS + 1):
+              try:
+                  response = client.models.generate_content(
+                      model='gemini-2.5-flash',
+                      contents=prompt,
+                      config=types.GenerateContentConfig(
+                          response_mime_type="application/json",
+                          response_schema={
+                              "type": "ARRAY",
+                              "items": {
+                                  "type": "STRING",
+                                  "enum": valid_label_names
+                              }
                           }
-                      }
+                      )
                   )
-              )
+                  break
+              except Exception as e:
+                  if not is_retryable(e):
+                      print(f"Non-retryable error during Gemini request: {e}")
+                      exit(1)
+                  if attempt == MAX_ATTEMPTS:
+                      print(f"Gemini request failed after {MAX_ATTEMPTS} attempts: {e}")
+                      exit(1)
+                  delay = BASE_DELAY_SECONDS * 2 ** (attempt - 1) + random.uniform(0, 1)
+                  print(f"Transient error on attempt {attempt}/{MAX_ATTEMPTS}: {e}")
+                  print(f"Retrying in {delay:.1f} seconds...")
+                  time.sleep(delay)
+          try:
               selected_labels = json.loads(response.text.strip())
           except Exception as e:
               print(f"Error during Gemini processing: {e}")
