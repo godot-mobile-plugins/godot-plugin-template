@@ -54,6 +54,14 @@ jobs:
           from google import genai
           from google.genai import errors, types
 
+          # ======================================================================
+          # GEMINI MODELS
+          # PRIMARY_MODEL is used first. FALLBACK_MODEL is tried only after all
+          # retries against PRIMARY_MODEL have failed with transient errors.
+          # ======================================================================
+          PRIMARY_MODEL = 'gemini-2.5-flash'
+          FALLBACK_MODEL = 'gemini-2.5-flash-lite'
+
           # Retry settings for transient Gemini failures (overload, rate limiting, timeouts, network errors)
           MAX_ATTEMPTS = 5
           BASE_DELAY_SECONDS = 5  # Delays grow exponentially: ~5s, 10s, 20s, 40s
@@ -78,6 +86,9 @@ jobs:
                   return e.code in RETRYABLE_STATUS_CODES
               return isinstance(e, TRANSIENT_NETWORK_ERRORS)
 
+          class RetriesExhausted(Exception):
+              pass
+
           valid_labels = json.loads(os.environ['VALID_LABELS'])
           valid_label_names = json.loads(os.environ['VALID_LABEL_NAMES'])
           client = genai.Client(
@@ -94,36 +105,52 @@ jobs:
           Issue Body:
           {os.environ.get('ISSUE_BODY', '')}
           """
-          print("Sending prompt to Gemini...")
-          response = None
-          for attempt in range(1, MAX_ATTEMPTS + 1):
-              try:
-                  response = client.models.generate_content(
-                      model='gemini-2.5-flash',
-                      contents=prompt,
-                      config=types.GenerateContentConfig(
-                          response_mime_type="application/json",
-                          response_schema={
-                              "type": "ARRAY",
-                              "items": {
-                                  "type": "STRING",
-                                  "enum": valid_label_names
+          def generate_with_retries(model):
+              """Returns the response; raises RetriesExhausted after repeated transient errors.
+              Exits the run on non-retryable errors."""
+              print(f"Sending prompt to Gemini model {model}...")
+              for attempt in range(1, MAX_ATTEMPTS + 1):
+                  try:
+                      return client.models.generate_content(
+                          model=model,
+                          contents=prompt,
+                          config=types.GenerateContentConfig(
+                              response_mime_type="application/json",
+                              response_schema={
+                                  "type": "ARRAY",
+                                  "items": {
+                                      "type": "STRING",
+                                      "enum": valid_label_names
+                                  }
                               }
-                          }
+                          )
                       )
-                  )
-                  break
-              except Exception as e:
-                  if not is_retryable(e):
-                      print(f"Non-retryable error during Gemini request: {e}")
-                      exit(1)
-                  if attempt == MAX_ATTEMPTS:
-                      print(f"Gemini request failed after {MAX_ATTEMPTS} attempts: {e}")
-                      exit(1)
-                  delay = BASE_DELAY_SECONDS * 2 ** (attempt - 1) + random.uniform(0, 1)
-                  print(f"Transient error on attempt {attempt}/{MAX_ATTEMPTS}: {e}")
-                  print(f"Retrying in {delay:.1f} seconds...")
-                  time.sleep(delay)
+                  except Exception as e:
+                      if not is_retryable(e):
+                          print(f"Non-retryable error during Gemini request to {model}: {e}")
+                          exit(1)
+                      if attempt == MAX_ATTEMPTS:
+                          raise RetriesExhausted(f"{model} failed after {MAX_ATTEMPTS} attempts: {e}") from e
+                      delay = BASE_DELAY_SECONDS * 2 ** (attempt - 1) + random.uniform(0, 1)
+                      print(f"Transient error from {model} on attempt {attempt}/{MAX_ATTEMPTS}: {e}")
+                      print(f"Retrying in {delay:.1f} seconds...")
+                      time.sleep(delay)
+
+          try:
+              response = generate_with_retries(PRIMARY_MODEL)
+          except RetriesExhausted as primary_error:
+              print(f"{primary_error}")
+              print(f"Falling back to Gemini model {FALLBACK_MODEL}...")
+              try:
+                  response = generate_with_retries(FALLBACK_MODEL)
+              except RetriesExhausted as fallback_error:
+                  print(f"{fallback_error}")
+                  print("::warning title=Gemini unavailable::Issue was left unlabeled because both "
+                        f"{PRIMARY_MODEL} and {FALLBACK_MODEL} failed with transient errors. "
+                        "Please label it manually.")
+                  with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
+                      f.write("labels=\n")
+                  exit(0)
           try:
               selected_labels = json.loads(response.text.strip())
           except Exception as e:
