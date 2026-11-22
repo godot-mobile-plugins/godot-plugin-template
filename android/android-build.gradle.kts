@@ -23,28 +23,11 @@ plugins {
 val pluginConfig = loadPluginConfig()
 val godotConfig = loadGodotConfig()
 
-// -- Test-report data types ----------------------------------------------------
-//
-// Defined at the top level so they are visible inside every task doLast closure.
-
-data class SuiteResult(
-    val name: String,
-    val tests: Int,
-    val passed: Int,
-    val failed: Int,
-    val skipped: Int,
-)
-
-data class CoverageCounter(
-    val type: String,
-    val covered: Long,
-    val missed: Long,
-) {
-    val total: Long = covered + missed
-    val pct: Double = if (total == 0L) 100.0 else covered * 100.0 / total
-}
-
 // -- Test-report helper functions ----------------------------------------------
+//
+// Reading results is Android-specific and lives here. The SuiteResult/CoverageRow
+// types, the TEST RESULTS / CODE COVERAGE printers and failBuildIfTestsFailed()
+// are shared with iOS in build-logic (TestReporting.kt).
 
 /**
  * Returns a DocumentBuilder that will not attempt any network or filesystem
@@ -92,14 +75,22 @@ fun parseSuiteResults(resultsDir: File): List<SuiteResult> {
 
 /**
  * Parses the top-level `<counter>` elements from a JaCoCo XML report, which
- * represent project-wide totals. Returns only the five counters we display:
- * INSTRUCTION, BRANCH, LINE, METHOD, CLASS.
+ * represent project-wide totals. Returns one [CoverageRow] for each of the five
+ * counters we display: INSTRUCTION, BRANCH, LINE, METHOD, CLASS.
  */
-fun parseCoverage(reportXml: File): List<CoverageCounter> {
+fun parseCoverage(reportXml: File): List<CoverageRow> {
     if (!reportXml.exists()) return emptyList()
     return runCatching {
         val root = safeXmlBuilder().parse(reportXml).documentElement
-        val order = listOf("INSTRUCTION", "BRANCH", "LINE", "METHOD", "CLASS")
+        val labels =
+            linkedMapOf(
+                "INSTRUCTION" to "Instructions",
+                "BRANCH" to "Branches",
+                "LINE" to "Lines",
+                "METHOD" to "Methods",
+                "CLASS" to "Classes",
+            )
+        val order = labels.keys.toList()
         // Collect only direct <counter> children of the root <report> element;
         // nested counters belong to individual packages/classes and are skipped.
         (0 until root.childNodes.length)
@@ -107,120 +98,12 @@ fun parseCoverage(reportXml: File): List<CoverageCounter> {
             .filter { it.tagName == "counter" }
             .mapNotNull { el ->
                 val type = el.getAttribute("type").takeIf { it in order } ?: return@mapNotNull null
-                CoverageCounter(
-                    type,
-                    el.getAttribute("covered").toLongOrNull() ?: 0L,
-                    el.getAttribute("missed").toLongOrNull() ?: 0L,
-                )
-            }.sortedBy { order.indexOf(it.type) }
+                val covered = el.getAttribute("covered").toLongOrNull() ?: 0L
+                val missed = el.getAttribute("missed").toLongOrNull() ?: 0L
+                type to CoverageRow(labels.getValue(type), covered, covered + missed)
+            }.sortedBy { order.indexOf(it.first) }
+            .map { it.second }
     }.getOrDefault(emptyList())
-}
-
-/**
- * Prints a formatted table of per-suite pass/fail counts to standard output.
- * Returns `true` if any suite has failing tests so the caller can signal a
- * build failure after the full report has been displayed.
- */
-fun printTestResultsTable(suites: List<SuiteResult>): Boolean {
-    val bar = "=".repeat(80)
-    val sep = "-".repeat(80)
-
-    println()
-    println(bar)
-    println(" TEST RESULTS")
-    println(bar)
-
-    if (suites.isEmpty()) {
-        println(" No test results found.")
-        println(" Expected location: build/test-results/testDebugUnitTest/")
-        println(bar)
-        println()
-        return false
-    }
-
-    val nameW = maxOf(suites.maxOf { it.name.length }, "Suite".length)
-
-    println(
-        " %-${nameW}s   %5s   %6s   %6s   %6s"
-            .format("Suite", "Tests", "Passed", "Failed", "Pass %"),
-    )
-    println(sep)
-
-    suites.forEach { s ->
-        val pct = if (s.tests > 0) s.passed * 100.0 / s.tests else 100.0
-        println(
-            " %-${nameW}s   %5d   %6d   %6d   %5.1f%%"
-                .format(s.name, s.tests, s.passed, s.failed, pct),
-        )
-    }
-
-    val totalTests = suites.sumOf { it.tests }
-    val totalPassed = suites.sumOf { it.passed }
-    val totalFailed = suites.sumOf { it.failed }
-    val totalPct = if (totalTests > 0) totalPassed * 100.0 / totalTests else 100.0
-
-    println(sep)
-    println(
-        " %-${nameW}s   %5d   %6d   %6d   %5.1f%%"
-            .format("TOTAL", totalTests, totalPassed, totalFailed, totalPct),
-    )
-    println(bar)
-    println()
-
-    return totalFailed > 0
-}
-
-/**
- * Prints a formatted table of JaCoCo coverage counters (Instructions, Branches,
- * Lines, Methods, Classes) to standard output. If [counters] is empty a
- * one-line notice is printed instead.
- */
-fun printCoverageSummary(
-    counters: List<CoverageCounter>,
-    reportDir: File,
-) {
-    val bar = "=".repeat(80)
-    val sep = "-".repeat(80)
-
-    val labelMap =
-        mapOf(
-            "INSTRUCTION" to "Instructions",
-            "BRANCH" to "Branches",
-            "LINE" to "Lines",
-            "METHOD" to "Methods",
-            "CLASS" to "Classes",
-        )
-
-    println(bar)
-    println(" CODE COVERAGE")
-    if (reportDir.exists()) {
-        println(" HTML report: ${File(reportDir, "index.html").absolutePath}")
-    }
-    println(bar)
-
-    if (counters.isEmpty()) {
-        println(" Coverage data not available.")
-        println(" Expected location: build/reports/coverage/test/debug/report.xml")
-        println(bar)
-        println()
-        return
-    }
-
-    println(
-        " %-15s   %7s   %7s   %7s   %8s"
-            .format("Metric", "Covered", "Missed", "Total", "Coverage"),
-    )
-    println(sep)
-
-    counters.forEach { c ->
-        println(
-            " %-15s   %7d   %7d   %7d   %7.1f%%"
-                .format(labelMap[c.type] ?: c.type, c.covered, c.missed, c.total, c.pct),
-        )
-    }
-
-    println(bar)
-    println()
 }
 
 // -- OpenRewrite ---------------------------------------------------------------
@@ -664,15 +547,33 @@ tasks {
             val coverageDir = coverageXml.parentFile
 
             val suites = parseSuiteResults(resultsDir)
-            val counters = parseCoverage(coverageXml)
+            val coverageRows = parseCoverage(coverageXml)
 
-            val hasFailures = printTestResultsTable(suites)
-            printCoverageSummary(counters, coverageDir)
+            printTestResultsTable(
+                suites,
+                emptyNotice =
+                    listOf(
+                        "No test results found.",
+                        "Expected location: build/test-results/testDebugUnitTest/",
+                    ),
+            )
+            printCoverageTable(
+                nameHeader = "Metric",
+                rows = coverageRows,
+                headerNotes =
+                    if (coverageDir.exists()) {
+                        listOf("HTML report: ${File(coverageDir, "index.html").absolutePath}")
+                    } else {
+                        emptyList()
+                    },
+                emptyNotice =
+                    listOf(
+                        "Coverage data not available.",
+                        "Expected location: build/reports/coverage/test/debug/report.xml",
+                    ),
+            )
 
-            if (hasFailures) {
-                val n = suites.sumOf { it.failed }
-                throw GradleException("$n test(s) failed - see the TEST RESULTS table above.")
-            }
+            failBuildIfTestsFailed(suites, dash = "-")
         }
     }
 }

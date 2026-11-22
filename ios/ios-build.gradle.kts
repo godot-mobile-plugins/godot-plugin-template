@@ -41,27 +41,11 @@ interface Injected {
 
 val derivedDataDir = file("$projectDir/build/DerivedData")
 
-// -- Test-report data types ---------------------------------------------------
-//
-// Defined at the top level so they are visible inside every task doLast closure.
-
-data class SuiteResult(
-    val name: String,
-    val tests: Int,
-    val passed: Int,
-    val failed: Int,
-    val skipped: Int,
-)
-
-data class IosCoverageTarget(
-    val name: String,
-    val covered: Long,
-    val total: Long,
-) {
-    val pct: Double = if (total == 0L) 100.0 else covered * 100.0 / total
-}
-
 // -- Test-report helper functions ---------------------------------------------
+//
+// Reading results is iOS-specific and lives here. The SuiteResult/CoverageRow
+// types, the TEST RESULTS / CODE COVERAGE printers and failBuildIfTestsFailed()
+// are shared with Android in build-logic (TestReporting.kt).
 
 /**
  * Parses per-suite test results from an xcresult bundle by running
@@ -156,7 +140,7 @@ fun parseIosSuiteResults(
 
 /**
  * Parses line-coverage data from an xcresult bundle using
- * `xcrun xccov view --report --json`. Returns one [IosCoverageTarget] per
+ * `xcrun xccov view --report --json`. Returns one [CoverageRow] per
  * non-framework build target, sorted alphabetically. Returns an empty list
  * when coverage data is unavailable (e.g. `-enableCodeCoverage YES` was not
  * passed to xcodebuild).
@@ -164,7 +148,7 @@ fun parseIosSuiteResults(
 fun parseIosCoverage(
     execOps: ExecOperations,
     bundlePath: String,
-): List<IosCoverageTarget> {
+): List<CoverageRow> {
     val out = java.io.ByteArrayOutputStream()
     val execResult =
         execOps.exec {
@@ -192,104 +176,9 @@ fun parseIosCoverage(
                 if (name.endsWith(".framework")) return@mapNotNull null
                 val covered = (t["coveredLines"] as? Number)?.toLong() ?: 0L
                 val total = (t["executableLines"] as? Number)?.toLong() ?: 0L
-                IosCoverageTarget(name, covered, total)
+                CoverageRow(name, covered, total)
             }.sortedBy { it.name }
     }.getOrDefault(emptyList())
-}
-
-/**
- * Prints a formatted table of per-suite pass/fail counts to standard output,
- * using the same visual style as the Android TEST RESULTS table.
- * Returns `true` if any suite has failing tests so the caller can signal a
- * build failure after the full report has been displayed.
- */
-fun printTestResultsTable(suites: List<SuiteResult>): Boolean {
-    val bar = "=".repeat(80)
-    val sep = "-".repeat(80)
-
-    println()
-    println(bar)
-    println(" TEST RESULTS")
-    println(bar)
-
-    if (suites.isEmpty()) {
-        println(" No test results found.")
-        println(" Expected location: build/TestResults/testiOS.xcresult")
-        println(bar)
-        println()
-        return false
-    }
-
-    val nameW = maxOf(suites.maxOf { it.name.length }, "Suite".length)
-
-    println(
-        " %-${nameW}s   %5s   %6s   %6s   %6s"
-            .format("Suite", "Tests", "Passed", "Failed", "Pass %"),
-    )
-    println(sep)
-
-    suites.forEach { s ->
-        val pct = if (s.tests > 0) s.passed * 100.0 / s.tests else 100.0
-        println(
-            " %-${nameW}s   %5d   %6d   %6d   %5.1f%%"
-                .format(s.name, s.tests, s.passed, s.failed, pct),
-        )
-    }
-
-    val totalTests = suites.sumOf { it.tests }
-    val totalPassed = suites.sumOf { it.passed }
-    val totalFailed = suites.sumOf { it.failed }
-    val totalPct = if (totalTests > 0) totalPassed * 100.0 / totalTests else 100.0
-
-    println(sep)
-    println(
-        " %-${nameW}s   %5d   %6d   %6d   %5.1f%%"
-            .format("TOTAL", totalTests, totalPassed, totalFailed, totalPct),
-    )
-    println(bar)
-    println()
-
-    return totalFailed > 0
-}
-
-/**
- * Prints a formatted table of iOS line-coverage results per target to standard
- * output, matching the visual style of the Android CODE COVERAGE table.
- * If [targets] is empty a one-line notice is printed instead.
- */
-fun printIosCoverageSummary(targets: List<IosCoverageTarget>) {
-    val bar = "=".repeat(80)
-    val sep = "-".repeat(80)
-
-    println(bar)
-    println(" CODE COVERAGE")
-    println(bar)
-
-    if (targets.isEmpty()) {
-        println(" Coverage data not available.")
-        println(" Ensure -enableCodeCoverage YES was passed to xcodebuild.")
-        println(bar)
-        println()
-        return
-    }
-
-    val nameW = maxOf(targets.maxOf { it.name.length }, "Target".length).coerceAtMost(46)
-
-    println(
-        " %-${nameW}s   %7s   %7s   %8s"
-            .format("Target", "Covered", "Total", "Coverage"),
-    )
-    println(sep)
-
-    targets.forEach { t ->
-        println(
-            " %-${nameW}s   %7d   %7d   %7.1f%%"
-                .format(t.name.take(nameW), t.covered, t.total, t.pct),
-        )
-    }
-
-    println(bar)
-    println()
 }
 
 // -- Helpers -------------------------------------------------------------------
@@ -1587,29 +1476,41 @@ tasks {
 
         doLast {
             if (!resultBundle.exists()) {
-                println()
-                println("=".repeat(80))
-                println(" TEST RESULTS")
-                println("=".repeat(80))
-                println(" No xcresult bundle found — testiOS may have been skipped.")
-                println(" Expected location: ${resultBundle.absolutePath}")
-                println("=".repeat(80))
-                println()
+                printTestResultsTable(
+                    emptyList(),
+                    emptyNotice =
+                        listOf(
+                            "No xcresult bundle found — testiOS may have been skipped.",
+                            "Expected location: ${resultBundle.absolutePath}",
+                        ),
+                )
                 return@doLast
             }
 
             val bundlePath = resultBundle.absolutePath
 
             val suites = parseIosSuiteResults(execOps, bundlePath)
-            val targets = parseIosCoverage(execOps, bundlePath)
+            val coverageRows = parseIosCoverage(execOps, bundlePath)
 
-            val hasFailures = printTestResultsTable(suites)
-            printIosCoverageSummary(targets)
+            printTestResultsTable(
+                suites,
+                emptyNotice =
+                    listOf(
+                        "No test results found.",
+                        "Expected location: build/TestResults/testiOS.xcresult",
+                    ),
+            )
+            printCoverageTable(
+                nameHeader = "Target",
+                rows = coverageRows,
+                emptyNotice =
+                    listOf(
+                        "Coverage data not available.",
+                        "Ensure -enableCodeCoverage YES was passed to xcodebuild.",
+                    ),
+            )
 
-            if (hasFailures) {
-                val n = suites.sumOf { it.failed }
-                throw GradleException("$n test(s) failed — see the TEST RESULTS table above.")
-            }
+            failBuildIfTestsFailed(suites, dash = "—")
         }
     }
 
