@@ -1460,6 +1460,22 @@ gem install xcodeproj --user-install
 xcrun simctl list devices available
 ```
 
+#### Gradle / IDE
+
+**Problem:** `build-logic` tasks rerun on every build (never `UP-TO-DATE`), or fail intermittently with missing generated files
+```bash
+# Cause: the IDE (e.g. VS Code Java extension) imports common/build-logic as a separate
+# Gradle project, builds it with its own Gradle version, and writes to the same build/
+# directory. Each build then deletes the other's outputs as stale.
+# Confirm: run `./gradlew help --info` twice from common/ and look for
+#   "Deleting stale output file" and "Output property ... has been removed".
+# Solution (VS Code): exclude build-logic from Java project import in .vscode/settings.json:
+#   "java.import.exclusions": ["**/node_modules/**", "**/.metadata/**",
+#     "**/archetype-resources/**", "**/META-INF/maven/**", "**/common/build-logic/**"]
+# Then close the IDE and remove the stale IDE-generated output:
+rm -rf common/build-logic/bin common/build-logic/build common/build-logic/.gradle
+```
+
 #### Tests
 
 **Problem:** Android tests fail with `ClassNotFoundException` for JUnit 5
