@@ -81,7 +81,8 @@ Thank you for your interest in contributing to the Godot PluginTemplate Plugin! 
 │   │       ├-- IosConfig.kt                 # Reads ios/config/ios.properties
 │   │       ├-- PluginConfig.kt              # Reads plugin.properties
 │   │       ├-- ProjectExtensions.kt         # loadPluginConfig(), loadGodotConfig(), loadIosConfig(), loadBuildConfig()
-│   │       └-- SpmDependency.kt             # Data class for spm_dependencies.json entries
+│   │       ├-- SpmDependency.kt             # Data class for spm_dependencies.json entries
+│   │       └-- TestReporting.kt             # Shared TEST RESULTS / CODE COVERAGE console tables
 │   │
 │   ├-- config/
 │   │   ├-- build.properties                 # Build-related property configuration & customization
@@ -868,6 +869,8 @@ The `printTestSummary` Gradle task orchestrates three steps automatically:
 | 2 | `createDebugUnitTestCoverageReport` | Generates the JaCoCo XML and HTML coverage report. |
 | 3 | `printTestSummary` | Prints a per-suite pass/fail table and overall coverage summary to the console, then exits non-zero if any tests failed. |
 
+`printTestSummary` reads the JUnit XML results and the JaCoCo XML report itself (Android-specific). The tables and the failure check come from the shared build logic in `common/build-logic/src/main/java/TestReporting.kt`, which iOS also uses (see [Shared test reporting](#shared-test-reporting)).
+
 #### Test dependencies
 
 Test library versions are managed in `common/gradle/libs.versions.toml`. The version catalog uses a naming convention to assign dependencies to the correct configurations automatically:
@@ -943,9 +946,9 @@ Running `testiOS` triggers the following, in order:
      SWIFT_VERSION=<swift_version>
    ```
    If no simulator UDID is available (e.g. `bootiOSSimulator` was skipped and `SIMULATOR_UDID` isn't set in the environment), the destination falls back to `platform=<test_platform>,name=<test_destination_name>,OS=<test_os>` built from `ios.properties`.
-6. **Print a summary** - `testiOS` is `finalizedBy` `printTestSummaryiOS`, which reads the `.xcresult` bundle with `xcrun xcresulttool` and `xcrun xccov` and prints total/passed/failed/skipped counts, pass rate, per-configuration results, per-suite results, and per-target line coverage.
+6. **Print a summary** - `testiOS` is `finalizedBy` `printTestSummaryiOS`, which reads the `.xcresult` bundle with `xcrun xcresulttool` and `xcrun xccov` (iOS-specific) and prints the shared TEST RESULTS table (per-suite pass/fail counts) and CODE COVERAGE table (line coverage per target). See [Shared test reporting](#shared-test-reporting).
 
-The `testiOS` task itself exits non-zero if any test fails.
+`testiOS` ignores the `xcodebuild` exit code so the summary always runs; `printTestSummaryiOS` then fails the build if any test failed.
 
 #### Output
 
@@ -972,6 +975,22 @@ Swift tests: add a new `XCTestCase` subclass to `ios/src/test/unit/` and registe
 Objective-C++ tests: add a `.mm` file to `ios/src/test/unit/`. Import `plugin_template_logger.h` for logger access or `plugin_template_plugin.h` for the plugin class. Add the file to the Sources build phase the same way.
 
 > **Note on Godot engine classes:** `PluginTemplatePlugin` (the `Object` subclass), `plugin_template_plugin_init()`, and `plugin_template_plugin_deinit()` all depend on `memnew`/`memdelete` and `Engine::get_singleton()`, which are Godot engine internals unavailable in a plain XCTest host. Test those paths using GDScript integration tests via the Godot editor or the [GUT](https://github.com/bitwes/Gut) framework instead.
+
+---
+
+### Shared test reporting
+
+Both platforms print their test summaries with shared code in `common/build-logic/src/main/java/TestReporting.kt`. Each platform build script reads its own results and passes them in:
+
+| Shared API | Purpose |
+|------------|---------|
+| `SuiteResult` | Pass/fail/skip counts for one test suite. |
+| `printTestResultsTable(suites, emptyNotice)` | Prints the TEST RESULTS table, or the `emptyNotice` lines when there are no results. Returns `true` if any test failed. |
+| `failBuildIfTestsFailed(suites, dash)` | Throws a `GradleException` ("N test(s) failed ...") when any test failed. Call it after printing both tables. |
+| `CoverageRow` | One CODE COVERAGE row: name, covered, total (missed and percentage are derived). |
+| `printCoverageTable(nameHeader, rows, emptyNotice, headerNotes)` | Prints the CODE COVERAGE table with Covered / Missed / Total / Coverage columns. |
+
+Android fills the coverage table with one row per JaCoCo counter (`Metric` column: Instructions, Branches, Lines, Methods, Classes). iOS fills it with one row per build target (`Target` column, line coverage). To change how the tables look, edit `TestReporting.kt`. To change how results are read, edit the platform build script (`android/android-build.gradle.kts` or `ios/ios-build.gradle.kts`).
 
 ---
 
