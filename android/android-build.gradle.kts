@@ -8,7 +8,6 @@ import com.github.gradle.node.npm.task.NpxTask
 import org.w3c.dom.Element
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
-import javax.xml.parsers.DocumentBuilderFactory
 
 plugins {
     id("base-conventions")
@@ -25,53 +24,11 @@ val godotConfig = loadGodotConfig()
 
 // -- Test-report helper functions ----------------------------------------------
 //
-// Reading results is Android-specific and lives here. The SuiteResult/CoverageRow
-// types, the TEST RESULTS / CODE COVERAGE printers and failBuildIfTestsFailed()
-// are shared with iOS in build-logic (TestReporting.kt).
-
-/**
- * Returns a DocumentBuilder that will not attempt any network or filesystem
- * access to resolve external DTD or entity declarations. JaCoCo's XML report
- * contains a DOCTYPE declaration that references "report.dtd"; suppressing
- * external entity loading prevents IO errors when parsing offline.
- */
-fun safeXmlBuilder(): javax.xml.parsers.DocumentBuilder {
-    val factory = DocumentBuilderFactory.newInstance()
-    try {
-        factory.isValidating = false
-        factory.isNamespaceAware = false
-        factory.setFeature("http://apache.org/xml/features/nonvalidating/load-external-dtd", false)
-        factory.setFeature("http://xml.org/sax/features/external-general-entities", false)
-        factory.setFeature("http://xml.org/sax/features/external-parameter-entities", false)
-    } catch (_: Exception) {
-        // Swallow: some parser implementations don't expose these features.
-    }
-    return factory.newDocumentBuilder()
-}
-
-/**
- * Parses every JUnit-format XML file in [resultsDir] and returns one
- * [SuiteResult] per file, sorted alphabetically by the simple class name.
- * Malformed or unreadable files are silently skipped.
- */
-fun parseSuiteResults(resultsDir: File): List<SuiteResult> {
-    if (!resultsDir.exists()) return emptyList()
-    val builder = safeXmlBuilder()
-    return (resultsDir.listFiles { f -> f.extension == "xml" } ?: emptyArray())
-        .mapNotNull { file ->
-            runCatching {
-                val root = builder.parse(file).documentElement
-                // The "name" attribute is the fully-qualified class name; strip the package.
-                val name = root.getAttribute("name").substringAfterLast('.')
-                val tests = root.getAttribute("tests").toIntOrNull() ?: 0
-                val failures = root.getAttribute("failures").toIntOrNull() ?: 0
-                val errors = root.getAttribute("errors").toIntOrNull() ?: 0
-                val skipped = root.getAttribute("skipped").toIntOrNull() ?: 0
-                val failed = failures + errors
-                SuiteResult(name, tests, maxOf(0, tests - failed - skipped), failed, skipped)
-            }.getOrNull()
-        }.sortedBy { it.name }
-}
+// Reading coverage is Android-specific and lives here. The JUnit XML reader
+// (parseSuiteResults, safeXmlBuilder) is shared with the integration tests in
+// build-logic (JUnitResults.kt). The SuiteResult/CoverageRow types, the
+// TEST RESULTS / CODE COVERAGE printers and failBuildIfTestsFailed() are shared
+// with iOS in build-logic (TestReporting.kt).
 
 /**
  * Parses the top-level `<counter>` elements from a JaCoCo XML report, which

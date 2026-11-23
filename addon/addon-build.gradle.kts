@@ -3,10 +3,12 @@
 //
 
 import org.gradle.api.file.FileSystemOperations
+import org.gradle.process.ExecOperations
 import javax.inject.Inject
 
 plugins {
     id("base-conventions")
+    alias(libs.plugins.undercouch.download)
 }
 
 // -- Load config data classes --------------------------------------------------
@@ -18,10 +20,14 @@ plugins {
 val pluginConfig = loadPluginConfig()
 val iosConfig = loadIosConfig()
 val godotConfig = loadGodotConfig()
+val buildConfig = loadBuildConfig()
 
 interface Injected {
     @get:Inject
     val fsOps: FileSystemOperations
+
+    @get:Inject
+    val execOps: ExecOperations
 }
 
 // -- Collect all catalog library aliases (used in @androidDependencies@ token) -
@@ -373,4 +379,181 @@ tasks {
         description = "Formats GDScript source files in-place using gdscript-formatter",
         check = false,
     )
+
+    // -- Headless Godot integration tests --------------------------------------
+    //
+    // downloadGodotEditor   -> fetches the Godot editor for config/godot.properties
+    //                          into godotEditorDir (cached; skipped when present)
+    // prepareIntegrationTestProject -> assembles a throw-away Godot project from
+    //                          src/test/integration/ plus the generated addon files
+    // runIntegrationTests   -> imports the project, runs the GDScript runner in
+    //                          headless Godot and prints the TEST RESULTS table
+
+    val editorPlatform = runCatching { GodotEditorPlatform.current() }
+    val godotEditorDir =
+        file(
+            "${gradle.extra["godotEditorDir"]}/${godotConfig.godotVersionString}/" +
+                (editorPlatform.getOrNull()?.archiveSuffix ?: "unsupported"),
+        )
+    val integrationTestSrcDir = file("$projectDir/src/test/integration")
+    val integrationTestProjectDir = layout.buildDirectory.dir("integration-test/project")
+    val integrationTestResultsDir = layout.buildDirectory.dir("test-results/integrationTest")
+
+    register<de.undercouch.gradle.tasks.download.Download>("downloadGodotEditor") {
+        description = "Downloads the Godot editor for the configured Godot version (used by integration tests)"
+        group = "setup"
+
+        val expectedVersionString = godotConfig.godotVersionString
+        val versionFile = godotEditorDir.resolve("GODOT_VERSION")
+        // Placeholder platform only used for the URL on unsupported hosts; doFirst fails before downloading.
+        val platform = editorPlatform.getOrDefault(GodotEditorPlatform.LINUX_X86_64)
+        val archiveFile = godotEditorDir.parentFile.resolve(godotConfig.godotEditorZip(platform))
+        val execOps = objects.newInstance<Injected>().execOps
+
+        inputs.property("godotVersion", godotConfig.godotVersion)
+        inputs.property("godotReleaseType", godotConfig.godotReleaseType)
+        inputs.property("godotEditorDir", godotEditorDir.absolutePath)
+
+        onlyIf("Godot editor is not already cached") {
+            val executable = findGodotEditorExecutable(godotEditorDir, platform)
+            if (versionFile.exists() && versionFile.readText().trim() == expectedVersionString && executable != null) {
+                logger.lifecycle(
+                    "Godot editor {} already present at {}. Skipping download.",
+                    expectedVersionString,
+                    executable.absolutePath,
+                )
+                return@onlyIf false
+            }
+            true
+        }
+
+        doFirst {
+            editorPlatform.getOrThrow()
+            archiveFile.parentFile.mkdirs()
+        }
+
+        src(godotConfig.godotEditorUrl(platform))
+        dest(archiveFile)
+        overwrite(false)
+        tempAndMove(true)
+
+        doLast {
+            // unzip (rather than zipTree) keeps executable bits and the macOS .app bundle intact
+            delete(godotEditorDir)
+            godotEditorDir.mkdirs()
+            execOps.exec {
+                commandLine("unzip", "-q", "-o", archiveFile.absolutePath, "-d", godotEditorDir.absolutePath)
+            }
+
+            val executable =
+                findGodotEditorExecutable(godotEditorDir, platform)
+                    ?: throw GradleException(
+                        "Extraction succeeded but no Godot editor executable was found in " +
+                            godotEditorDir.absolutePath,
+                    )
+            executable.setExecutable(true)
+
+            archiveFile.delete()
+            versionFile.writeText(expectedVersionString)
+
+            println(
+                "Godot editor $expectedVersionString successfully downloaded and extracted to " +
+                    executable.absolutePath,
+            )
+        }
+    }
+
+    register<Sync>("prepareIntegrationTestProject") {
+        description = "Assembles the headless Godot project used by the integration tests"
+        group = "verification"
+        dependsOn("copyAssets", "generateGDScript", "generateSharedGDScript")
+
+        from(integrationTestSrcDir)
+        from("$outputDir/addons") { into("addons") }
+        into(integrationTestProjectDir)
+        // Keep Godot's import cache between runs; --import refreshes it.
+        preserve { include(".godot/**") }
+    }
+
+    register("runIntegrationTests") {
+        description = "Runs the GDScript integration tests in headless Godot and prints a TEST RESULTS table"
+        group = "verification"
+
+        if (!buildConfig.integrationTestsEnabled) {
+            doLast {
+                logger.lifecycle(
+                    "Integration tests are disabled. Set integrationTests.enabled=true in " +
+                        "common/config/build.properties to run them.",
+                )
+            }
+            return@register
+        }
+
+        dependsOn("downloadGodotEditor", "prepareIntegrationTestProject")
+
+        val execOps = objects.newInstance<Injected>().execOps
+        val logDir = layout.buildDirectory.dir("integration-test")
+
+        doLast {
+            val platform = editorPlatform.getOrThrow()
+            val godot =
+                findGodotEditorExecutable(godotEditorDir, platform)
+                    ?: throw GradleException("Godot editor not found in ${godotEditorDir.absolutePath}")
+            val projectPath = integrationTestProjectDir.get().asFile.absolutePath
+            val resultsDir = integrationTestResultsDir.get().asFile
+            delete(resultsDir)
+            resultsDir.mkdirs()
+
+            // 1. Import the project so global classes (class_name) and resources are registered
+            val importLog = logDir.get().file("import.log").asFile
+            val importResult =
+                importLog.outputStream().use { log ->
+                    execOps.exec {
+                        commandLine(godot.absolutePath, "--headless", "--path", projectPath, "--import")
+                        standardOutput = log
+                        errorOutput = log
+                        isIgnoreExitValue = true
+                    }
+                }
+            if (importResult.exitValue != 0) {
+                throw GradleException(
+                    "Godot project import failed (exit code ${importResult.exitValue}). See ${importLog.absolutePath}",
+                )
+            }
+
+            // 2. Run the tests; the runner writes one JUnit XML file per suite into resultsDir
+            val runResult =
+                execOps.exec {
+                    commandLine(
+                        godot.absolutePath,
+                        "--headless",
+                        "--path",
+                        projectPath,
+                        "--script",
+                        "res://runner/IntegrationTestRunner.gd",
+                        "--",
+                        "--junit-dir=${resultsDir.absolutePath}",
+                    )
+                    isIgnoreExitValue = true
+                }
+
+            val suites = parseSuiteResults(resultsDir)
+            printTestResultsTable(
+                suites,
+                emptyNotice =
+                    listOf(
+                        "No test results found.",
+                        "Expected location: build/test-results/integrationTest/",
+                    ),
+            )
+            failBuildIfTestsFailed(suites)
+
+            if (runResult.exitValue != 0) {
+                throw GradleException(
+                    "Godot exited with code ${runResult.exitValue} while running the integration tests - " +
+                        "see the Godot output above.",
+                )
+            }
+        }
+    }
 }

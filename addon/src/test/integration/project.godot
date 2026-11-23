@@ -1,0 +1,11 @@
+; Engine configuration file for the headless integration test project.
+;
+; This project is assembled under addon/build/integration-test/project/ by
+; `./gradlew :addon:prepareIntegrationTestProject` together with the generated
+; addon files. It is not a game and is separate from the demo project.
+
+config_version=5
+
+[application]
+
+config/name="PluginTemplate Integration Tests"

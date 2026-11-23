@@ -1,0 +1,64 @@
+#
+# Copyright (c) 2026-present Godot Mobile Plugins (https://github.com/godot-mobile-plugins)
+#
+name: Integration CI
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - common/config/**
+      - common/**/*.gradle.kts
+      - common/build-logic/src/**
+      - addon/config/**
+      - addon/src/**
+      - addon/**/*.gradle.kts
+jobs:
+  integration-tests:
+    name: Headless Godot Integration Tests
+    runs-on: ubuntu-22.04
+    steps:
+      # -- Checkout ------------------------------------------------------------
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      # -- Java ----------------------------------------------------------------
+      - name: Set up JDK
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 17
+          cache: gradle
+
+      # -- Gradle --------------------------------------------------------------
+      - name: Make Gradle wrapper executable
+        run: chmod +x common/gradlew
+
+      # -- Run integration tests -----------------------------------------------
+      # runIntegrationTests:
+      #   • downloads the Godot editor for config/godot.properties (downloadGodotEditor)
+      #   • assembles the test project from addon/src/test/integration/ + generated addon
+      #   • runs the GDScript tests in headless Godot (JUnit XML per suite)
+      #   • prints a formatted TEST RESULTS table
+      #   • throws GradleException (non-zero exit) when a test fails or Godot fails
+      # Skipped when integrationTests.enabled is not true in common/config/build.properties.
+      - name: Run integration tests
+        id: integration_tests
+        working-directory: common
+        run: ./gradlew :addon:runIntegrationTests --no-daemon
+        continue-on-error: true
+
+      # Upload the JUnit XML reports even when the step above fails
+      # (always: true keeps this step active on failure).
+      - name: Upload integration test results
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: integration-test-results
+          path: addon/build/test-results/integrationTest/
+          if-no-files-found: ignore
+
+      # Re-fail the job after the artifact is safely uploaded
+      - name: Fail job if tests failed
+        if: steps.integration_tests.outcome == 'failure'
+        run: exit 1

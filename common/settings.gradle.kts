@@ -36,6 +36,10 @@ gradle.extra["libDir"] = localProperties.getProperty("lib.dir")
 gradle.extra["godotDir"] = localProperties.getProperty("godot.dir")
     ?: "$rootDir/../ios/godot"
 
+// Cache directory for the Godot editor used by the headless integration tests
+gradle.extra["godotEditorDir"] = localProperties.getProperty("godot.editor.dir")
+    ?: "$rootDir/../addon/godot-editor"
+
 dependencyResolutionManagement {
     repositoriesMode.set(RepositoriesMode.PREFER_SETTINGS)
     repositories {
