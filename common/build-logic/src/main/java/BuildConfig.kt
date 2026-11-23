@@ -27,6 +27,7 @@ import java.util.Properties
  * | [gradleProjectName]      | `gradle/config/build.properties`              |
  * | [rootExtraProperties]    | `gradle/config/build.properties`              |
  * | [rootExtraGradle]        | `gradle/config/build.properties`              |
+ * | [integrationTestsEnabled]| `gradle/config/build.properties`              |
  * | [addonExtraProperties]   | `addon/config/addon-build.properties`         |
  * | [addonExtraGradle]       | `addon/config/addon-build.properties`         |
  * | [androidExtraProperties] | `android/config/android-build.properties`     |
@@ -51,6 +52,11 @@ data class BuildConfig(
     val rootExtraProperties: Map<String, String> = emptyMap(),
     /** Extra Gradle scripts for the root project (`root.gradle.*` keys; values are file paths). */
     val rootExtraGradle: Map<String, String> = emptyMap(),
+    /**
+     * Whether the headless Godot integration tests (`:addon:runIntegrationTests`) run
+     * (`integrationTests.enabled` key). Defaults to `false` when the key is absent.
+     */
+    val integrationTestsEnabled: Boolean = false,
     /** Extra `project.extra` entries for the `:addon` sub-project (`extra.*` keys). */
     val addonExtraProperties: Map<String, String> = emptyMap(),
     /** Extra Gradle scripts for the `:addon` sub-project (`gradle.*` keys). */
@@ -81,6 +87,8 @@ data class BuildConfig(
                 gradleProjectName      = buildProps.require("gradleProjectName"),
                 rootExtraProperties    = buildProps.extractPrefixed("root.extra."),
                 rootExtraGradle        = buildProps.extractPrefixed("root.gradle."),
+                integrationTestsEnabled =
+                    buildProps.getProperty("integrationTests.enabled")?.trim()?.toBoolean() ?: false,
                 addonExtraProperties   = addonProps.extractPrefixed("extra."),
                 addonExtraGradle       = addonProps.extractPrefixed("gradle."),
                 androidExtraProperties = androidProps.extractPrefixed("extra."),

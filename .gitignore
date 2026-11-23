@@ -51,6 +51,9 @@ local.properties
 *.dblite
 ios/godot/
 
+# Godot editor downloaded for headless integration tests
+addon/godot-editor/
+
 # Xcode
 xcuserdata/
 

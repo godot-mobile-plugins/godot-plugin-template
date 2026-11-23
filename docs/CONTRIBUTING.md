@@ -33,14 +33,20 @@ Thank you for your interest in contributing to the Godot PluginTemplate Plugin! 
 │   ├-- ?.gradle.kts                         # Any extra addon-specific Gradle configuration (configured in
 │   │                                        # addon/config/addon-build.properties) for the plugin goes here
 │   ├-- build/
-│   │   └-- output/                          # Generated GDScript code
+│   │   ├-- output/                          # Generated GDScript code
+│   │   ├-- integration-test/project/        # Assembled headless Godot test project (generated)
+│   │   └-- test-results/integrationTest/    # Integration test JUnit XML results
 │   │
 │   ├-- config/
 │   │   └-- addon-build.properties           # Gradle build customization for addon module
 │   │
+│   ├-- godot-editor/                        # Downloaded Godot editor for integration tests (gitignored;
+│   │                                        # default location; configurable via local.properties)
+│   │
 │   └-- src/
 │       ├-- main                             # Main GDScript templates
-│       └-- shared                           # GDScript templates in common with other plugins, if any
+│       ├-- shared                           # GDScript templates in common with other plugins, if any
+│       └-- test/integration/                # Headless Godot integration tests (runner + test suites)
 │
 ├-- android/                               # Android platform module
 │   ├-- android-build.gradle.kts             # Android build configuration
@@ -78,7 +84,9 @@ Thank you for your interest in contributing to the Godot PluginTemplate Plugin! 
 │   │       ├-- base-conventions.gradle.kts  # Core convention plugin - applied by every module
 │   │       ├-- BuildConfig.kt               # Reads build.properties + per-module *-build.properties
 │   │       ├-- GodotConfig.kt               # Reads godot.properties
+│   │       ├-- GodotEditor.kt               # Godot editor download URL + host platform (integration tests)
 │   │       ├-- IosConfig.kt                 # Reads ios/config/ios.properties
+│   │       ├-- JUnitResults.kt              # Reads JUnit XML results (Android unit + integration tests)
 │   │       ├-- PluginConfig.kt              # Reads plugin.properties
 │   │       ├-- ProjectExtensions.kt         # loadPluginConfig(), loadGodotConfig(), loadIosConfig(), loadBuildConfig()
 │   │       ├-- SpmDependency.kt             # Data class for spm_dependencies.json entries
@@ -354,6 +362,9 @@ root.extra.anotherProperty=property value
 
 # Extra Gradle scripts applied to the root project only
 root.gradle.another=another.gradle.kts
+
+# Run the headless Godot integration tests (default: false when absent)
+integrationTests.enabled=true
 ```
 
 Per-module extra properties and scripts are configured in each module's own `*-build.properties` file (see [Build Customization](#-build-customization) below).
@@ -448,6 +459,17 @@ lib.dir=/path/to/your/shared/aar
 ```
 
 When `lib.dir` is not set, the build uses the `android/libs/` directory. The path supports `~` and environment variable expansion.
+
+#### Godot Editor Directory (integration tests - optional)
+
+The integration tests download the Godot editor for the version in `common/config/godot.properties` into `addon/godot-editor/`. To keep one cached copy for several plugin projects, set `godot.editor.dir` in `local.properties`:
+
+```properties
+# Cache the Godot editor used by the integration tests outside the project
+godot.editor.dir=/path/to/your/shared/godot-editor
+```
+
+The editor is stored in a `<version>-<releaseType>/<platform>/` subdirectory, so different Godot versions can be cached side by side.
 
 **Note:** The Godot headers directory must contain a `GODOT_VERSION` file whose content matches the `godotVersion` property in `common/config/godot.properties`. The `downloadGodotHeaders` Gradle task creates this file automatically when it downloads the headers. If the directory already exists but contains a different version, the build will fail with a clear error message - run `./script/build_ios.sh -gG` to remove the old directory and re-download the correct version.
 
@@ -978,6 +1000,88 @@ Objective-C++ tests: add a `.mm` file to `ios/src/test/unit/`. Import `plugin_te
 
 ---
 
+### Integration Tests (headless Godot)
+
+The integration tests start the Godot editor binary in headless mode (no window) and check the plugin's GDScript side: that the generated addon files load without errors, and that the `PluginTemplate` node behaves correctly when the mobile (Android/iOS) part of the plugin is missing, as on desktop. They use a small custom runner and do not need the Android SDK, Xcode, or a device. Supported on macOS and Linux.
+
+#### Enabling
+
+The tests are controlled by `integrationTests.enabled` in `common/config/build.properties`:
+
+```properties
+integrationTests.enabled=true
+```
+
+When the key is `false` or absent, `runIntegrationTests` only prints a notice; nothing is downloaded.
+
+#### Configuring
+
+- **Godot version:** taken from `godotVersion` and `godotReleaseType` in `common/config/godot.properties`, the same values used for the Android library and iOS headers. Nothing else needs to change when you update Godot.
+- **Editor cache:** the editor is downloaded once by `downloadGodotEditor` into `addon/godot-editor/<version>-<releaseType>/<platform>/` and reused on later runs. Set `godot.editor.dir` in `common/local.properties` to use another location (see [Local Configuration](#-local-configuration)). Delete the directory to force a fresh download.
+
+#### Running integration tests
+
+```bash
+cd common
+./gradlew :addon:runIntegrationTests
+```
+
+#### What the pipeline does
+
+| Step | Gradle Task | Description |
+|------|-------------|-------------|
+| 1 | `downloadGodotEditor` | Downloads `Godot_v<version>-<releaseType>_<platform>.zip` from `godotengine/godot-builds` releases and extracts it. Skipped when the matching version is already cached. |
+| 2 | `prepareIntegrationTestProject` | Generates the addon GDScript (`generateGDScript`, `generateSharedGDScript`, `copyAssets`) and assembles a Godot project in `addon/build/integration-test/project/` from `addon/src/test/integration/` plus the generated `addons/` folders. The demo project is not used. |
+| 3 | `runIntegrationTests` | Runs `godot --headless --import` so global classes are registered, then runs `res://runner/IntegrationTestRunner.gd`. The runner writes one JUnit XML file per suite; the task prints them with the shared TEST RESULTS table and fails the build if any test failed or Godot exited with an error. |
+
+Godot's import log is saved to `addon/build/integration-test/import.log`.
+
+#### Output
+
+- **Test results XML:** `addon/build/test-results/integrationTest/TEST-<suite>.xml` (standard JUnit format)
+- **Console:** one `PASS`/`FAIL` line per test, followed by the TEST RESULTS table
+
+Errors that a test triggers on purpose (for example, the missing native singleton) are printed by Godot as `ERROR:` lines with a backtrace. They are expected when the test passes.
+
+#### Layout
+
+```text
+addon/src/test/integration/
+├-- project.godot                    # Minimal project settings for the test project
+├-- runner/
+│   ├-- IntegrationTestRunner.gd     # Entry point: finds suites, runs tests, writes JUnit XML
+│   ├-- IntegrationTest.gd           # Base class for test suites (assertions, expect_error)
+│   └-- ErrorCollector.gd            # Captures engine errors so unexpected ones fail the test
+└-- tests/
+    ├-- test_plugin_template_loading.gd          # Addon files load without errors
+    └-- test_plugin_template_without_native.gd   # Behavior when the mobile plugin is missing
+```
+
+#### Writing new integration tests
+
+1. Add a file to `addon/src/test/integration/tests/` whose name ends in `.gd` (by convention `test_<topic>.gd`). Each file is one suite.
+2. Make it `extends IntegrationTest` and add methods whose names start with `test_`. Tests may use `await`; optional `before_each()` / `after_each()` run around every test.
+3. Run `./gradlew :addon:runIntegrationTests`.
+
+```gdscript
+extends IntegrationTest
+
+
+func test_node_can_be_added_to_tree() -> void:
+	var __node: PluginTemplate = PluginTemplate.new()
+	tree.root.add_child(__node)
+	await wait_frames()
+	expect_error("singleton not found")  # Expected: no native plugin on desktop
+	assert_true(__node.is_inside_tree())
+	__node.free()
+```
+
+Available helpers: `assert_true`, `assert_false`, `assert_eq`, `assert_not_null`, `expect_error(substring, count = 1)`, `wait_frames(count = 1)` and the `tree` (`SceneTree`) property.
+
+Every engine error logged during a test (including `push_error` and script errors) fails the test unless the test consumes it with `expect_error()`. Errors logged while a suite script is loading are reported as a failed `_load_suite` test case.
+
+---
+
 ### Shared test reporting
 
 Both platforms print their test summaries with shared code in `common/build-logic/src/main/java/TestReporting.kt`. Each platform build script reads its own results and passes them in:
@@ -989,6 +1093,8 @@ Both platforms print their test summaries with shared code in `common/build-logi
 | `failBuildIfTestsFailed(suites, dash)` | Throws a `GradleException` ("N test(s) failed ...") when any test failed. Call it after printing both tables. |
 | `CoverageRow` | One CODE COVERAGE row: name, covered, total (missed and percentage are derived). |
 | `printCoverageTable(nameHeader, rows, emptyNotice, headerNotes)` | Prints the CODE COVERAGE table with Covered / Missed / Total / Coverage columns. |
+
+JUnit XML result files are read by `parseSuiteResults()` in `common/build-logic/src/main/java/JUnitResults.kt`, which is used by both the Android unit tests and the integration tests. The integration tests print only the TEST RESULTS table (no coverage).
 
 Android fills the coverage table with one row per JaCoCo counter (`Metric` column: Instructions, Branches, Lines, Methods, Classes). iOS fills it with one row per build target (`Target` column, line coverage). To change how the tables look, edit `TestReporting.kt`. To change how results are read, edit the platform build script (`android/android-build.gradle.kts` or `ios/ios-build.gradle.kts`).
 
@@ -1237,6 +1343,40 @@ Validates formatting of all Gradle Kotlin DSL build files using two tools:
 | Run ktlint | Runs `ktlint` on all `*.gradle.kts` files in `addon/`, `android/`, and `common/` |
 | Install editorconfig-checker | Uses the shared `.github/actions/install-ec` composite action with version `3.6.1` |
 | Verify EditorConfig | Runs `editorconfig-checker` on the same set of files |
+
+---
+
+### Integration CI (`integration-ci.yml`)
+
+**Trigger:** Pull requests targeting `main` that touch any of the following paths:
+
+- `common/config/**`
+- `common/**/*.gradle.kts`
+- `common/build-logic/src/**`
+- `addon/config/**`
+- `addon/src/**`
+- `addon/**/*.gradle.kts`
+
+**Runner:** `ubuntu-22.04`
+
+**Purpose:**
+
+Run the headless Godot integration tests for the plugin's GDScript side after each PR submission.
+
+**What it does:**
+
+Runs `./gradlew :addon:runIntegrationTests` from `common/`, which downloads the Godot editor for the configured Godot version, runs the tests headless and prints the TEST RESULTS table. The JUnit XML results are uploaded as the `integration-test-results` artifact even when tests fail, and the job then fails if any test failed. The step is skipped (and the job passes) when `integrationTests.enabled` is not `true`.
+
+**Steps summary:**
+
+| Step | Description |
+|------|-------------|
+| Checkout | Checks out the repository |
+| Set up JDK | Installs Temurin JDK 17 |
+| Make Gradle wrapper executable | `chmod +x common/gradlew` |
+| Run integration tests | Runs `./gradlew :addon:runIntegrationTests` (continues on error) |
+| Upload integration test results | Uploads `addon/build/test-results/integrationTest/` |
+| Fail job if tests failed | Re-fails the job after the upload |
 
 ---
 
